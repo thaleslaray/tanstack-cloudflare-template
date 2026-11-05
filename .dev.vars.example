@@ -8,3 +8,11 @@ RESEND_API_KEY=
 # Remetente, ex.: Meu App <contato@seudominio.com.br>. Precisa ser de domínio verificado no provedor.
 # Vazio com Resend: usa onboarding@resend.dev (só entrega para o e-mail da sua conta Resend).
 EMAIL_FROM=
+
+# Login social (opcional). Cada provedor só liga com o par (id + segredo) preenchido.
+# Redirect URI a cadastrar no provedor: <BETTER_AUTH_URL>/api/auth/callback/google
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Redirect URI a cadastrar no provedor: <BETTER_AUTH_URL>/api/auth/callback/github
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=

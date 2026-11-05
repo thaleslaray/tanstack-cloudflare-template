@@ -1,8 +1,27 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
+import { emailOTP } from 'better-auth/plugins'
 
 import { getDb } from '#/db/index'
+import { sendEmail } from '#/lib/email'
+import { loginCodeEmail } from '#/lib/email-templates'
+
+// String vazia (ou só espaços) conta como ausente.
+function present(value: string | undefined): value is string {
+  return Boolean(value?.trim())
+}
+
+// O login social só liga quando o par de variáveis está completo.
+export function googleEnabled(env: Env) {
+  return present(env.GOOGLE_CLIENT_ID) && present(env.GOOGLE_CLIENT_SECRET)
+}
+export function githubEnabled(env: Env) {
+  return present(env.GITHUB_CLIENT_ID) && present(env.GITHUB_CLIENT_SECRET)
+}
+
+const SEVEN_DAYS = 60 * 60 * 24 * 7
+const ONE_DAY = 60 * 60 * 24
 
 // Factory por request: em Workers, env só existe durante a requisição.
 export function getAuth(env: Env) {
@@ -11,8 +30,58 @@ export function getAuth(env: Env) {
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     emailAndPassword: { enabled: true },
-    advanced: { ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] } },
-    // tanstackStartCookies() deve ser SEMPRE o último plugin
-    plugins: [tanstackStartCookies()],
+    session: { expiresIn: SEVEN_DAYS, updateAge: ONE_DAY },
+    socialProviders: {
+      ...(googleEnabled(env)
+        ? {
+            google: {
+              clientId: env.GOOGLE_CLIENT_ID!,
+              clientSecret: env.GOOGLE_CLIENT_SECRET!,
+            },
+          }
+        : {}),
+      ...(githubEnabled(env)
+        ? {
+            github: {
+              clientId: env.GITHUB_CLIENT_ID!,
+              clientSecret: env.GITHUB_CLIENT_SECRET!,
+            },
+          }
+        : {}),
+    },
+    // Login por código não traz nome: usa a parte local do e-mail.
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => {
+            if (user.name?.trim()) return
+            return { data: { ...user, name: user.email.split('@')[0] } }
+          },
+        },
+      },
+    },
+    advanced: {
+      ipAddress: { ipAddressHeaders: ['cf-connecting-ip', 'x-forwarded-for'] },
+    },
+    plugins: [
+      emailOTP({
+        otpLength: 6,
+        expiresIn: 600,
+        allowedAttempts: 3,
+        // Só o hash do código fica no banco (tabela `verification`).
+        storeOTP: 'hashed',
+        async sendVerificationOTP({ email, otp, type }) {
+          if (type !== 'sign-in') return
+          const message = loginCodeEmail({ code: otp, minutes: 10 })
+          // Erro de envio é lançado de propósito: aparece no log.
+          const result = await sendEmail({ to: email, ...message })
+          if (result.provider === 'console') {
+            console.warn(`[auth] código de login para ${email}: ${otp}`)
+          }
+        },
+      }),
+      // tanstackStartCookies() deve ser SEMPRE o último plugin
+      tanstackStartCookies(),
+    ],
   })
 }

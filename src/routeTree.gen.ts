@@ -10,7 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DemoBetterAuthRouteImport } from './routes/demo/better-auth'
+import { Route as ContaRouteImport } from './routes/conta'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as DemoDrizzleRouteImport } from './routes/demo/drizzle'
 import { Route as DemoDurableObjectRouteImport } from './routes/demo/durable-object'
 import { Route as DemoR2RouteImport } from './routes/demo/r2'
@@ -22,9 +23,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoBetterAuthRoute = DemoBetterAuthRouteImport.update({
-  id: '/demo/better-auth',
-  path: '/demo/better-auth',
+const ContaRoute = ContaRouteImport.update({
+  id: '/conta',
+  path: '/conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoDrizzleRoute = DemoDrizzleRouteImport.update({
@@ -55,7 +61,8 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
+  '/conta': typeof ContaRoute
+  '/login': typeof LoginRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
   '/demo/r2': typeof DemoR2Route
@@ -64,7 +71,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
+  '/conta': typeof ContaRoute
+  '/login': typeof LoginRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
   '/demo/r2': typeof DemoR2Route
@@ -74,7 +82,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
+  '/conta': typeof ContaRoute
+  '/login': typeof LoginRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
   '/demo/r2': typeof DemoR2Route
@@ -85,7 +94,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/demo/better-auth'
+    | '/conta'
+    | '/login'
     | '/demo/drizzle'
     | '/demo/durable-object'
     | '/demo/r2'
@@ -94,7 +104,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/demo/better-auth'
+    | '/conta'
+    | '/login'
     | '/demo/drizzle'
     | '/demo/durable-object'
     | '/demo/r2'
@@ -103,7 +114,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/demo/better-auth'
+    | '/conta'
+    | '/login'
     | '/demo/drizzle'
     | '/demo/durable-object'
     | '/demo/r2'
@@ -113,7 +125,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DemoBetterAuthRoute: typeof DemoBetterAuthRoute
+  ContaRoute: typeof ContaRoute
+  LoginRoute: typeof LoginRoute
   DemoDrizzleRoute: typeof DemoDrizzleRoute
   DemoDurableObjectRoute: typeof DemoDurableObjectRoute
   DemoR2Route: typeof DemoR2Route
@@ -130,11 +143,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/better-auth': {
-      id: '/demo/better-auth'
-      path: '/demo/better-auth'
-      fullPath: '/demo/better-auth'
-      preLoaderRoute: typeof DemoBetterAuthRouteImport
+    '/conta': {
+      id: '/conta'
+      path: '/conta'
+      fullPath: '/conta'
+      preLoaderRoute: typeof ContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/drizzle': {
@@ -177,7 +197,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DemoBetterAuthRoute: DemoBetterAuthRoute,
+  ContaRoute: ContaRoute,
+  LoginRoute: LoginRoute,
   DemoDrizzleRoute: DemoDrizzleRoute,
   DemoDurableObjectRoute: DemoDurableObjectRoute,
   DemoR2Route: DemoR2Route,

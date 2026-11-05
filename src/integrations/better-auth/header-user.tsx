@@ -1,42 +1,62 @@
-import { authClient } from '#/lib/auth-client'
 import { Link } from '@tanstack/react-router'
+
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '#/components/ui/dropdown-menu'
+import { authClient } from '#/lib/auth-client'
 
 export default function BetterAuthHeader() {
   const { data: session, isPending } = authClient.useSession()
 
   if (isPending) {
-    return <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+    return <div className="size-8 animate-pulse rounded-full bg-muted" />
   }
 
   if (session?.user) {
+    const { user } = session
     return (
-      <div className="flex items-center gap-2">
-        <Avatar className="h-8 w-8">
-          {session.user.image && (
-            <AvatarImage src={session.user.image} alt="" />
-          )}
-          <AvatarFallback className="text-xs">
-            {session.user.name?.charAt(0).toUpperCase() || 'U'}
-          </AvatarFallback>
-        </Avatar>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            void authClient.signOut()
-          }}
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger
+          aria-label="Abrir menu da conta"
+          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          Sair
-        </Button>
-      </div>
+          <Avatar className="size-8">
+            {user.image ? <AvatarImage src={user.image} alt="" /> : null}
+            <AvatarFallback className="text-xs">
+              {(user.name || user.email).charAt(0).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-48">
+          <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
+            {user.email}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to="/conta">Minha conta</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => {
+              void authClient.signOut().then(() => window.location.assign('/'))
+            }}
+          >
+            Sair
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     )
   }
 
   return (
     <Button asChild variant="outline" size="sm">
-      <Link to="/demo/better-auth">Entrar</Link>
+      <Link to="/login">Entrar</Link>
     </Button>
   )
 }

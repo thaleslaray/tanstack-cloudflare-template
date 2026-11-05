@@ -14,7 +14,7 @@ npm run dev                      # cf dev, em http://localhost:3000
 npm run db:migrate:local         # com o dev server rodando ou nao; grava em .cloudflare/state
 ```
 
-Abra http://localhost:3000. Demos em `/demo/drizzle`, `/demo/r2`, `/demo/durable-object` e `/demo/better-auth`.
+Abra http://localhost:3000. Demos em `/demo/drizzle`, `/demo/r2` e `/demo/durable-object`. Login em `/login` e conta em `/conta`.
 
 ## Configuracao
 

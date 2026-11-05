@@ -48,6 +48,13 @@ export default defineConfig({
 			RESEND_API_KEY: bindings.secret(),
 			// Remetente, ex.: "Meu App <contato@seudominio.com.br>". Precisa ser de domínio verificado.
 			EMAIL_FROM: bindings.secret(),
+			// Login social (opcional). Cada provedor só liga quando o PAR (id + segredo) está preenchido.
+			// Redirect URIs a cadastrar no provedor: <BETTER_AUTH_URL>/api/auth/callback/google e
+			// <BETTER_AUTH_URL>/api/auth/callback/github.
+			GOOGLE_CLIENT_ID: bindings.secret(),
+			GOOGLE_CLIENT_SECRET: bindings.secret(),
+			GITHUB_CLIENT_ID: bindings.secret(),
+			GITHUB_CLIENT_SECRET: bindings.secret(),
 			// Cloudflare Email Service (opcional, plano Workers Paid, domínio precisa estar verificado em
 			// Compute → Email Service → Email Sending). Descomente, defina EMAIL_FROM com um endereço do
 			// domínio verificado e a camada de e-mail (src/lib/email.ts) passa a usar este binding
