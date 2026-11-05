@@ -1,6 +1,10 @@
-# Gerar com: openssl rand -base64 32
+# Segredos LOCAIS. Copie para .dev.vars (não versionado): cp .dev.vars.example .dev.vars
+# Só BETTER_AUTH_SECRET é obrigatório. As outras chaves podem ficar vazias (vazio = desligado).
+# A URL do app NÃO fica aqui: é BETTER_AUTH_URL em cloudflare.config.ts.
+# Em produção, os mesmos nomes vão num .prod.vars e sobem com `cf deploy --secrets-file .prod.vars`.
+
+# Assina os cookies de sessão. Gere com: openssl rand -base64 32
 BETTER_AUTH_SECRET=
-BETTER_AUTH_URL=http://localhost:3000
 
 # E-mail (opcional). Sem estas duas variáveis, o e-mail aparece no terminal do `cf dev`.
 # Crie a chave em https://resend.com/api-keys
