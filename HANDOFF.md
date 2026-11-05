@@ -87,3 +87,16 @@ Os 4 commits da PoC ficaram na pasta temporária da sessão antiga (o app não c
 - vinext: https://blog.cloudflare.com/vinext/
 - TanStack Intent: https://tanstack.com/intent
 - Referência ShipKit Lite: https://github.com/rice408s/tanstack-start-cloudflare-starter
+
+## 9. Template entregue (2026-11-05, fim do dia)
+
+A sessão de implementação terminou com 11 commits em `main`, um por módulo. Verificação feita pela sessão-mãe, por conta própria:
+`npm run check` (Biome, 80 arquivos), `npm run typecheck`, `npm run test` (43 testes), `npx cf build` (11 páginas prerender), `npx cf deploy --dry-run` (5 bindings: COUNTER, DB, BUCKET, PUBLIC_RATE_LIMIT, BETTER_AUTH_URL). No navegador: landing nova em pt-BR, troca de tema e modo escuro, login por código lido no log do `cf dev`, página `/conta`, `/blog`.
+
+Decisões registradas pela sessão de implementação no CLAUDE.md: i18n só pt-BR (sem Paraglide); Vitest puro (o pool de Workers depende do Wrangler); `BETTER_AUTH_URL` no `cloudflare.config.ts` vence o `.dev.vars`; segredos opcionais com `bindings.secret()` só avisam quando ausentes.
+
+Pendências:
+- `.claude/settings.json` com os hooks do TanStack Intent não foi criado nesta pasta (o classificador de permissão bloqueou a sessão de implementação). Comando: `npx @tanstack/intent@latest hooks install`.
+- Botão Deploy to Cloudflare e `cf deploy --prebuilt` não testados em deploy real.
+- Login Google/GitHub e envio real por Resend/Email Service só com stubs; sem credenciais.
+- Referência clonada em `~/Projetos/templates/_ref/` pode ser apagada quando não for mais útil.
