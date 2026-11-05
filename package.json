@@ -55,6 +55,7 @@
     "@playwright/test": "^1.64.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "0.8.6",
+    "@tanstack/intent": "^0.5.6",
     "@tanstack/router-cli": "^1.132.0",
     "@types/mdx": "^2.0.14",
     "@types/node": "^22.10.2",
