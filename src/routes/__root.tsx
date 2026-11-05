@@ -3,70 +3,95 @@ import {
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-import Footer from '../components/Footer'
-import Header from '../components/Header'
+import type { QueryClient } from '@tanstack/react-query'
+import { ThemeProvider } from 'next-themes'
+import { Suspense, lazy, useEffect, useState } from 'react'
 
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import Footer from '#/components/Footer'
+import Header from '#/components/Header'
+import {
+  ThemeStyleProvider,
+  themeStyleScript,
+} from '#/components/theme-provider'
+import { appConfig } from '#/config/app'
 
 import appCss from '../styles.css?url'
-
-import type { QueryClient } from '@tanstack/react-query'
 
 interface MyRouterContext {
   queryClient: QueryClient
 }
 
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`
+// Devtools só em desenvolvimento: o import dinâmico fica atrás de uma
+// constante de build, então a produção descarta o chunk inteiro.
+const Devtools = import.meta.env.DEV
+  ? lazy(() => import('#/components/devtools'))
+  : () => null
+
+// O sonner pesa uns 30 KB e só aparece quando o visitante faz algo. Entra
+// depois da hidratação, fora do caminho crítico.
+const Toaster = lazy(() =>
+  import('#/components/ui/sonner').then((mod) => ({ default: mod.Toaster })),
+)
+
+function LazyToaster() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  return mounted ? (
+    <Suspense fallback={null}>
+      <Toaster />
+    </Suspense>
+  ) : null
+}
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
     meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'TanStack Start Starter',
-      },
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: appConfig.name },
+      { name: 'description', content: appConfig.description },
+      { property: 'og:site_name', content: appConfig.name },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:locale', content: 'pt_BR' },
     ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
-    ],
+    links: [{ rel: 'stylesheet', href: appCss }],
   }),
   shellComponent: RootDocument,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
+        {/* Aplica o VISUAL (data-theme) antes da primeira pintura. O
+            next-themes faz o mesmo truque para claro/escuro de dentro do
+            próprio bundle; o eixo do visual é nosso, então o script também.
+            Precisa ficar no <head> e bloqueante. */}
+        <script dangerouslySetInnerHTML={{ __html: themeStyleScript }} />
       </head>
-      <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
-        <Header />
-        {children}
-        <Footer />
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-            TanStackQueryDevtools,
-          ]}
-        />
+      <body className="min-h-screen font-sans antialiased">
+        {/* Claro é o padrão, seja qual for o sistema do visitante; o toggle
+            grava uma escolha explícita que vence a partir daí. Este é o eixo
+            do MODO; o VISUAL (qual tema) é o ThemeStyleProvider dentro. */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ThemeStyleProvider>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1 pt-16">{children}</main>
+              <Footer />
+            </div>
+          </ThemeStyleProvider>
+          <LazyToaster />
+          <Suspense fallback={null}>
+            <Devtools />
+          </Suspense>
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>

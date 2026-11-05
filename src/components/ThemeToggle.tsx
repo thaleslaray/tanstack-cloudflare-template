@@ -1,81 +1,39 @@
+import { MoonIcon, SunIcon } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 
-type ThemeMode = 'light' | 'dark' | 'auto'
-
-function getInitialMode(): ThemeMode {
-  if (typeof window === 'undefined') {
-    return 'auto'
-  }
-
-  const stored = window.localStorage.getItem('theme')
-  if (stored === 'light' || stored === 'dark' || stored === 'auto') {
-    return stored
-  }
-
-  return 'auto'
-}
-
-function applyThemeMode(mode: ThemeMode) {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const resolved = mode === 'auto' ? (prefersDark ? 'dark' : 'light') : mode
-
-  document.documentElement.classList.remove('light', 'dark')
-  document.documentElement.classList.add(resolved)
-
-  if (mode === 'auto') {
-    document.documentElement.removeAttribute('data-theme')
-  } else {
-    document.documentElement.setAttribute('data-theme', mode)
-  }
-
-  document.documentElement.style.colorScheme = resolved
-}
-
+/**
+ * Um botão, um trabalho: clicar alterna claro ↔ escuro. A escolha é lida de
+ * `resolvedTheme`, então o primeiro clique saindo de "sistema" vai para o
+ * oposto do que o visitante está vendo. `resolvedTheme` é indefinido até o
+ * next-themes ler o localStorage (e o servidor não o conhece), por isso o
+ * botão segura um espaço fixo até montar: o cabeçalho não pula.
+ */
 export default function ThemeToggle() {
-  const [mode, setMode] = useState<ThemeMode>('auto')
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
-  useEffect(() => {
-    const initialMode = getInitialMode()
-    setMode(initialMode)
-    applyThemeMode(initialMode)
-  }, [])
-
-  useEffect(() => {
-    if (mode !== 'auto') {
-      return
-    }
-
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => applyThemeMode('auto')
-
-    media.addEventListener('change', onChange)
-    return () => {
-      media.removeEventListener('change', onChange)
-    }
-  }, [mode])
-
-  function toggleMode() {
-    const nextMode: ThemeMode =
-      mode === 'light' ? 'dark' : mode === 'dark' ? 'auto' : 'light'
-    setMode(nextMode)
-    applyThemeMode(nextMode)
-    window.localStorage.setItem('theme', nextMode)
-  }
-
-  const label =
-    mode === 'auto'
-      ? 'Theme mode: auto (system). Click to switch to light mode.'
-      : `Theme mode: ${mode}. Click to switch mode.`
+  const isDark = resolvedTheme === 'dark'
+  const label = isDark ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'
 
   return (
     <button
       type="button"
-      onClick={toggleMode}
       aria-label={label}
       title={label}
-      className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-sm font-semibold text-[var(--sea-ink)] shadow-[0_8px_22px_rgba(30,90,72,0.08)] transition hover:-translate-y-0.5"
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      className="inline-flex size-9 items-center justify-center rounded-[var(--radius-btn)] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none"
     >
-      {mode === 'auto' ? 'Auto' : mode === 'dark' ? 'Dark' : 'Light'}
+      {mounted ? (
+        isDark ? (
+          <SunIcon className="size-4" aria-hidden="true" />
+        ) : (
+          <MoonIcon className="size-4" aria-hidden="true" />
+        )
+      ) : (
+        <span className="size-4" />
+      )}
     </button>
   )
 }

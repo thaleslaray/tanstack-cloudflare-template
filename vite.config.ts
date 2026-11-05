@@ -9,8 +9,9 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
-  // `cf dev` nao aceita --port
-  server: { port: 3000 },
+  // `cf dev` não aceita --port: a porta vem daqui. `PORT=3001 npm run dev`
+  // quando a 3000 estiver ocupada (lembre de ajustar BETTER_AUTH_URL no .dev.vars).
+  server: { port: Number(process.env.PORT) || 3000 },
   plugins: [
     devtools(),
     cloudflare(),
