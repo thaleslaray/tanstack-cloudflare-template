@@ -4,6 +4,16 @@ import { env } from 'cloudflare:workers'
 import { getDb } from '#/db/index'
 import { desc } from 'drizzle-orm'
 import { todos } from '#/db/schema'
+import { Badge } from '#/components/ui/badge'
+import { Button } from '#/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '#/components/ui/card'
+import { Input } from '#/components/ui/input'
 
 const getTodos = createServerFn({
   method: 'GET',
@@ -45,74 +55,84 @@ function DemoDrizzle() {
       router.invalidate()
       ;(e.target as HTMLFormElement).reset()
     } catch (error) {
-      console.error('Failed to create todo:', error)
+      console.error('Falha ao criar tarefa:', error)
     }
   }
 
   return (
     <main className="demo-page demo-center">
-      <section className="demo-panel w-full max-w-2xl">
-        <header className="mb-8 flex items-center gap-4">
-          <span className="demo-card flex h-14 w-14 items-center justify-center p-3">
-            <img src="/drizzle.svg" alt="Drizzle Logo" className="h-8 w-8" />
-          </span>
-          <div>
-            <p className="island-kicker mb-2">Database</p>
-            <h1 className="demo-title">Drizzle Demo</h1>
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-lg border p-3">
+              <img
+                src="/drizzle.svg"
+                alt="Logo do Drizzle"
+                className="h-8 w-8"
+              />
+            </span>
+            <div>
+              <p className="island-kicker mb-2">Banco de dados</p>
+              <CardTitle className="text-2xl">Demo do Drizzle</CardTitle>
+            </div>
           </div>
-        </header>
+        </CardHeader>
 
-        <h2 className="demo-section-title mb-4">Todos</h2>
+        <CardContent className="space-y-6">
+          <h2 className="text-lg font-semibold">Tarefas</h2>
 
-        <ul className="space-y-3 mb-6">
-          {todos.map((todo) => (
-            <li key={todo.id} className="demo-list-item">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{todo.title}</span>
-                <span className="demo-muted text-xs">#{todo.id}</span>
-              </div>
-            </li>
-          ))}
-          {todos.length === 0 && (
-            <li className="demo-list-item text-center demo-muted">
-              No todos yet. Create one below!
-            </li>
-          )}
-        </ul>
-
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-2 sm:flex-row"
-        >
-          <input
-            type="text"
-            name="title"
-            placeholder="Add a new todo..."
-            className="demo-input min-w-0 flex-1"
-          />
-          <button type="submit" className="demo-button whitespace-nowrap">
-            Add Todo
-          </button>
-        </form>
-
-        <div className="demo-card mt-8">
-          <h3 className="demo-section-title mb-2">Powered by Drizzle ORM</h3>
-          <p className="demo-muted mb-4 text-sm">
-            Drizzle ORM sobre Cloudflare D1 (SQLite)
-          </p>
-          <div className="space-y-2 text-sm">
-            <p className="font-medium">Setup Instructions:</p>
-            <ol className="demo-muted list-inside list-decimal space-y-2">
-              <li>
-                Run: <code>npm run db:generate</code>
+          <ul className="space-y-3">
+            {todos.map((todo) => (
+              <li key={todo.id} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{todo.title}</span>
+                  <Badge variant="secondary">#{todo.id}</Badge>
+                </div>
               </li>
-              <li>
-                Run: <code>npm run db:migrate:local</code>
+            ))}
+            {todos.length === 0 && (
+              <li className="rounded-lg border p-3 text-center text-muted-foreground">
+                Nenhuma tarefa ainda. Crie uma abaixo!
               </li>
-            </ol>
-          </div>
-        </div>
-      </section>
+            )}
+          </ul>
+
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-2 sm:flex-row"
+          >
+            <Input
+              type="text"
+              name="title"
+              placeholder="Adicionar uma nova tarefa..."
+              className="min-w-0 flex-1"
+            />
+            <Button type="submit" className="whitespace-nowrap">
+              Adicionar tarefa
+            </Button>
+          </form>
+
+          <Card className="bg-muted/40">
+            <CardHeader>
+              <CardTitle className="text-base">Feito com Drizzle ORM</CardTitle>
+              <CardDescription>
+                Drizzle ORM sobre Cloudflare D1 (SQLite)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <p className="font-medium">Como configurar:</p>
+              <ol className="list-inside list-decimal space-y-2 text-muted-foreground">
+                <li>
+                  Rode: <code>npm run db:generate</code>
+                </li>
+                <li>
+                  Rode: <code>npm run db:migrate:local</code>
+                </li>
+              </ol>
+            </CardContent>
+          </Card>
+        </CardContent>
+      </Card>
     </main>
   )
 }

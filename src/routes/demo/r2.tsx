@@ -1,6 +1,10 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { env } from 'cloudflare:workers'
+import { Button } from '#/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
+import { Input } from '#/components/ui/input'
+import { Textarea } from '#/components/ui/textarea'
 
 const listFiles = createServerFn({ method: 'GET' }).handler(async () => {
   const { objects } = await env.BUCKET.list()
@@ -43,45 +47,40 @@ function DemoR2() {
 
   return (
     <main className="demo-page demo-center">
-      <section className="demo-panel w-full max-w-2xl">
-        <p className="island-kicker mb-2">Armazenamento</p>
-        <h1 className="demo-title mb-6">R2 Demo</h1>
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <p className="island-kicker">Armazenamento</p>
+          <CardTitle className="text-2xl">Demo do R2</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <ul className="space-y-3">
+            {files.map((f) => (
+              <li key={f.key} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{f.key}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {f.size} bytes
+                  </span>
+                </div>
+                <pre className="text-xs whitespace-pre-wrap text-muted-foreground">
+                  {f.content}
+                </pre>
+              </li>
+            ))}
+            {files.length === 0 && (
+              <li className="rounded-lg border p-3 text-center text-muted-foreground">
+                Nenhum arquivo ainda.
+              </li>
+            )}
+          </ul>
 
-        <ul className="space-y-3 mb-6">
-          {files.map((f) => (
-            <li key={f.key} className="demo-list-item">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{f.key}</span>
-                <span className="demo-muted text-xs">{f.size} bytes</span>
-              </div>
-              <pre className="demo-muted text-xs whitespace-pre-wrap">
-                {f.content}
-              </pre>
-            </li>
-          ))}
-          {files.length === 0 && (
-            <li className="demo-list-item text-center demo-muted">
-              Nenhum arquivo ainda.
-            </li>
-          )}
-        </ul>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-          <input
-            name="key"
-            placeholder="nome-do-arquivo.txt"
-            className="demo-input"
-          />
-          <textarea
-            name="content"
-            placeholder="Conteúdo"
-            className="demo-input"
-          />
-          <button type="submit" className="demo-button">
-            Salvar no R2
-          </button>
-        </form>
-      </section>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <Input name="key" placeholder="nome-do-arquivo.txt" />
+            <Textarea name="content" placeholder="Conteúdo" />
+            <Button type="submit">Salvar no R2</Button>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   )
 }
