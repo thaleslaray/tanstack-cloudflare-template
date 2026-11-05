@@ -1,3 +1,10 @@
 # Gerar com: openssl rand -base64 32
 BETTER_AUTH_SECRET=
 BETTER_AUTH_URL=http://localhost:3000
+
+# E-mail (opcional). Sem estas duas variáveis, o e-mail aparece no terminal do `cf dev`.
+# Crie a chave em https://resend.com/api-keys
+RESEND_API_KEY=
+# Remetente, ex.: Meu App <contato@seudominio.com.br>. Precisa ser de domínio verificado no provedor.
+# Vazio com Resend: usa onboarding@resend.dev (só entrega para o e-mail da sua conta Resend).
+EMAIL_FROM=

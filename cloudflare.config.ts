@@ -43,6 +43,16 @@ export default defineConfig({
 			BETTER_AUTH_SECRET: bindings.secret(),
 			// Variavel (texto inline). Troque pela URL publica ao publicar.
 			BETTER_AUTH_URL: bindings.text("http://localhost:3000"),
+			// E-mail (opcional). Sem estes segredos, o e-mail vai para o console do `cf dev`.
+			// Chave de API do Resend (https://resend.com/api-keys).
+			RESEND_API_KEY: bindings.secret(),
+			// Remetente, ex.: "Meu App <contato@seudominio.com.br>". Precisa ser de domínio verificado.
+			EMAIL_FROM: bindings.secret(),
+			// Cloudflare Email Service (opcional, plano Workers Paid, domínio precisa estar verificado em
+			// Compute → Email Service → Email Sending). Descomente, defina EMAIL_FROM com um endereço do
+			// domínio verificado e a camada de e-mail (src/lib/email.ts) passa a usar este binding
+			// quando RESEND_API_KEY não existir.
+			// EMAIL: bindings.sendEmail(),
 		},
 	},
 });
