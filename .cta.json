@@ -1,0 +1,29 @@
+{
+  "projectName": "poc-tanstack",
+  "mode": "file-router",
+  "bundler": "vite",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "npm",
+  "git": false,
+  "install": false,
+  "intent": false,
+  "addOnOptions": {
+    "drizzle": {
+      "database": "sqlite"
+    }
+  },
+  "projectPreset": "default",
+  "routerOnly": false,
+  "includeExamples": true,
+  "version": 1,
+  "addOns": true,
+  "framework": "react",
+  "chosenAddOns": [
+    "cloudflare",
+    "shadcn",
+    "drizzle",
+    "better-auth",
+    "tanstack-query"
+  ]
+}
