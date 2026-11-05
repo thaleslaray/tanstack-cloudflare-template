@@ -5,6 +5,7 @@ import { Button } from '#/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
+import { isRateLimited } from '#/lib/rate-limit'
 
 const listFiles = createServerFn({ method: 'GET' }).handler(async () => {
   const { objects } = await env.BUCKET.list()
@@ -20,6 +21,9 @@ const listFiles = createServerFn({ method: 'GET' }).handler(async () => {
 const saveFile = createServerFn({ method: 'POST' })
   .validator((data: { key: string; content: string }) => data)
   .handler(async ({ data }) => {
+    if (await isRateLimited('demo')) {
+      throw new Error('Muitas requisições. Tente de novo em um minuto.')
+    }
     await env.BUCKET.put(data.key, data.content)
     return { success: true }
   })

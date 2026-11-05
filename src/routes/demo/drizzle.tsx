@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
+import { isRateLimited } from '#/lib/rate-limit'
 
 const getTodos = createServerFn({
   method: 'GET',
@@ -29,6 +30,9 @@ const createTodo = createServerFn({
 })
   .validator((data: { title: string }) => data)
   .handler(async ({ data }) => {
+    if (await isRateLimited('demo')) {
+      throw new Error('Muitas requisições. Tente de novo em um minuto.')
+    }
     const db = getDb(env.DB)
     await db.insert(todos).values({ title: data.title })
     return { success: true }

@@ -11,6 +11,8 @@ export default defineConfig({
 		observability: {
 			enabled: true,
 		},
+		// Páginas pré-renderizadas saem como `/blog/index.html`; sem barra final na URL.
+		assets: { htmlHandling: 'drop-trailing-slash' },
 		// Cron (UTC): dispara o handler scheduled() todo dia as 03:00
 		triggers: [
 			triggers.scheduled({
@@ -38,6 +40,13 @@ export default defineConfig({
 			COUNTER: bindings.durableObject({
 				worker: "tanstack-cloudflare-template",
 				exportName: "Counter",
+			}),
+			// Rate limit por IP nos endpoints públicos de escrita (auth e demos): 5 requisições por minuto.
+			// `namespace` é um inteiro (como texto) único por Worker; `period` só aceita 10 ou 60 segundos.
+			// Uso: src/lib/rate-limit.ts (falha aberta se o binding não existir).
+			PUBLIC_RATE_LIMIT: bindings.rateLimit({
+				namespace: "1001",
+				simple: { limit: 5, period: 60 },
 			}),
 			// Segredo: valor local em .dev.vars; em producao via `--secrets-file` no `cf deploy`
 			BETTER_AUTH_SECRET: bindings.secret(),
