@@ -1,5 +1,5 @@
 {
-  "name": "poc-tanstack",
+  "name": "tanstack-cloudflare-template",
   "private": true,
   "type": "module",
   "imports": {

@@ -4,7 +4,7 @@ import * as entrypoint from "./src/server.ts" with { type: "cf-worker" };
 
 export default defineConfig({
 	worker: {
-		name: "poc-tanstack",
+		name: "tanstack-cloudflare-template",
 		compatibilityDate: "2026-11-05",
 		compatibilityFlags: ["nodejs_compat"],
 		entrypoint,
@@ -28,15 +28,15 @@ export default defineConfig({
 			// e atualize os scripts `db:migrate:*` no package.json.
 			// `migrations_dir` do Wrangler nao existe aqui: vai em `--dir drizzle` nos scripts.
 			DB: bindings.d1({
-				name: "poc-tanstack-db",
+				name: "tanstack-cloudflare-template-db",
 				id: "11111111-1111-4111-8111-111111111111",
 			}),
 			// Armazenamento de objetos (R2)
 			BUCKET: bindings.r2({
-				name: "poc-tanstack-files",
+				name: "tanstack-cloudflare-template-files",
 			}),
 			COUNTER: bindings.durableObject({
-				worker: "poc-tanstack",
+				worker: "tanstack-cloudflare-template",
 				exportName: "Counter",
 			}),
 			// Segredo: valor local em .dev.vars; em producao via `--secrets-file` no `cf deploy`
