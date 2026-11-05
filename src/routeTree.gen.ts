@@ -12,10 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as TermosRouteImport } from './routes/termos'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as DemoDrizzleRouteImport } from './routes/demo/drizzle'
 import { Route as DemoDurableObjectRouteImport } from './routes/demo/durable-object'
 import { Route as DemoR2RouteImport } from './routes/demo/r2'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -31,6 +37,26 @@ const ContaRoute = ContaRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoDrizzleRoute = DemoDrizzleRouteImport.update({
@@ -53,6 +79,16 @@ const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
   path: '/demo/tanstack-query',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsSlugRoute = DocsSlugRouteImport.update({
+  id: '/docs/$slug',
+  path: '/docs/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -63,20 +99,32 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/conta': typeof ContaRoute
   '/login': typeof LoginRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
   '/demo/r2': typeof DemoR2Route
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/docs/$slug': typeof DocsSlugRoute
+  '/blog/': typeof BlogIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/conta': typeof ContaRoute
   '/login': typeof LoginRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
   '/demo/r2': typeof DemoR2Route
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/docs/$slug': typeof DocsSlugRoute
+  '/blog': typeof BlogIndexRoute
+  '/docs': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -84,10 +132,16 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/conta': typeof ContaRoute
   '/login': typeof LoginRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
   '/demo/r2': typeof DemoR2Route
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/docs/$slug': typeof DocsSlugRoute
+  '/blog/': typeof BlogIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -96,30 +150,48 @@ export interface FileRouteTypes {
     | '/'
     | '/conta'
     | '/login'
+    | '/privacidade'
+    | '/termos'
+    | '/blog/$slug'
     | '/demo/drizzle'
     | '/demo/durable-object'
     | '/demo/r2'
     | '/demo/tanstack-query'
+    | '/docs/$slug'
+    | '/blog/'
+    | '/docs/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/conta'
     | '/login'
+    | '/privacidade'
+    | '/termos'
+    | '/blog/$slug'
     | '/demo/drizzle'
     | '/demo/durable-object'
     | '/demo/r2'
     | '/demo/tanstack-query'
+    | '/docs/$slug'
+    | '/blog'
+    | '/docs'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/conta'
     | '/login'
+    | '/privacidade'
+    | '/termos'
+    | '/blog/$slug'
     | '/demo/drizzle'
     | '/demo/durable-object'
     | '/demo/r2'
     | '/demo/tanstack-query'
+    | '/docs/$slug'
+    | '/blog/'
+    | '/docs/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -127,10 +199,16 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContaRoute: typeof ContaRoute
   LoginRoute: typeof LoginRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  TermosRoute: typeof TermosRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   DemoDrizzleRoute: typeof DemoDrizzleRoute
   DemoDurableObjectRoute: typeof DemoDurableObjectRoute
   DemoR2Route: typeof DemoR2Route
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
+  DocsSlugRoute: typeof DocsSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+  DocsIndexRoute: typeof DocsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -155,6 +233,34 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/drizzle': {
@@ -185,6 +291,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoTanstackQueryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/': {
+      id: '/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/$slug': {
+      id: '/docs/$slug'
+      path: '/docs/$slug'
+      fullPath: '/docs/$slug'
+      preLoaderRoute: typeof DocsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -199,10 +319,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContaRoute: ContaRoute,
   LoginRoute: LoginRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  TermosRoute: TermosRoute,
+  BlogSlugRoute: BlogSlugRoute,
   DemoDrizzleRoute: DemoDrizzleRoute,
   DemoDurableObjectRoute: DemoDurableObjectRoute,
   DemoR2Route: DemoR2Route,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
+  DocsSlugRoute: DocsSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
+  DocsIndexRoute: DocsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

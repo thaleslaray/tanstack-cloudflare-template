@@ -1,0 +1,29 @@
+// Quais caminhos podem ser PRÉ-RENDERIZADOS (HTML estático gerado no build).
+//
+// Este arquivo é importado pelo `vite.config.ts` (Node), então NÃO importe nada
+// do app aqui (nem `#/`, nem React, nem `cloudflare:workers`).
+//
+// Páginas com sessão ou bindings (login, conta, demo, api) NUNCA podem ser
+// pré-renderizadas: o HTML sairia congelado no build, sem cookie nem banco, e
+// seria servido como estático para todo mundo, pulando a verificação de
+// sessão. Por isso a regra é uma lista de PERMISSÃO (allow-list): o que não
+// está aqui não vira HTML estático, mesmo que uma rota nova apareça.
+//
+// Rota pública nova de conteúdo? Acrescente o padrão aqui.
+
+const PUBLIC_PATTERNS: RegExp[] = [
+  /^\/$/,
+  /^\/blog$/,
+  /^\/blog\/[a-z0-9-]+$/,
+  /^\/docs$/,
+  /^\/docs\/[a-z0-9-]+$/,
+  /^\/termos$/,
+  /^\/privacidade$/,
+]
+
+export function isPrerenderable(path: string): boolean {
+  // Query string não é página: `/blog?x=1` escreveria o mesmo blog/index.html.
+  if (path.includes('?')) return false
+  const clean = path.length > 1 ? path.replace(/\/+$/, '') : path
+  return PUBLIC_PATTERNS.some((re) => re.test(clean))
+}

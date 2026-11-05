@@ -1,0 +1,77 @@
+---
+title: Deploy na Cloudflare
+description: Do banco real ao app no ar, passo a passo com o CLI cf.
+order: 3
+---
+
+Publicar é trocar três coisas locais por coisas reais: um banco D1 de verdade, a URL pública e os segredos. Siga a ordem abaixo.
+
+<aside>
+
+**Aviso importante.** O `cf` e o plugin do Vite para Cloudflare estão em **beta**, por isso as versões estão fixadas no `package.json` (sem `^`). Não atualize por impulso: leia o changelog e rode `npm run typecheck`, `npx cf build` e `npx cf deploy --dry-run` antes de confiar numa versão nova.
+
+</aside>
+
+## 1. Entre na sua conta
+
+```bash
+npx cf auth login
+```
+
+Isso abre o navegador para você autorizar o CLI.
+
+## 2. Crie o banco D1
+
+```bash
+npx cf d1 create meu-app-db
+```
+
+O comando devolve um **UUID**. Guarde: ele identifica o banco.
+
+## 3. Troque o UUID placeholder
+
+O template vem com um UUID de mentira (`11111111-1111-4111-8111-111111111111`). Troque pelo real em **três lugares**:
+
+1. `cloudflare.config.ts`, no `id` de `bindings.d1`.
+2. O script `db:migrate:local` no `package.json`.
+3. O script `db:migrate:remote` no `package.json`.
+
+Se esquecer um deles, o banco local e o remoto deixam de bater com o que o código espera.
+
+## 4. Aplique as migrations no banco remoto
+
+```bash
+npm run db:migrate:remote
+```
+
+## 5. Ajuste a URL pública
+
+No `cloudflare.config.ts`, troque o valor de `BETTER_AUTH_URL` pela URL em que o app vai viver, por exemplo `https://meu-app.seudominio.com.br`. O login usa esse endereço para montar links e cookies, então ele precisa estar certo.
+
+## 6. Suba os segredos junto com o deploy
+
+Crie um arquivo temporário só com os segredos de produção (por exemplo `.prod.vars`, que também não vai para o Git) e publique:
+
+```bash
+npx cf deploy --secrets-file .prod.vars
+```
+
+O arquivo precisa ter pelo menos `BETTER_AUTH_SECRET`. Use um valor **diferente** do local. Apague o arquivo depois.
+
+Antes do primeiro deploy de verdade, vale testar sem publicar nada:
+
+```bash
+npx cf deploy --dry-run
+```
+
+## O botão Deploy to Cloudflare
+
+O `README.md` tem um botão **Deploy to Cloudflare**. Quem clica nele clona o repositório para a própria conta, cria os recursos e publica. É a forma mais rápida de entregar o template a outra pessoa, mas lembre que o fluxo do botão também depende do `cf` e do plugin em beta. Se algo falhar, o caminho manual acima continua valendo.
+
+## Depois do deploy
+
+- Abra a URL publicada e faça um login de teste.
+- Confira os logs no painel da Cloudflare: a observabilidade já está ligada no `cloudflare.config.ts`.
+- Configure um provedor de e-mail (Resend ou o Cloudflare Email Service). Sem isso, o código de login só aparece nos logs, e seus usuários não conseguem entrar.
+
+Voltou ao começo? Veja [Começando](/docs/comecando).

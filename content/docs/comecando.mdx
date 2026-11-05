@@ -1,0 +1,83 @@
+---
+title: Começando
+description: Do clone ao primeiro login, rodando na sua máquina em poucos minutos.
+order: 1
+---
+
+Este guia leva você de zero até o template rodando no seu computador, com banco de dados e login funcionando. Nada aqui usa a nuvem: tudo roda local.
+
+## O que você precisa ter
+
+- **Node.js 22 ou mais novo.** Confira com `node -v`.
+- **npm**, que já vem junto com o Node.
+- Um terminal e um editor de código.
+
+Você não precisa de conta na Cloudflare para rodar localmente. A conta só entra na hora de publicar (veja a página de deploy).
+
+## Baixe o projeto
+
+Clone o repositório e instale as dependências:
+
+```bash
+git clone <url-do-seu-repositorio> meu-app
+cd meu-app
+npm install
+```
+
+## Crie o arquivo de segredos locais
+
+Os segredos ficam em um arquivo chamado `.dev.vars`, que **nunca vai para o Git**. Copie o modelo:
+
+```bash
+cp .dev.vars.example .dev.vars
+```
+
+Abra o `.dev.vars` e troque o valor de `BETTER_AUTH_SECRET` por uma sequência longa e aleatória. Você pode gerar uma com:
+
+```bash
+openssl rand -base64 32
+```
+
+As outras chaves (Resend, Google, GitHub) são opcionais. Sem elas o template continua funcionando: os e-mails aparecem no terminal em vez de serem enviados.
+
+## Crie as tabelas do banco
+
+O banco local é um D1 simulado, guardado na pasta `.cloudflare/state`. Aplique as migrations:
+
+```bash
+npm run db:migrate:local
+```
+
+Faça isso uma vez, e de novo sempre que você criar uma migration nova.
+
+## Rode o app
+
+```bash
+npm run dev
+```
+
+Abra `http://localhost:3000`. Se a porta 3000 estiver ocupada, use `PORT=3001 npm run dev` e ajuste `BETTER_AUTH_URL` no `.dev.vars` para a mesma porta.
+
+## Faça o primeiro login
+
+Entre em **Entrar** e escolha o login por código. Digite seu e-mail e envie.
+
+Como você ainda não configurou um serviço de e-mail, **o código aparece no terminal** onde o `npm run dev` está rodando, dentro de uma mensagem de e-mail simulada. Copie os seis dígitos, cole no formulário e pronto: você está logado, e a página **Conta** já mostra seus dados.
+
+## Usando o Claude Code
+
+Se você usa o Claude Code, abra a pasta do projeto e rode:
+
+```text
+/setup
+```
+
+O comando conversa com você, confere os pré-requisitos, cria o `.dev.vars`, aplica as migrations e sobe o servidor. O arquivo `CLAUDE.md` na raiz do projeto explica ao Claude as regras do template (por exemplo, que a configuração fica em `cloudflare.config.ts` e que não existe Wrangler), então ele já começa sabendo o que pode e o que não pode fazer.
+
+## Se algo der errado
+
+- **A porta está ocupada:** use `PORT=3001 npm run dev`.
+- **Erro de tabela inexistente:** rode `npm run db:migrate:local` de novo.
+- **Tipos dos bindings desatualizados:** rode `npm run typecheck`, que regenera os tipos antes de checar.
+
+Próximo passo: entender onde cada coisa mora em [Estrutura do projeto](/docs/estrutura).

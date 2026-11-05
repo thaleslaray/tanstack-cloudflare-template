@@ -1,0 +1,70 @@
+---
+title: Por que o D1 não tem transações (e o que usar no lugar)
+description: O D1 não aceita BEGIN e COMMIT abertos entre requisições. Entenda o motivo e veja como manter seus dados consistentes com db.batch.
+date: 2026-11-05
+---
+
+Se você já usou Postgres ou MySQL, o primeiro reflexo ao mexer em dois registros ao mesmo tempo é abrir uma transação: `BEGIN`, faz as coisas, `COMMIT`. No D1, o banco SQLite da Cloudflare, isso não funciona do jeito que você espera. Vamos ver por quê e o que fazer.
+
+## O que é uma transação interativa
+
+Uma transação interativa é aquela em que você abre, volta ao seu código, decide algo com base no que leu e só então fecha:
+
+```ts
+// Isto NÃO funciona no D1
+await db.transaction(async (tx) => {
+  const [conta] = await tx.select().from(contas).where(eq(contas.id, 1))
+  if (conta.saldo >= 100) {
+    await tx.update(contas).set({ saldo: conta.saldo - 100 })
+  }
+})
+```
+
+Entre uma instrução e outra, o banco fica **esperando o seu código**. Para isso, a conexão precisa ficar presa àquela transação.
+
+## Por que o D1 não faz isso
+
+O D1 não é uma conexão fixa a um servidor. Cada consulta do seu Worker viaja pela rede até o banco, e o Worker pode ser executado em qualquer lugar, em várias cópias ao mesmo tempo. Manter uma transação aberta entre duas idas e vindas significaria travar o banco inteiro enquanto o seu código pensa, e uma requisição lenta seria capaz de bloquear todas as outras.
+
+Por isso o D1 só oferece operações que chegam **completas** ao banco, em um único envio. É uma escolha de projeto, não um defeito.
+
+## Alternativa 1: db.batch
+
+Quando você já sabe quais instruções quer rodar, mande todas juntas. O `batch` executa a lista em uma transação implícita: ou tudo funciona, ou nada é gravado.
+
+```ts
+await db.batch([
+  db.insert(pedidos).values({ usuarioId, total }),
+  db.update(estoque).set({ quantidade: sql`${estoque.quantidade} - 1` }).where(eq(estoque.produtoId, produtoId)),
+])
+```
+
+Se a segunda instrução falhar, a primeira é desfeita. Repare que nada aqui depende de um valor lido no meio do caminho.
+
+## Alternativa 2: uma instrução condicional
+
+O caso do saldo, onde você lê e depois decide, vira uma única instrução com a condição dentro do próprio SQL:
+
+```ts
+const resultado = await db
+  .update(contas)
+  .set({ saldo: sql`${contas.saldo} - 100` })
+  .where(and(eq(contas.id, 1), gte(contas.saldo, 100)))
+  .returning({ id: contas.id })
+
+if (resultado.length === 0) {
+  throw new Error('Saldo insuficiente')
+}
+```
+
+A leitura e a escrita acontecem **dentro do banco**, de forma atômica. Se o saldo não bastar, nenhuma linha é alterada e o `returning` volta vazio. Nenhuma outra requisição consegue se meter entre a checagem e o desconto.
+
+## Como escolher
+
+- Várias gravações independentes que precisam andar juntas: use `db.batch`.
+- Uma gravação que depende do estado atual: use uma instrução condicional com `where` e `returning`.
+- Precisa mesmo de lógica longa no meio? Considere um Durable Object, que processa uma requisição por vez para o mesmo objeto e tem armazenamento próprio.
+
+## Um lembrete do template
+
+O Drizzle oferece `db.transaction(...)`, mas **com o D1 não conte com ele**: a transação interativa não existe no banco. Neste template, prefira sempre `db.batch` ou uma instrução condicional, e lembre que o D1 é SQLite: não existe transação aninhada.

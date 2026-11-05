@@ -1,0 +1,61 @@
+---
+title: Estrutura do projeto
+description: O mapa das pastas e onde mexer para trocar a landing, criar tabelas e usar bindings.
+order: 2
+---
+
+Saber onde cada coisa fica economiza muito tempo. Este é o mapa do projeto, na ordem em que você provavelmente vai precisar dele.
+
+## As pastas principais
+
+| Caminho | O que tem lá |
+| --- | --- |
+| `src/routes` | As páginas. Cada arquivo vira uma URL (`blog/index.tsx` vira `/blog`). |
+| `src/routes/api` | Endpoints de API, como o do login (`api/auth/$.ts`). |
+| `src/db` | O schema do banco (Drizzle) e a função que abre o D1. |
+| `src/lib` | Código de apoio: autenticação, e-mail, conteúdo MDX, utilitários. |
+| `src/content` | Os textos da landing, como dados. |
+| `content/` | Os artigos em MDX: blog, docs, termos e privacidade. |
+| `src/components` | Peças de interface, incluindo o `ui/` do shadcn. |
+| `cloudflare.config.ts` | A configuração do Worker e dos bindings. |
+| `drizzle/` | As migrations geradas. |
+
+Repare que existem duas pastas parecidas: `src/content` guarda os dados da landing, e `content/` (na raiz) guarda os arquivos `.mdx`.
+
+## Trocar a landing
+
+A página inicial não tem texto escrito dentro dela. Ela lê uma lista de blocos em `src/content/landing.ts` e desenha cada um. Para mudar o título, os botões ou as seções, edite essa lista. Para mudar o nome do app, o e-mail de suporte ou a descrição, edite `src/config/app.ts`.
+
+## Escrever artigos
+
+Para criar um post, adicione um arquivo em `content/blog/` com o frontmatter `title`, `description` e `date`. Para uma página de documentação, use `content/docs/` com `order`. O nome do arquivo vira o endereço: `content/blog/meu-post.mdx` vira `/blog/meu-post`. Se o frontmatter estiver errado, o build avisa na hora.
+
+## Criar uma tabela
+
+1. Declare a tabela em `src/db/schema.ts`.
+2. Gere a migration com `npm run db:generate`.
+3. Aplique no banco local com `npm run db:migrate:local`.
+
+Quando for publicar, aplique no banco remoto com `npm run db:migrate:remote`. O arquivo `src/db/auth-schema.ts` espelha as tabelas do login; mexa nele só se mudar os plugins do Better Auth.
+
+## Como funcionam os bindings
+
+Um **binding** é uma ligação entre o seu código e um recurso da Cloudflare: o banco D1, o bucket R2, um Durable Object, um segredo. Você declara todos em `cloudflare.config.ts`, dentro de `env`, e usa assim:
+
+```ts
+import { env } from 'cloudflare:workers'
+
+const db = getDb(env.DB)
+```
+
+Três regras evitam dor de cabeça:
+
+- Use `env` **só dentro** de uma server function ou de um handler, nunca no topo do arquivo.
+- Nunca importe `env` em código que roda no navegador.
+- Depois de mudar `cloudflare.config.ts`, rode `npm run typecheck` para regenerar os tipos em `.cloudflare/types`.
+
+## Páginas públicas e páginas com sessão
+
+As páginas de conteúdo (landing, blog, docs, termos e privacidade) são pré-renderizadas no build: viram HTML estático. Páginas que dependem de sessão ou de bindings, como `/login`, `/conta`, `/demo` e `/api`, **nunca** são pré-renderizadas. A lista do que pode ser estático está em `src/config/public-paths.ts`.
+
+Próximo passo: [Deploy na Cloudflare](/docs/deploy).

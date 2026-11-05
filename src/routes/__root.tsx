@@ -13,6 +13,7 @@ import {
   ThemeStyleProvider,
   themeStyleScript,
 } from '#/components/theme-provider'
+import { ErrorPage, NotFoundPage } from '#/components/error-pages'
 import { appConfig } from '#/config/app'
 
 import appCss from '../styles.css?url'
@@ -57,6 +58,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   shellComponent: RootDocument,
+  notFoundComponent: NotFoundPage,
+  errorComponent: ({ error }) => <ErrorPage error={error} />,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
