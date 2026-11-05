@@ -54,9 +54,13 @@ export async function sendEmail({
     })
     if (!response.ok) {
       const body = (await response.text()).slice(0, 500)
-      throw new Error(`Falha ao enviar e-mail pelo Resend (${response.status}): ${body}`)
+      throw new Error(
+        `Falha ao enviar e-mail pelo Resend (${response.status}): ${body}`,
+      )
     }
-    const data = (await response.json().catch(() => null)) as { id?: string } | null
+    const data = (await response.json().catch(() => null)) as {
+      id?: string
+    } | null
     return { sent: true, provider: 'resend', id: data?.id }
   }
 

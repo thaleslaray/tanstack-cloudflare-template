@@ -1,12 +1,13 @@
 // Registro simples de jobs agendados. O cron (cloudflare.config.ts) chama `runJobs` pelo
 // `scheduled()` do src/server.ts. Cada job roda isolado: um erro não impede os demais.
 import { lt } from 'drizzle-orm'
-import { getDb } from '#/db/index'
 import { session, verification } from '#/db/auth-schema'
+import { getDb } from '#/db/index'
 
 export interface Job {
   name: string
   /** Retorna um detalhe curto para o log, ex.: "sessions=2 verifications=0". */
+  // biome-ignore lint/suspicious/noConfusingVoidType: o job pode não devolver detalhe nenhum
   run: (env: Env) => Promise<string | void>
 }
 
@@ -16,7 +17,9 @@ export function registerJob(job: Job): void {
   jobs.push(job)
 }
 
-export async function runJobs(env: Env): Promise<Record<string, 'ok' | 'erro'>> {
+export async function runJobs(
+  env: Env,
+): Promise<Record<string, 'ok' | 'erro'>> {
   const result: Record<string, 'ok' | 'erro'> = {}
   for (const job of jobs) {
     try {

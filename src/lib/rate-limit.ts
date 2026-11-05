@@ -30,7 +30,10 @@ export async function isRateLimited(
     const { success } = await limiter.limit({ key })
     return !success
   } catch (error) {
-    console.error('[rate-limit] falha ao consultar o limitador (liberado):', error)
+    console.error(
+      '[rate-limit] falha ao consultar o limitador (liberado):',
+      error,
+    )
     return false
   }
 }

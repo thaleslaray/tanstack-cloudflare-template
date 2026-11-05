@@ -2,8 +2,8 @@ import { Link } from '@tanstack/react-router'
 import { MenuIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Logo } from '#/components/logo'
-import ThemePicker from '#/components/theme-picker'
 import ThemeToggle from '#/components/ThemeToggle'
+import ThemePicker from '#/components/theme-picker'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,7 +72,9 @@ export default function Header() {
             </a>
           ))}
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger className={`${navLink} focus-visible:outline-none`}>
+            <DropdownMenuTrigger
+              className={`${navLink} focus-visible:outline-none`}
+            >
               Demos
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="min-w-56">

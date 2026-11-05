@@ -69,9 +69,7 @@ const secondaryBtn =
 export function HeroBlock({ block }: { block: Of<'hero'> }) {
   return (
     <section className="hero-ground mx-auto flex w-full max-w-5xl flex-col items-center gap-7 px-5 pb-16 pt-20 text-center sm:px-8 sm:pb-24 sm:pt-32">
-      {block.kicker ? (
-        <p className="kicker rise-in">{block.kicker}</p>
-      ) : null}
+      {block.kicker ? <p className="kicker rise-in">{block.kicker}</p> : null}
       <h1
         className="font-display rise-in max-w-4xl text-[2.75rem] leading-[1.0] tracking-[var(--tracking-display)] sm:text-7xl"
         style={{ animationDelay: '60ms' }}
@@ -198,6 +196,7 @@ export function TestimonialsBlock({ block }: { block: Of<'testimonials'> }) {
       <ul className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
         {block.items.map((item, i) => (
           <li
+            // biome-ignore lint/suspicious/noArrayIndexKey: lista estática de conteúdo, sem reordenação; nomes podem repetir
             key={`${item.name}-${i}`}
             className="flex flex-col justify-between gap-6 rounded-[var(--radius-card)] border border-border bg-card p-6 shadow-[var(--shadow-card)]"
           >

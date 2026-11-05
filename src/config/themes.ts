@@ -45,7 +45,11 @@ export const themes: ThemeDef[] = [
     id: 'editorial',
     label: 'Editorial',
     hint: 'Papel, serifa e terracota. Para conteúdo.',
-    swatch: ['oklch(0.975 0.009 85)', 'oklch(0.47 0.15 32)', 'oklch(0.2 0.012 60)'],
+    swatch: [
+      'oklch(0.975 0.009 85)',
+      'oklch(0.47 0.15 32)',
+      'oklch(0.2 0.012 60)',
+    ],
   },
   {
     id: 'brutal',

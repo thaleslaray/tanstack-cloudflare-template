@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import { ArrowLeftIcon } from 'lucide-react'
-import { MDXContent } from '#/lib/content/mdx-content'
-import { formatDate, posts } from '#/lib/content/collections'
 import { appConfig } from '#/config/app'
+import { formatDate, posts } from '#/lib/content/collections'
+import { MDXContent } from '#/lib/content/mdx-content'
 
 export const Route = createFileRoute('/blog/$slug')({
   loader: async ({ params }) => {

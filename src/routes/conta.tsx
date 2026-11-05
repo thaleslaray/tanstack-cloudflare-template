@@ -102,11 +102,15 @@ function AccountPage() {
             </Avatar>
             <div className="min-w-0 flex-1">
               <CardTitle className="truncate">{user.name}</CardTitle>
-              <CardDescription className="truncate">{user.email}</CardDescription>
+              <CardDescription className="truncate">
+                {user.email}
+              </CardDescription>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 pt-2">
-            {provider ? <Badge variant="secondary">Entrou com: {provider}</Badge> : null}
+            {provider ? (
+              <Badge variant="secondary">Entrou com: {provider}</Badge>
+            ) : null}
             <Badge variant="outline">
               E-mail verificado: {user.emailVerified ? 'sim' : 'não'}
             </Badge>
@@ -134,7 +138,11 @@ function AccountPage() {
             </Button>
           </form>
           <Separator />
-          <Button variant="outline" disabled={leaving} onClick={() => void leave()}>
+          <Button
+            variant="outline"
+            disabled={leaving}
+            onClick={() => void leave()}
+          >
             {leaving ? 'Saindo...' : 'Sair'}
           </Button>
         </CardContent>

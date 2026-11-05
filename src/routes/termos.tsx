@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { LegalPage } from '#/components/legal-page'
-import { legal } from '#/lib/content/collections'
 import { appConfig } from '#/config/app'
+import { legal } from '#/lib/content/collections'
 
 export const Route = createFileRoute('/termos')({
   loader: async () => {
@@ -11,7 +11,9 @@ export const Route = createFileRoute('/termos')({
     return { title: entry.title }
   },
   head: ({ loaderData }) => ({
-    meta: loaderData ? [{ title: `${loaderData.title} — ${appConfig.name}` }] : [],
+    meta: loaderData
+      ? [{ title: `${loaderData.title} — ${appConfig.name}` }]
+      : [],
   }),
   component: Page,
 })

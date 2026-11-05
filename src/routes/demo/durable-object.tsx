@@ -1,16 +1,16 @@
-import { useState } from 'react'
+import { env } from 'cloudflare:workers'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { env } from 'cloudflare:workers'
+import { useState } from 'react'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
-import type { Counter } from '../../server'
 import { isRateLimited } from '#/lib/rate-limit'
+import type { Counter } from '../../server'
 
 const increment = createServerFn({ method: 'POST' }).handler(async () => {
-    if (await isRateLimited('demo')) {
-      throw new Error('Muitas requisições. Tente de novo em um minuto.')
-    }
+  if (await isRateLimited('demo')) {
+    throw new Error('Muitas requisições. Tente de novo em um minuto.')
+  }
   // cf v2 nao infere a classe do DO em bindings.durableObject com nome de Worker (auto-referencia)
   const counter = (env.COUNTER as DurableObjectNamespace<Counter>).getByName(
     'global',

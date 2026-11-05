@@ -1,8 +1,8 @@
-import handler from '@tanstack/react-start/server-entry'
 import { DurableObject } from 'cloudflare:workers'
+import handler from '@tanstack/react-start/server-entry'
+import { runJobs } from '#/lib/jobs'
 import { isCrossSiteServerFnCall } from '#/lib/same-origin'
 import { withSecurityHeaders } from '#/lib/security-headers'
-import { runJobs } from '#/lib/jobs'
 
 export class Counter extends DurableObject {
   async increment(): Promise<number> {
@@ -26,7 +26,9 @@ export default {
   async scheduled(event, env, ctx) {
     console.log('[cron]', event.cron)
     ctx.waitUntil(
-      runJobs(env).then((result) => console.log('[cron] jobs:', JSON.stringify(result))),
+      runJobs(env).then((result) =>
+        console.log('[cron] jobs:', JSON.stringify(result)),
+      ),
     )
   },
 } satisfies ExportedHandler<Env>

@@ -1,19 +1,18 @@
+import type { QueryClient } from '@tanstack/react-query'
 import {
+  createRootRouteWithContext,
   HeadContent,
   Scripts,
-  createRootRouteWithContext,
 } from '@tanstack/react-router'
-import type { QueryClient } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
-import { Suspense, lazy, useEffect, useState } from 'react'
-
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { ErrorPage, NotFoundPage } from '#/components/error-pages'
 import Footer from '#/components/Footer'
 import Header from '#/components/Header'
 import {
   ThemeStyleProvider,
   themeStyleScript,
 } from '#/components/theme-provider'
-import { ErrorPage, NotFoundPage } from '#/components/error-pages'
 import { appConfig } from '#/config/app'
 
 import appCss from '../styles.css?url'
@@ -71,6 +70,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             next-themes faz o mesmo truque para claro/escuro de dentro do
             próprio bundle; o eixo do visual é nosso, então o script também.
             Precisa ficar no <head> e bloqueante. */}
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: script estático gerado em build (sem entrada do usuário) */}
         <script dangerouslySetInnerHTML={{ __html: themeStyleScript }} />
       </head>
       <body className="min-h-screen font-sans antialiased">

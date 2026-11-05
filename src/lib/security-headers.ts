@@ -20,10 +20,14 @@ const HSTS = 'max-age=63072000; includeSubDomains'
 export function withSecurityHeaders(res: Response, req: Request): Response {
   // Respostas de redirect/WebSocket podem ter headers imutáveis: copia para uma nova Response.
   const headers = new Headers(res.headers)
+  // Só preenche o que falta: uma rota que já definiu o cabeçalho sabe o que quer.
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
-    headers.set(name, value)
+    if (!headers.has(name)) headers.set(name, value)
   }
-  if (new URL(req.url).protocol === 'https:') {
+  if (
+    new URL(req.url).protocol === 'https:' &&
+    !headers.has('Strict-Transport-Security')
+  ) {
     headers.set('Strict-Transport-Security', HSTS)
   }
   return new Response(res.body, {

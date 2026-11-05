@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { posts, formatDate } from '#/lib/content/collections'
 import { appConfig } from '#/config/app'
+import { formatDate, posts } from '#/lib/content/collections'
 
 export const Route = createFileRoute('/blog/')({
   head: () => ({
@@ -8,7 +8,8 @@ export const Route = createFileRoute('/blog/')({
       { title: `Blog — ${appConfig.name}` },
       {
         name: 'description',
-        content: 'Textos curtos sobre Cloudflare, bancos de dados e como este template funciona.',
+        content:
+          'Textos curtos sobre Cloudflare, bancos de dados e como este template funciona.',
       },
     ],
   }),

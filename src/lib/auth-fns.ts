@@ -1,6 +1,6 @@
+import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
-import { env } from 'cloudflare:workers'
 
 import { getAuth, githubEnabled, googleEnabled } from '#/lib/auth'
 

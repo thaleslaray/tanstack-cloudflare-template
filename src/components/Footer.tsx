@@ -47,7 +47,10 @@ export default function Footer() {
             </div>
             <div className="flex flex-col items-start gap-3">
               <span className="kicker">Contato</span>
-              <a href={`mailto:${appConfig.supportEmail}`} className={footerLink}>
+              <a
+                href={`mailto:${appConfig.supportEmail}`}
+                className={footerLink}
+              >
                 {appConfig.supportEmail}
               </a>
             </div>

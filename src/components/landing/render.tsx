@@ -41,6 +41,7 @@ export function LandingBlocks({ blocks }: { blocks: readonly LandingBlock[] }) {
   return (
     <div className="w-full">
       {blocks.map((block, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: blocos estáticos da landing, sem reordenação; o mesmo tipo pode repetir
         <div key={`${block.type}-${i}`} className="contents">
           {renderBlock(block)}
         </div>

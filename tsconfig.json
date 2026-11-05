@@ -1,5 +1,12 @@
 {
-  "include": ["src", "cloudflare.config.ts", ".cloudflare/types"],
+  "include": [
+    "src",
+    "e2e",
+    "cloudflare.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    ".cloudflare/types"
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

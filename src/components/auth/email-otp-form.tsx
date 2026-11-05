@@ -10,7 +10,7 @@ import { authClient } from '#/lib/auth-client'
 // Voltar é só `sentTo = null`, sem mexer no histórico do navegador.
 const RESEND_COOLDOWN_SECONDS = 60
 
-function describe(code: string | undefined) {
+function describeError(code: string | undefined) {
   switch (code) {
     case 'OTP_EXPIRED':
       return 'Este código expirou. Peça um novo.'
@@ -48,7 +48,9 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
     })
     setPending(false)
     if (failure) {
-      setError('Não foi possível enviar o código. Confira o e-mail e tente de novo.')
+      setError(
+        'Não foi possível enviar o código. Confira o e-mail e tente de novo.',
+      )
       return
     }
     setSentTo(address)
@@ -66,7 +68,7 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
     })
     if (failure) {
       setPending(false)
-      setError(describe(failure.code))
+      setError(describeError(failure.code))
       return
     }
     await queryClient.invalidateQueries({ queryKey: ['session'] })

@@ -45,11 +45,17 @@ export function LoginPanel({
 
       <p className="text-center text-xs text-muted-foreground">
         Ao continuar você concorda com os{' '}
-        <a href="/termos" className="underline underline-offset-2 hover:text-foreground">
+        <a
+          href="/termos"
+          className="underline underline-offset-2 hover:text-foreground"
+        >
           Termos de uso
         </a>{' '}
         e a{' '}
-        <a href="/privacidade" className="underline underline-offset-2 hover:text-foreground">
+        <a
+          href="/privacidade"
+          className="underline underline-offset-2 hover:text-foreground"
+        >
           Política de privacidade
         </a>
         .

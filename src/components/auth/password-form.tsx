@@ -27,7 +27,9 @@ export function PasswordForm({ callbackURL }: { callbackURL: string }) {
       if (result.error) {
         setError(
           result.error.message ||
-            (isSignUp ? 'Não foi possível criar a conta.' : 'E-mail ou senha incorretos.'),
+            (isSignUp
+              ? 'Não foi possível criar a conta.'
+              : 'E-mail ou senha incorretos.'),
         )
         return
       }
@@ -82,7 +84,12 @@ export function PasswordForm({ callbackURL }: { callbackURL: string }) {
           {error}
         </p>
       ) : null}
-      <Button type="submit" variant="outline" disabled={loading} className="w-full">
+      <Button
+        type="submit"
+        variant="outline"
+        disabled={loading}
+        className="w-full"
+      >
         {loading ? 'Aguarde...' : isSignUp ? 'Criar conta' : 'Entrar com senha'}
       </Button>
       <button

@@ -49,7 +49,8 @@ export const landing: readonly LandingBlock[] = [
   {
     type: 'features',
     kicker: 'O que já vem pronto',
-    title: 'Basicamente tudo que você montaria na mão nas duas primeiras semanas.',
+    title:
+      'Basicamente tudo que você montaria na mão nas duas primeiras semanas.',
     items: [
       {
         title: 'Login sem senha',

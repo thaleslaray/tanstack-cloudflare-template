@@ -15,7 +15,13 @@ export function escapeHtml(value: string): string {
 }
 
 // `bodyHtml` deve chegar já escapado.
-export function layout({ title, bodyHtml }: { title: string; bodyHtml: string }): string {
+export function layout({
+  title,
+  bodyHtml,
+}: {
+  title: string
+  bodyHtml: string
+}): string {
   return `<!doctype html>
 <html lang="pt-BR">
 <body style="margin:0;padding:0;background:#f3f4f6">
@@ -32,7 +38,13 @@ export function layout({ title, bodyHtml }: { title: string; bodyHtml: string })
 </html>`
 }
 
-export function loginCodeEmail({ code, minutes }: { code: string; minutes: number }) {
+export function loginCodeEmail({
+  code,
+  minutes,
+}: {
+  code: string
+  minutes: number
+}) {
   const subject = `${code} é seu código de acesso — ${appConfig.name}`
   const html = layout({
     title: 'Seu código de acesso',

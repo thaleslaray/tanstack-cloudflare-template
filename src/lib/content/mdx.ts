@@ -81,7 +81,9 @@ export function collect<T>(
         ?.replace(/\.mdx$/, '') ?? path
     const parsed = schema.safeParse(frontmatter)
     if (!parsed.success) {
-      throw new Error(`Frontmatter inválido em ${path}: ${parsed.error.message}`)
+      throw new Error(
+        `Frontmatter inválido em ${path}: ${parsed.error.message}`,
+      )
     }
     return { ...parsed.data, slug, load: once(importer) }
   })

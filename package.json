@@ -14,7 +14,12 @@
     "generate-routes": "vite build",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "cf d1 migrations apply 11111111-1111-4111-8111-111111111111 --local --persist-to .cloudflare/state --dir drizzle",
-    "db:migrate:remote": "cf d1 migrations apply 11111111-1111-4111-8111-111111111111 --dir drizzle"
+    "db:migrate:remote": "cf d1 migrations apply 11111111-1111-4111-8111-111111111111 --dir drizzle",
+    "check": "biome check",
+    "check:fix": "biome check --write",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.3",
@@ -44,8 +49,10 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.5",
     "@cloudflare/vite-plugin": "2.0.0-beta.v.12",
     "@mdx-js/rollup": "^3.1.1",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "0.8.6",
     "@tanstack/router-cli": "^1.132.0",
@@ -61,6 +68,7 @@
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
+    "vitest": "^4.1.12",
     "yaml": "^2.9.1"
   },
   "pnpm": {

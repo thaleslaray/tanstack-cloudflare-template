@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
-import { MDXContent } from '#/lib/content/mdx-content'
-import { docs } from '#/lib/content/collections'
 import { appConfig } from '#/config/app'
+import { docs } from '#/lib/content/collections'
+import { MDXContent } from '#/lib/content/mdx-content'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/docs/$slug')({

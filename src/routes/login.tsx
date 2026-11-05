@@ -9,7 +9,9 @@ export const Route = createFileRoute('/login')({
   validateSearch: (
     search: Record<string, unknown>,
   ): { redirect?: string; error?: string } => ({
-    ...(typeof search.redirect === 'string' ? { redirect: search.redirect } : {}),
+    ...(typeof search.redirect === 'string'
+      ? { redirect: search.redirect }
+      : {}),
     ...(typeof search.error === 'string' ? { error: search.error } : {}),
   }),
   beforeLoad: async ({ context, search }) => {

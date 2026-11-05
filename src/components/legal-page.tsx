@@ -1,5 +1,5 @@
-import { MDXContent } from '#/lib/content/mdx-content'
 import { formatDate, type legal } from '#/lib/content/collections'
+import { MDXContent } from '#/lib/content/mdx-content'
 
 type LegalEntry = (typeof legal)[number]
 

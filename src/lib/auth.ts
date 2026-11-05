@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { emailOTP } from 'better-auth/plugins'
+import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
 import { getDb } from '#/db/index'
 import { sendEmail } from '#/lib/email'
@@ -35,7 +35,9 @@ export function getAuth(env: Env) {
       ...(googleEnabled(env)
         ? {
             google: {
+              // biome-ignore lint/style/noNonNullAssertion: googleEnabled/githubEnabled já garantem que a variável existe
               clientId: env.GOOGLE_CLIENT_ID!,
+              // biome-ignore lint/style/noNonNullAssertion: googleEnabled/githubEnabled já garantem que a variável existe
               clientSecret: env.GOOGLE_CLIENT_SECRET!,
             },
           }
@@ -43,7 +45,9 @@ export function getAuth(env: Env) {
       ...(githubEnabled(env)
         ? {
             github: {
+              // biome-ignore lint/style/noNonNullAssertion: googleEnabled/githubEnabled já garantem que a variável existe
               clientId: env.GITHUB_CLIENT_ID!,
+              // biome-ignore lint/style/noNonNullAssertion: googleEnabled/githubEnabled já garantem que a variável existe
               clientSecret: env.GITHUB_CLIENT_SECRET!,
             },
           }
