@@ -100,3 +100,30 @@ Pendências:
 - Botão Deploy to Cloudflare e `cf deploy --prebuilt` não testados em deploy real.
 - Login Google/GitHub e envio real por Resend/Email Service só com stubs; sem credenciais.
 - Referência clonada em `~/Projetos/templates/_ref/` pode ser apagada quando não for mais útil.
+
+## 10. Volta para v1 + Wrangler (2026-11-07)
+
+**Motivo.** `cf` e o Vite plugin v2 seguem em beta (verificado em 2026-11-07: `cf@1.0.0-beta.28`, plugin `2.0.0-beta.v.12`) e o template vai para alunos leigos. O guia oficial do TanStack Start na Cloudflare (atualizado em 2026-11-05) usa plugin v1 + Wrangler. Isto inverte a linha "Config/CLI" da §3.
+
+**O que mudou** (3 commits em `main`):
+- `cloudflare.config.ts` → `wrangler.jsonc` com `$schema` e comentários em pt-BR. Mesmos bindings: `DB` (D1, `database_id: "REPLACE_ME"`, `migrations_dir: "drizzle"`), `BUCKET` (R2), `COUNTER` (DO + `migrations` `v1` `new_sqlite_classes`), `PUBLIC_RATE_LIMIT` (`ratelimits`, namespace `1001`, 5/60 s), cron `0 3 * * *`, `vars.BETTER_AUTH_URL`. `assets.html_handling: "drop-trailing-slash"` (o plugin preenche `directory` sozinho: `dist/server/wrangler.json` sai com `"../client"`), `upload_source_maps`, `observability`.
+- Versões fixadas: `wrangler@4.158.0`, `@cloudflare/vite-plugin@1.67.0`; `cf` removido.
+- `vite.config.ts`: `cloudflare({ viteEnvironment: { name: 'ssr' } })`, ordem mantida; `server.port` saiu (porta no script) e `.wrangler/**` saiu do watch.
+- Scripts: `vite dev --port 3000`, `vite build`, `npm run build && vite preview`, `npm run build && wrangler deploy`, migrações por binding (`wrangler d1 migrations apply DB --local|--remote`). O UUID placeholder `11111111-...` sumiu dos 3 lugares.
+- Tipos: `worker-configuration.d.ts` (versionado), gerado por `wrangler types --env-file .dev.vars.example`. O `--env-file` existe porque sem ele um clone limpo (sem `.dev.vars`) gera `Env` sem os segredos e o `tsc` quebra. `secrets.required` foi descartado: faria o `wrangler deploy` exigir os segredos opcionais.
+- `env.COUNTER` tipado como `DurableObjectNamespace<Counter>` sem cast. Os stubs de `env` nos testes viraram `as unknown as Record<string, unknown>`.
+- Playwright: `E2E_PORT` (padrão 3000) e `vite dev --strictPort`. No dev, `BETTER_AUTH_URL` no `.dev.vars` vence o `vars` (conferido no código do `getVarsForDev`).
+- Local Explorer continua em `/cdn-cgi/local/explorer` (plugin v1 ≥ 1.50.0) e o cron em `/cdn-cgi/local/scheduled`.
+- Textos: README, CLAUDE.md (regras invertidas), skills `/setup` `/deploy` `/google-oauth`, docs, landing. Post `por-que-cf-e-nao-wrangler` virou `por-que-wrangler-hoje-e-cf-depois`.
+
+**Validado:** `typecheck`, `check`, `test` (43), `db:migrate:local`, `build` (11 páginas prerender), `wrangler deploy --dry-run` (COUNTER, DB, BUCKET, PUBLIC_RATE_LIMIT, BETTER_AUTH_URL), `e2e` (7/7), e curl no dev (`/`, `/login`, `/blog`, post novo, `/demo/durable-object`, `/api/auth/ok`, cron: 200).
+
+**Guardado:** a branch `cf-v2-beta` tem o estado v2 + `cf` intacto (último commit antes da volta: `2be0149`).
+
+**Como voltar ao v2 no GA:**
+1. Confirmar GA: `npm view cf dist-tags` e `npm view @cloudflare/vite-plugin dist-tags` sem `beta`; ler os changelogs.
+2. Numa branch nova: `npx cf migrate --bundler vite` (lê o `wrangler.jsonc`). Conferir à mão o que o `cf migrate` não converteu na PoC: o DO (`exports: { Counter: exports.durableObject({ storage: 'sqlite' }) }`), o `id` do D1 (precisa ser UUID v4) e os `--dir drizzle` nos scripts de migração. Comparar com `git diff main cf-v2-beta`.
+3. Inverter de novo as regras do CLAUDE.md, skills, docs e o post do blog.
+4. Rodar a mesma bateria acima, mais um teste do fluxo de leigo numa máquina limpa, antes de publicar para aluno.
+
+**Próximo passo sugerido:** `@cloudflare/vitest-pool-workers@0.23.0` agora é possível (precisa de Wrangler) para testar bindings de verdade dentro do workerd.
