@@ -42,7 +42,7 @@ As outras chaves (Resend, Google, GitHub) são opcionais. Sem elas o template co
 
 ## Crie as tabelas do banco
 
-O banco local é um D1 simulado, guardado na pasta `.cloudflare/state`. Aplique as migrations:
+O banco local é um D1 simulado, guardado na pasta `.wrangler/state`. Aplique as migrations:
 
 ```bash
 npm run db:migrate:local
@@ -56,7 +56,9 @@ Faça isso uma vez, e de novo sempre que você criar uma migration nova.
 npm run dev
 ```
 
-Abra `http://localhost:3000`. Se a porta 3000 estiver ocupada, use `PORT=3001 npm run dev` e ajuste `BETTER_AUTH_URL` no `.dev.vars` para a mesma porta.
+Abra `http://localhost:3000`. Se a porta 3000 estiver ocupada, rode `npx vite dev --port 3001` e acrescente `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars` (no dev, o `.dev.vars` vence o valor do `wrangler.jsonc`).
+
+Com o app rodando, `http://localhost:3000/cdn-cgi/local/explorer` abre um painel com o banco, os arquivos e os logs de cada requisição.
 
 ## Faça o primeiro login
 
@@ -72,11 +74,11 @@ Se você usa o Claude Code, abra a pasta do projeto e rode:
 /setup
 ```
 
-O comando conversa com você, confere os pré-requisitos, cria o `.dev.vars`, aplica as migrations e sobe o servidor. O arquivo `CLAUDE.md` na raiz do projeto explica ao Claude as regras do template (por exemplo, que a configuração fica em `cloudflare.config.ts` e que não existe Wrangler), então ele já começa sabendo o que pode e o que não pode fazer.
+O comando conversa com você, confere os pré-requisitos, cria o `.dev.vars`, aplica as migrations e sobe o servidor. O arquivo `CLAUDE.md` na raiz do projeto explica ao Claude as regras do template (por exemplo, que a configuração fica em `wrangler.jsonc` e que o CLI `cf`, ainda em beta, fica de fora por enquanto), então ele já começa sabendo o que pode e o que não pode fazer.
 
 ## Se algo der errado
 
-- **A porta está ocupada:** use `PORT=3001 npm run dev`.
+- **A porta está ocupada:** use `npx vite dev --port 3001` (e o `BETTER_AUTH_URL` no `.dev.vars`, como acima).
 - **Erro de tabela inexistente:** rode `npm run db:migrate:local` de novo.
 - **Tipos dos bindings desatualizados:** rode `npm run typecheck`, que regenera os tipos antes de checar.
 

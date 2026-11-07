@@ -1,14 +1,17 @@
 # Testes ponta a ponta
 
 `npm run e2e` (ou `npm run e2e:ui` para o inspetor). O Playwright controla um Chromium
-contra o **servidor de desenvolvimento real** (`npm run dev` = `cf dev`: workerd + D1 local).
+contra o **servidor de desenvolvimento real** (`vite dev` com o plugin da Cloudflare: workerd + D1 local).
 Primeira vez: `npx playwright install chromium`.
 
 ## Como funciona
 
-- O Playwright sobe o `cf dev` sozinho na porta 3000 e **não reaproveita** servidor já
-  aberto (`reuseExistingServer: false`). Pare o seu `npm run dev` antes de rodar.
-- A saída do servidor vai para `e2e/.dev.log`. Sem provedor de e-mail, o `cf dev` imprime
+- O Playwright sobe o `vite dev` sozinho na porta 3000 (`--strictPort`: falha se ela
+  estiver ocupada) e **não reaproveita** servidor já aberto (`reuseExistingServer: false`).
+  Pare o seu `npm run dev` antes de rodar, ou use outra porta:
+  `E2E_PORT=3001 npm run e2e`, com `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`
+  (senão o login recusa a origem).
+- A saída do servidor vai para `e2e/.dev.log`. Sem provedor de e-mail, o servidor imprime
   `[auth] código de login para <email>: <6 dígitos>`; o teste de login lê esse arquivo.
 - `e2e/global-setup.ts` roda `npm run db:migrate:local` para garantir as tabelas no D1 local.
 

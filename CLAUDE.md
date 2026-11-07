@@ -2,8 +2,9 @@
 
 # tanstack-cloudflare-template
 
-Template de app full-stack rodando 100% em um Cloudflare Worker, com o Vite
-plugin v2 beta e o CLI `cf`. Público: quem está aprendendo. Explique o que
+Template de app full-stack rodando 100% em um Cloudflare Worker, com o
+`@cloudflare/vite-plugin` v1 e o Wrangler (o caminho estável do guia oficial).
+Público: quem está aprendendo. Explique o que
 fizer em pt-BR, simples e direto.
 
 ## Stack
@@ -11,18 +12,20 @@ TanStack Start (React 19) + Router + Query, Tailwind v4 + shadcn/ui, Drizzle
 sobre D1, Better Auth (código por e-mail, Google/GitHub opcionais, senha
 opcional), R2, Durable Object `Counter`, cron, MDX (blog/docs/legal) com
 prerender, rate limit, cabeçalhos de segurança, Biome, Vitest, Playwright.
-Entry do Worker em `src/server.ts`; config em `cloudflare.config.ts`.
+Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 
 ## Comandos
-- `npm run dev` — `cf dev` em http://localhost:3000 (`PORT=3001 npm run dev` muda a porta; `cf dev` não aceita `--port`)
-- `npm run build` — `cf build` (saída em `.cloudflare/output/`, com prerender)
-- `npm run typecheck` — `cf workers types && tsc --noEmit`
+- `npm run dev` — `vite dev --port 3000` em http://localhost:3000 (outra porta: `npx vite dev --port 3001`, e `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`)
+- `npm run build` — `vite build` (saída em `dist/client` e `dist/server`, com prerender)
+- `npm run preview` — build + `vite preview` (a saída de produção, local)
+- `npm run cf-typegen` — `wrangler types --env-file .dev.vars.example` → `worker-configuration.d.ts`
+- `npm run typecheck` — `cf-typegen` + `tsc --noEmit`
 - `npm run check` / `check:fix` — Biome
 - `npm run test` — Vitest (unidades, ambiente node, `cloudflare:workers` substituído por `src/test/cloudflare-workers.ts`)
-- `npm run e2e` — Playwright; sobe o `cf dev` sozinho e grava o log em `e2e/.dev.log` (é de lá que o teste de login lê o código)
+- `npm run e2e` — Playwright; sobe o `vite dev` sozinho e grava o log em `e2e/.dev.log` (é de lá que o teste de login lê o código). Porta ocupada: `E2E_PORT=3001 npm run e2e` (+ `BETTER_AUTH_URL` no `.dev.vars`)
 - `npm run db:generate` — migração a partir de `src/db/schema.ts` e `src/db/auth-schema.ts`
 - `npm run db:migrate:local` / `db:migrate:remote`
-- `npx cf deploy --dry-run` — valida sem publicar; `npx cf deploy --secrets-file .prod.vars` publica
+- `npx wrangler deploy --dry-run` (depois de `npm run build`) — valida sem publicar; `npm run deploy -- --secrets-file .prod.vars` publica
 - Cron local: `curl "http://localhost:3000/cdn-cgi/local/scheduled?cron=0+3+*+*+*"`
 - Local Explorer (D1, R2, DO, logs): http://localhost:3000/cdn-cgi/local/explorer
 - Skills: `/setup`, `/deploy`, `/google-oauth` (em `.claude/skills/`)
@@ -35,12 +38,13 @@ Entry do Worker em `src/server.ts`; config em `cloudflare.config.ts`.
 - `src/db/` — `index.ts` (`getDb(env.DB)`), `schema.ts` (suas tabelas), `auth-schema.ts` (tabelas do Better Auth).
 - `content/{blog,docs,legal}/*.mdx` — compilados no build por `@mdx-js/rollup`.
 - `src/styles.css` — tokens dos temas; `public/_headers` — cabeçalhos das páginas estáticas.
+- `wrangler.jsonc` — Worker e bindings; `worker-configuration.d.ts` — tipos gerados (não editar à mão).
 
 ## Regras
-- NUNCA criar `wrangler.jsonc`/`wrangler.toml` nem instalar Wrangler. A config é `cloudflare.config.ts`; o Wrangler a ignora e quebra o deploy.
-- `cf` e o Vite plugin estão em beta: versões FIXADAS sem `^` (`cf@1.0.0-beta.28`, `@cloudflare/vite-plugin@2.0.0-beta.v.12`). Atualizar só de propósito, lendo o changelog, e rodar `typecheck`, `build`, `test` e `e2e` antes de commitar.
-- Tipos de `Env` são gerados em `.cloudflare/types` por `cf dev`/`cf build`/`cf workers types` e inferidos do config. Mudou `cloudflare.config.ts`? Regenere.
-- No `vite.config.ts`: plugins MDX (`enforce: 'pre'`) e `mdxMeta()` primeiro, depois `cloudflare()` ANTES de `tanstackStart()`. Não reordenar.
+- A config é `wrangler.jsonc` (com `$schema`; nomes de campo conferidos em `node_modules/wrangler/config-schema.json`). NÃO instalar o `cf` nem criar `cloudflare.config.ts` até o GA do `cf`/plugin v2: o `cf` ignora o `wrangler.jsonc` e pode gerar config sem bindings; o Wrangler não publica saída do v2. O caminho de ida, no GA, é `npx cf migrate` (o estado v2 está guardado na branch `cf-v2-beta`).
+- Versões FIXADAS sem `^`: `wrangler@4.158.0`, `@cloudflare/vite-plugin@1.67.0`. Atualizar só de propósito, lendo o changelog, e rodar `typecheck`, `build`, `test` e `e2e` antes de commitar.
+- Tipos de `Env` ficam em `worker-configuration.d.ts`, gerados por `npm run cf-typegen` a partir do `wrangler.jsonc` + chaves do `.dev.vars.example` (o `--env-file` faz funcionar em clone limpo, sem `.dev.vars`). Mudou `wrangler.jsonc` ou o `.dev.vars.example`? Regenere e versione o arquivo.
+- No `vite.config.ts`: plugins MDX (`enforce: 'pre'`) e `mdxMeta()` primeiro, depois `cloudflare({ viteEnvironment: { name: 'ssr' } })` ANTES de `tanstackStart()`. Não reordenar.
 - Bindings só via `import { env } from "cloudflare:workers"` em código de servidor (server functions, handlers, `src/lib/*` de servidor); ler `env` dentro de função, nunca em escopo de módulo, nunca em código que vá ao client.
 - `getAuth(env)` e `getDb(env.DB)` são factories por request. Sem singletons. `tanstackStartCookies()` é sempre o último plugin do Better Auth.
 - D1 é SQLite: sem transação aninhada; use `db.batch([...])` ou uma instrução condicional.
@@ -49,13 +53,13 @@ Entry do Worker em `src/server.ts`; config em `cloudflare.config.ts`.
 - `compatibilityDate` sempre atual.
 
 ### Segredos e URL
-- Locais em `.dev.vars` (não versionado); a lista de chaves é `.dev.vars.example`. Nova variável? Adicione nos dois e em `cloudflare.config.ts` como `bindings.secret()`.
-- Segredos opcionais (`RESEND_API_KEY`, `EMAIL_FROM`, `GOOGLE_*`, `GITHUB_*`) são declarados com `bindings.secret()`. Ausentes, o `cf dev` só avisa ("Missing required secrets") e segue; por isso o `.dev.vars.example` traz todos, vazios. O código trata string vazia como ausente.
-- `BETTER_AUTH_URL` é `bindings.text(...)` em `cloudflare.config.ts` e VENCE qualquer valor do `.dev.vars`. Para publicar, troque ali. Para rodar em outra porta no dev, troque ali também (senão o login recusa a origem).
-- Produção: `cf deploy --secrets-file .prod.vars` (gitignorado).
+- Locais em `.dev.vars` (não versionado); a lista de chaves é `.dev.vars.example`, que também alimenta os tipos. Novo segredo? Adicione nos dois e rode `npm run cf-typegen`. Segredo nunca vai em `"vars"`.
+- Não usamos `"secrets": { "required": [...] }` no `wrangler.jsonc` de propósito: com ele o `wrangler deploy` exige TODOS os listados, e os opcionais (`RESEND_API_KEY`, `EMAIL_FROM`, `GOOGLE_*`, `GITHUB_*`) bloqueariam o deploy. O código trata string vazia como ausente.
+- `BETTER_AUTH_URL` fica em `"vars"` no `wrangler.jsonc` (`http://localhost:3000`). No dev, uma linha `BETTER_AUTH_URL=...` no `.dev.vars` VENCE o `"vars"` (útil para outra porta). Para publicar, troque o valor no `wrangler.jsonc`.
+- Produção: `npm run deploy -- --secrets-file .prod.vars` (gitignorado) ou `npx wrangler secret bulk .prod.vars`.
 
 ### E-mail
-- Tudo passa por `sendEmail()` em `src/lib/email.ts`. Ordem: Resend (se `RESEND_API_KEY`), binding `EMAIL` do Cloudflare Email Service (se descomentado no config e `EMAIL_FROM` definido), senão o e-mail inteiro vai para o console do `cf dev`. Templates em `src/lib/email-templates.ts`, HTML com estilos inline.
+- Tudo passa por `sendEmail()` em `src/lib/email.ts`. Ordem: Resend (se `RESEND_API_KEY`), binding `EMAIL` do Cloudflare Email Service (`send_email` descomentado no `wrangler.jsonc` e `EMAIL_FROM` definido), senão o e-mail inteiro vai para o console do `npm run dev`. Templates em `src/lib/email-templates.ts`, HTML com estilos inline.
 - Não instalar SDK de e-mail; Resend é REST via `fetch`.
 
 ### Auth
@@ -65,11 +69,11 @@ Entry do Worker em `src/server.ts`; config em `cloudflare.config.ts`.
 - Mudou plugin ou campo do Better Auth? Ajuste `src/db/auth-schema.ts` e rode `db:generate`. O emailOTP usa a tabela `verification` existente.
 
 ### D1 e UUID
-- O `id` em `bindings.d1` precisa ser um UUID válido. O valor atual é um placeholder local (`11111111-1111-4111-8111-111111111111`). Ao criar o banco real (`cf d1 create`), troque nos TRÊS lugares: `cloudflare.config.ts` e os scripts `db:migrate:local` e `db:migrate:remote`. O D1 local é chaveado por esse ID: depois da troca, rode `db:migrate:local` de novo.
-- O estado do `cf dev` fica em `.cloudflare/state/`. `--local` sem `--persist-to .cloudflare/state` grava em outro lugar e não afeta o dev.
+- `database_id` em `d1_databases` é `REPLACE_ME` até criar o banco real (`npx wrangler d1 create tanstack-cloudflare-template-db`); cole o ID devolvido ali. Os scripts `db:migrate:*` usam o nome do binding (`DB`), então não mudam. O D1 local é chaveado pelo ID: depois da troca, rode `db:migrate:local` de novo.
+- O estado local (D1, R2, DO) fica em `.wrangler/state/` (gitignorado e fora do watch do Vite).
 
 ### Conteúdo e prerender
-- Páginas públicas (`/`, `/blog*`, `/docs*`, `/termos`, `/privacidade`) são pré-renderizadas no `cf build` (`prerender` no `vite.config.ts`, allow-list em `src/config/public-paths.ts`). Nada com sessão ou binding em tempo de requisição pode entrar nessa lista: uma cópia estática serviria sem o guard. Rota nova de conteúdo? Adicione lá.
+- Páginas públicas (`/`, `/blog*`, `/docs*`, `/termos`, `/privacidade`) são pré-renderizadas no `npm run build` (`prerender` no `vite.config.ts`, allow-list em `src/config/public-paths.ts`). Nada com sessão ou binding em tempo de requisição pode entrar nessa lista: uma cópia estática serviria sem o guard. Rota nova de conteúdo? Adicione lá.
 - O prerender roda no build com os bindings LOCAIS; não leia D1/R2 em loader de página pré-renderizada.
 - Cada coleção MDX tem dois `import.meta.glob` literais (`?meta` eager para listas; lazy para o corpo). Não leia `frontmatter` do módulo compilado: isso põe todos os corpos no bundle principal.
 
@@ -84,8 +88,13 @@ Entry do Worker em `src/server.ts`; config em `cloudflare.config.ts`.
 - Server functions recusam chamadas cross-site (`same-origin.ts`); use `method: 'POST'` em server function que muda estado.
 - Cron diário (03:00 UTC) roda `runJobs` em `src/lib/jobs.ts`; jobs precisam ser idempotentes.
 
+### Endpoints locais (dev)
+- Cron: `curl "http://localhost:3000/cdn-cgi/local/scheduled?cron=0+3+*+*+*"`.
+- Local Explorer (D1, R2, DO, logs e traces): http://localhost:3000/cdn-cgi/local/explorer (plugin v1 ≥ 1.50.0).
+
 ### Decisões registradas
 - **i18n: só pt-BR.** Paraglide foi avaliado (referência ShipKit Lite) e deixado de fora: exige middleware no entry, reescrita de URL, thunks em toda string e dois globs por idioma, o que complica demais o template para quem está aprendendo. Textos ficam direto nos componentes e em `content/`. Se precisar de outro idioma, comece por `src/content/landing.ts` e `content/`.
-- **Vitest puro, sem `@cloudflare/vitest-pool-workers`:** o pool depende do Wrangler e de `wrangler.jsonc`, que este projeto não usa. Código que toca bindings é testado com stubs em `env` (`src/test/cloudflare-workers.ts`); o comportamento real fica para o Playwright contra o `cf dev`.
+- **Vitest puro, com stub de `cloudflare:workers`** (`src/test/cloudflare-workers.ts`); o comportamento real fica para o Playwright contra o `vite dev`. Com Wrangler de volta, `@cloudflare/vitest-pool-workers@0.23.0` passou a ser possível (testes dentro do workerd, com D1/R2/DO de verdade): é o próximo passo, fora do escopo da volta para v1.
+- **Wrangler + plugin v1 em vez de `cf` + v2 (2026-11-07):** os dois seguem em beta e o template vai para leigos. Detalhes em `HANDOFF.md` §10.
 - **Devtools do TanStack** só em dev (`src/components/devtools.tsx`, carregado atrás de `import.meta.env.DEV`).
-- A classe `Counter` não é inferida em `env.COUNTER` (binding auto-referente); `src/routes/demo/durable-object.tsx` faz o cast.
+- `env.COUNTER` já vem tipado como `DurableObjectNamespace<Counter>` pelo `wrangler types`: sem cast.

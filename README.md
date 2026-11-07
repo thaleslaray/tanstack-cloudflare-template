@@ -8,7 +8,7 @@ agendadas, blog e docs. Feito para você clonar, trocar o texto e publicar.
 
 > O botão clona o repositório na sua conta Cloudflare e cria o Worker. Na tela
 > de configuração use **build command** `npm run build` e **deploy command**
-> `npx cf deploy --prebuilt`. Depois siga a seção [Publicar](#publicar) para
+> `npx wrangler deploy`. Depois siga a seção [Publicar](#publicar) para
 > criar o banco e subir os segredos (o botão não faz isso por você).
 
 ## Começar em cinco comandos
@@ -36,7 +36,7 @@ liga o login com Google e `/deploy` publica.
 | Camada | Escolha |
 | --- | --- |
 | Framework | TanStack Start (React 19) + TanStack Router e Query |
-| Runtime | Cloudflare Workers, via Vite plugin v2 beta e CLI `cf` (sem Wrangler) |
+| Runtime | Cloudflare Workers, via `@cloudflare/vite-plugin` v1 e Wrangler (as versões estáveis) |
 | Banco | Cloudflare D1 (SQLite) com Drizzle ORM e migrações geradas |
 | Login | Better Auth: código de 6 dígitos por e-mail, Google e GitHub opcionais, senha opcional |
 | E-mail | `src/lib/email.ts`: Resend, Cloudflare Email Service ou o terminal (sem chave) |
@@ -52,13 +52,15 @@ liga o login com Google e `/deploy` publica.
 
 | Script | O que faz |
 | --- | --- |
-| `npm run dev` | `cf dev`: o app em workerd local com D1, R2 e DO simulados (porta 3000; `PORT=3001` muda) |
-| `npm run build` | `cf build`: build de produção com prerender das páginas públicas |
-| `npm run deploy` | `cf deploy` (use `--secrets-file .prod.vars` na primeira vez) |
-| `npm run typecheck` | gera os tipos dos bindings e roda o `tsc` |
+| `npm run dev` | `vite dev --port 3000`: o app em workerd local com D1, R2 e DO simulados |
+| `npm run build` | `vite build`: build de produção com prerender das páginas públicas |
+| `npm run preview` | build e depois serve a saída de produção localmente |
+| `npm run deploy` | build e `wrangler deploy` (na primeira vez: `npm run deploy -- --secrets-file .prod.vars`) |
+| `npm run cf-typegen` | gera `worker-configuration.d.ts` (os tipos do `env`) a partir do `wrangler.jsonc` |
+| `npm run typecheck` | `cf-typegen` e depois o `tsc` |
 | `npm run check` | Biome (lint + formatação); `check:fix` corrige |
 | `npm run test` | Vitest (unidades) |
-| `npm run e2e` | Playwright contra o `cf dev` (ele sobe o servidor sozinho) |
+| `npm run e2e` | Playwright contra o servidor de dev (ele sobe o servidor sozinho) |
 | `npm run db:generate` | gera a migração a partir de `src/db/*.ts` |
 | `npm run db:migrate:local` / `:remote` | aplica as migrações no D1 local / remoto |
 
@@ -70,36 +72,37 @@ liga o login com Google e `/deploy` publica.
 - **Tabelas**: `src/db/schema.ts` → `npm run db:generate` → `npm run db:migrate:local`
 - **Telas**: `src/routes/` (uma rota por arquivo; as demos mostram cada peça)
 - **Blog, docs, termos, privacidade**: `content/`
-- **Bindings, cron, segredos declarados**: `cloudflare.config.ts`
+- **Bindings, cron, variáveis**: `wrangler.jsonc` (a lista de segredos é o `.dev.vars.example`)
 
 ## Publicar
 
 Resumo do que `/deploy` faz (detalhes em [content/docs/deploy.mdx](content/docs/deploy.mdx)):
 
-1. `npx cf auth login`
-2. `npx cf d1 create --name tanstack-cloudflare-template-db` e troque o UUID
-   placeholder `11111111-1111-4111-8111-111111111111` nos três lugares
-   (`cloudflare.config.ts` e os dois scripts `db:migrate:*` do `package.json`).
-3. `npx cf r2 buckets create --name tanstack-cloudflare-template-files`
+1. `npx wrangler login`
+2. `npx wrangler d1 create tanstack-cloudflare-template-db` e cole o
+   `database_id` que ele mostrar no lugar de `REPLACE_ME`, no `wrangler.jsonc`.
+3. `npx wrangler r2 bucket create tanstack-cloudflare-template-files`
 4. `npm run db:migrate:remote`
-5. Troque `BETTER_AUTH_URL` em `cloudflare.config.ts` pela URL pública.
+5. Troque `BETTER_AUTH_URL` (em `"vars"`, no `wrangler.jsonc`) pela URL pública.
 6. Crie `.prod.vars` com os segredos de produção (mesmos nomes do `.dev.vars.example`).
-7. `npx cf deploy --dry-run` e depois `npx cf deploy --secrets-file .prod.vars`
+7. `npx wrangler deploy --dry-run` e depois `npm run deploy -- --secrets-file .prod.vars`
+   (ou suba os segredos à parte com `npx wrangler secret bulk .prod.vars`).
 
-## O que é "beta" aqui
+## Por que Wrangler, e não o `cf`
 
-Este template usa duas peças novas da Cloudflare:
+A Cloudflare está lançando um CLI novo, o **`cf`**, junto com a versão 2 do
+plugin do Vite (config em `cloudflare.config.ts`). Os dois ainda estão em
+**beta**. Como este template é para quem está começando, ele usa o caminho
+estável e documentado no guia oficial do TanStack Start: **Wrangler +
+`@cloudflare/vite-plugin` v1**, com a configuração em `wrangler.jsonc`.
 
-- **`cf`**, o novo CLI unificado, que substitui o Wrangler para dev, build e
-  deploy, e lê a configuração de `cloudflare.config.ts` (TypeScript tipado).
-- **`@cloudflare/vite-plugin` v2**, que roda o app dentro do workerd no
-  `vite dev` e gera a saída em `.cloudflare/output/`.
+As versões ficam **fixadas** no `package.json` (`wrangler@4.158.0` e
+`@cloudflare/vite-plugin@1.67.0`). Atualize de propósito e rode
+`npm run typecheck`, `npm run build` e `npm run e2e` antes de commitar.
 
-As duas estão em beta, então as versões ficam **fixadas** no `package.json`
-(`cf@1.0.0-beta.28` e `@cloudflare/vite-plugin@2.0.0-beta.v.12`). Atualize
-de propósito, lendo o changelog, e rode `npm run typecheck`, `npm run build`
-e `npm run e2e` antes de commitar. O Wrangler ignora o `cloudflare.config.ts`:
-não misture os dois (nada de `wrangler.jsonc` neste projeto).
+Quando o `cf` sair do beta, `npx cf migrate` converte o projeto. A versão
+com `cf` já existe, guardada na branch `cf-v2-beta`. Até lá, não instale o
+`cf` nem crie `cloudflare.config.ts` aqui: misturar os dois quebra o deploy.
 
 ## Licença
 

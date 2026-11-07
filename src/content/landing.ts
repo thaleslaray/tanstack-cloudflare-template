@@ -103,7 +103,7 @@ export const landing: readonly LandingBlock[] = [
       {
         title: 'Publique',
         body: 'Peça /deploy. Ele cria o banco, troca o ID, sobe os segredos e publica. Ou use o botão "Deploy to Cloudflare" do README.',
-        lines: ['cf auth login', 'cf d1 create', 'cf deploy'],
+        lines: ['wrangler login', 'wrangler d1 create', 'npm run deploy'],
       },
     ],
   },
@@ -153,12 +153,12 @@ export const landing: readonly LandingBlock[] = [
         a: 'O plano gratuito da Cloudflare cobre Workers, D1 e R2 com limites generosos para um app começando. Você só paga quando crescer. E-mail de verdade precisa do Resend (tem plano grátis) ou do Email Service (plano pago da Cloudflare).',
       },
       {
-        q: 'O que é esse "beta" do cf?',
-        a: 'O cf é o novo CLI da Cloudflare e o Vite plugin v2 é a nova forma de rodar o app. Os dois estão em beta, então as versões ficam fixadas no package.json. Atualize de propósito, lendo o changelog, e nunca misture com o Wrangler.',
+        q: 'Por que Wrangler, e não o cf novo?',
+        a: 'O cf é o novo CLI da Cloudflare, mas ainda está em beta. O template usa o Wrangler e o plugin do Vite v1, o caminho estável do guia oficial, com as versões fixadas no package.json. Quando o cf ficar estável, um comando (cf migrate) faz a troca.',
       },
       {
-        q: 'Posso usar Wrangler?',
-        a: 'Não neste projeto. A configuração vive em cloudflare.config.ts, e o Wrangler ignora esse arquivo. Misturar os dois é a forma mais rápida de quebrar o deploy.',
+        q: 'Posso instalar o cf para testar?',
+        a: 'Não neste projeto, por enquanto. A configuração vive no wrangler.jsonc, e o cf ignora esse arquivo. Misturar os dois é a forma mais rápida de quebrar o deploy.',
       },
       {
         q: 'Funciona com outro agente além do Claude Code?',

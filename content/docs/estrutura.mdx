@@ -17,7 +17,8 @@ Saber onde cada coisa fica economiza muito tempo. Este é o mapa do projeto, na 
 | `src/content` | Os textos da landing, como dados. |
 | `content/` | Os artigos em MDX: blog, docs, termos e privacidade. |
 | `src/components` | Peças de interface, incluindo o `ui/` do shadcn. |
-| `cloudflare.config.ts` | A configuração do Worker e dos bindings. |
+| `wrangler.jsonc` | A configuração do Worker e dos bindings. |
+| `worker-configuration.d.ts` | Os tipos do `env`, gerados a partir do `wrangler.jsonc`. Não edite à mão. |
 | `drizzle/` | As migrations geradas. |
 
 Repare que existem duas pastas parecidas: `src/content` guarda os dados da landing, e `content/` (na raiz) guarda os arquivos `.mdx`.
@@ -40,7 +41,7 @@ Quando for publicar, aplique no banco remoto com `npm run db:migrate:remote`. O 
 
 ## Como funcionam os bindings
 
-Um **binding** é uma ligação entre o seu código e um recurso da Cloudflare: o banco D1, o bucket R2, um Durable Object, um segredo. Você declara todos em `cloudflare.config.ts`, dentro de `env`, e usa assim:
+Um **binding** é uma ligação entre o seu código e um recurso da Cloudflare: o banco D1, o bucket R2, um Durable Object, um segredo. Você declara todos no `wrangler.jsonc` (D1 em `d1_databases`, R2 em `r2_buckets`, e assim por diante) e usa assim:
 
 ```ts
 import { env } from 'cloudflare:workers'
@@ -52,7 +53,7 @@ Três regras evitam dor de cabeça:
 
 - Use `env` **só dentro** de uma server function ou de um handler, nunca no topo do arquivo.
 - Nunca importe `env` em código que roda no navegador.
-- Depois de mudar `cloudflare.config.ts`, rode `npm run typecheck` para regenerar os tipos em `.cloudflare/types`.
+- Depois de mudar o `wrangler.jsonc`, rode `npm run cf-typegen` para regenerar os tipos em `worker-configuration.d.ts`. Segredos não ficam no `wrangler.jsonc`: a lista deles é o `.dev.vars.example`.
 
 ## Páginas públicas e páginas com sessão
 

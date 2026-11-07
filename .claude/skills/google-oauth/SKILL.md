@@ -31,8 +31,9 @@ produção no MESMO cliente.
 
 - Dev: escreve `GOOGLE_CLIENT_ID=...` e `GOOGLE_CLIENT_SECRET=...` no
   `.dev.vars` e reinicia o `npm run dev` (os segredos são lidos ao iniciar).
-- Produção: coloca as duas chaves no arquivo de segredos usado no
-  `npx cf deploy --secrets-file <arquivo>` (veja `/deploy`).
+- Produção: coloca as duas chaves no `.prod.vars` e publica com
+  `npm run deploy -- --secrets-file .prod.vars`, ou sobe só elas com
+  `npx wrangler secret put GOOGLE_CLIENT_ID` e `... GOOGLE_CLIENT_SECRET` (veja `/deploy`).
 
 ## Verificar sem abrir o navegador
 
@@ -53,8 +54,8 @@ consentimento → de volta logado) precisa de um clique do usuário no botão.
   `<URL do app>/api/auth/callback/google` (esquema, porta, sem barra final).
 - `invalid_client`: chave errada ou ID e chave trocados.
 - Funciona no dev e falha em produção: faltou adicionar a origem/redirect de
-  produção no cliente, ou `BETTER_AUTH_URL` em `cloudflare.config.ts` ainda
-  aponta para localhost.
+  produção no cliente, ou `BETTER_AUTH_URL` (em `"vars"` no `wrangler.jsonc`)
+  ainda aponta para localhost.
 - Botão não aparece: uma das duas variáveis está vazia. O par precisa estar completo.
 
 ## GitHub (mesma ideia)

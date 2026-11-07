@@ -1,0 +1,54 @@
+---
+title: Por que Wrangler hoje (e o cf depois)
+description: A Cloudflare tem um CLI novo, o cf, ainda em beta. Entenda por que o template usa o Wrangler agora e como a troca vai acontecer quando o cf ficar estável.
+date: 2026-11-07
+---
+
+Quem publica na Cloudflare usa o **Wrangler**, a ferramenta de linha de comando que cria banco, roda o ambiente local e publica o app. A Cloudflare está construindo uma substituta, o **`cf`**. Este template já chegou a usar o `cf`, e voltou para o Wrangler. Este texto explica por quê.
+
+## As duas peças
+
+Para rodar um app TanStack Start na Cloudflare, duas ferramentas trabalham juntas:
+
+- **O plugin do Vite** (`@cloudflare/vite-plugin`), que roda o app dentro do mesmo motor da Cloudflare enquanto você programa e gera o build.
+- **O CLI**, que cria os recursos na sua conta e publica.
+
+Hoje existem duas combinações:
+
+| | Estável | Beta |
+| --- | --- | --- |
+| Plugin do Vite | v1 | v2 |
+| CLI | Wrangler | `cf` |
+| Arquivo de config | `wrangler.jsonc` | `cloudflare.config.ts` |
+| Tipos do `env` | `wrangler types` | `cf workers types` |
+| Publicar | `wrangler deploy` | `cf deploy` |
+
+O guia oficial do TanStack Start na Cloudflare usa a coluna da esquerda. É ela que este template segue.
+
+## Por que não o beta
+
+O `cf` tem ideias boas: a configuração vira TypeScript, com o editor completando as opções. Mas beta quer dizer:
+
+- Comandos e opções podem mudar de uma versão para outra.
+- Há bugs que a documentação ainda não registra.
+- Quando algo quebra, sobra pouca resposta pronta na internet.
+
+Para quem está começando, isso pesa demais. Um erro estranho no deploy no primeiro dia faz a pessoa desistir. O Wrangler está aí há anos, a documentação inteira fala dele, e os assistentes de IA o conhecem bem.
+
+## Como fica o projeto
+
+- A configuração vive no `wrangler.jsonc`, com um comentário curto em cada binding.
+- `npm run dev` roda o `vite dev`; `npm run deploy` faz o build e chama o `wrangler deploy`.
+- As versões ficam **fixadas** no `package.json`, sem o `^`. Atualize de propósito, rodando a checagem de tipos, o build e os testes antes.
+
+## Por que não misturar os dois
+
+Parece inofensivo instalar o `cf` "só para testar" ou deixar um `cloudflare.config.ts` ao lado. Não faça isso. O `cf` ignora o `wrangler.jsonc`, e o Wrangler não publica o build do plugin v2. Duas fontes de configuração viram duas verdades: você muda o ID do banco num arquivo, esquece o outro, e o deploy vai para um lugar diferente do que o desenvolvimento usa.
+
+## E quando o cf sair do beta?
+
+A troca foi pensada para ser simples. A Cloudflare oferece o `npx cf migrate`, que lê o `wrangler.jsonc` e gera o `cloudflare.config.ts`. A versão do template com `cf` também já existe, guardada numa branch à parte. Quando sair a versão estável, a gente testa o caminho inteiro de novo e só então troca.
+
+## Conclusão
+
+Estável hoje, novo amanhã. Com o Wrangler você aprende o que toda a documentação da Cloudflare ensina, e a mudança para o `cf`, quando vier, é um comando.

@@ -36,8 +36,14 @@ Edite o `.dev.vars` direto (nunca `git add -f` nele). As outras chaves podem
 ficar vazias: sem `RESEND_API_KEY` o e-mail aparece no terminal, e sem as
 chaves do Google/GitHub os botões de login social simplesmente não aparecem.
 
-A URL do app NÃO fica no `.dev.vars`: é o `BETTER_AUTH_URL` em
-`cloudflare.config.ts` (`http://localhost:3000` no dev).
+A URL do app fica no `wrangler.jsonc`, em `"vars"` → `BETTER_AUTH_URL`
+(`http://localhost:3000` no dev). Não precisa mexer.
+
+Depois de criar o `.dev.vars`, gere os tipos dos bindings (é rápido):
+
+```bash
+npm run cf-typegen
+```
 
 ## 3. Banco de dados local
 
@@ -45,7 +51,7 @@ A URL do app NÃO fica no `.dev.vars`: é o `BETTER_AUTH_URL` em
 npm run db:migrate:local
 ```
 
-Cria as tabelas no D1 local, em `.cloudflare/state/` (ignorado pelo git).
+Cria as tabelas no D1 local, em `.wrangler/state/` (ignorado pelo git).
 Pode rodar com o servidor ligado ou desligado.
 
 ## 4. Subir e conferir
@@ -84,7 +90,8 @@ Digite o código na página e pronto: a conta foi criada e você está em
 
 ## Problemas comuns
 
-- **Porta 3000 ocupada**: outro servidor está rodando. Feche-o ou rode `PORT=3001 npm run dev` (e ajuste `BETTER_AUTH_URL` em `cloudflare.config.ts` temporariamente, senão o login recusa a origem).
-- **Aviso "Missing required secrets"** no início do `cf dev`: alguma chave do `.dev.vars.example` não está no seu `.dev.vars`. Copie a linha (pode ficar vazia).
+- **Porta 3000 ocupada**: outro servidor está rodando. Feche-o ou rode `npx vite dev --port 3001` e acrescente `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars` (o `.dev.vars` vence o `wrangler.jsonc` no dev; sem isso o login recusa a origem). Apague a linha quando voltar para a 3000.
+- **Login quebra com erro de segredo**: o `.dev.vars` não existe ou `BETTER_AUTH_SECRET` está vazio. Refaça o passo 2 e reinicie o dev (os segredos são lidos ao iniciar).
 - **Primeira visita dá erro 500** depois de instalar dependência nova: o Vite está reotimizando. Recarregue a página.
-- **`cf` e o Vite plugin estão em beta**: as versões ficam fixadas no `package.json`. Não atualize por acidente.
+- **Versões fixadas**: `wrangler` e `@cloudflare/vite-plugin` ficam sem `^` no `package.json`. Não atualize por acidente.
+- **Painel local**: http://localhost:3000/cdn-cgi/local/explorer mostra o D1, o R2, o Durable Object e os logs de cada requisição.
