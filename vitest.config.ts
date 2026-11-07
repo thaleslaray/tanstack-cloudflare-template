@@ -17,7 +17,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    // e2e/ é do Playwright; .cloudflare/ é saída gerada.
-    exclude: ['**/node_modules/**', 'e2e/**', '.cloudflare/**'],
+    // e2e/ é do Playwright; .wrangler/ é estado local gerado.
+    exclude: ['**/node_modules/**', 'e2e/**', '.wrangler/**'],
   },
 })

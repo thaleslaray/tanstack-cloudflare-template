@@ -10,7 +10,8 @@ const params = {
   text: 'Oi',
 }
 
-const stubEnv = env as Record<string, unknown>
+// No teste, `env` é o stub mutável de src/test/cloudflare-workers.ts.
+const stubEnv = env as unknown as Record<string, unknown>
 
 beforeEach(() => {
   for (const key of Object.keys(stubEnv)) delete stubEnv[key]

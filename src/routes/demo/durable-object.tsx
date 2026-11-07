@@ -5,16 +5,13 @@ import { useState } from 'react'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 import { isRateLimited } from '#/lib/rate-limit'
-import type { Counter } from '../../server'
 
 const increment = createServerFn({ method: 'POST' }).handler(async () => {
   if (await isRateLimited('demo')) {
     throw new Error('Muitas requisições. Tente de novo em um minuto.')
   }
-  // cf v2 nao infere a classe do DO em bindings.durableObject com nome de Worker (auto-referencia)
-  const counter = (env.COUNTER as DurableObjectNamespace<Counter>).getByName(
-    'global',
-  )
+  // `wrangler types` já tipa COUNTER como DurableObjectNamespace<Counter>.
+  const counter = env.COUNTER.getByName('global')
   return await counter.increment()
 })
 

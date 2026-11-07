@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { getRequest } from '@tanstack/react-start/server'
 
-// Somente servidor: lê o binding PUBLIC_RATE_LIMIT (cloudflare.config.ts) dentro das funções.
+// Somente servidor: lê o binding PUBLIC_RATE_LIMIT (wrangler.jsonc) dentro das funções.
 
 function clientIp(headers?: Headers): string {
   return (

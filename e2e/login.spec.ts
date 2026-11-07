@@ -12,12 +12,12 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-// Sem provedor de e-mail, o `cf dev` imprime o código no terminal; o Playwright
+// Sem provedor de e-mail, o servidor de dev imprime o código no terminal; o Playwright
 // redireciona essa saída para e2e/.dev.log. Lemos o arquivo até o código aparecer.
 async function readLoginCode(email: string): Promise<string> {
   if (!fs.existsSync(logPath)) {
     throw new Error(
-      'e2e/.dev.log não existe: este teste precisa que o Playwright suba o `cf dev` ' +
+      'e2e/.dev.log não existe: este teste precisa que o Playwright suba o `vite dev` ' +
         '(webServer com reuseExistingServer: false). Pare qualquer servidor na porta 3000 ' +
         'e rode `npm run e2e`.',
     )

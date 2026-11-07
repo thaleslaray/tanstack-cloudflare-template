@@ -10,13 +10,12 @@
       "vitest.config.ts",
       "playwright.config.ts",
       "drizzle.config.ts",
-      "cloudflare.config.ts",
       "!src/routeTree.gen.ts",
       "!src/components/ui",
       "!src/styles.css",
       "!e2e/.auth",
       "!e2e/.dev.log",
-      "!.cloudflare",
+      "!.wrangler",
       "!dist",
       "!drizzle"
     ]

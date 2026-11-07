@@ -1,4 +1,4 @@
-// Registro simples de jobs agendados. O cron (cloudflare.config.ts) chama `runJobs` pelo
+// Registro simples de jobs agendados. O cron (wrangler.jsonc) chama `runJobs` pelo
 // `scheduled()` do src/server.ts. Cada job roda isolado: um erro não impede os demais.
 import { lt } from 'drizzle-orm'
 import { session, verification } from '#/db/auth-schema'

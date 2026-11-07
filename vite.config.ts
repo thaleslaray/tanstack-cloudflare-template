@@ -15,9 +15,11 @@ import { remarkHeadings } from './src/lib/content/remark-headings.ts'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
-  // `cf dev` não aceita --port: a porta vem daqui. `PORT=3001 npm run dev`
-  // quando a 3000 estiver ocupada (lembre de ajustar BETTER_AUTH_URL no .dev.vars).
-  server: { port: Number(process.env.PORT) || 3000 },
+  server: {
+    // O D1/R2/DO locais gravam em .wrangler/state; sem isto, cada escrita no
+    // banco recarregaria a página. A porta vem do script (`vite dev --port 3000`).
+    watch: { ignored: ['**/.wrangler/**'] },
+  },
   plugins: [
     devtools(),
     // MDX compila para módulos ES no build: sem `eval` em runtime (o workerd
@@ -38,7 +40,9 @@ const config = defineConfig({
     },
     // `arquivo.mdx?meta`: só o frontmatter, sem o corpo da página.
     mdxMeta(),
-    cloudflare(),
+    // O ambiente `ssr` do Vite vira o Worker (config em wrangler.jsonc).
+    // Sempre antes de tanstackStart(), senão "server-entry not found".
+    cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tailwindcss(),
     tanstackStart({
       // Páginas públicas de conteúdo viram HTML estático no build e saem da

@@ -12,9 +12,10 @@ dist-ssr
 __unconfig*
 todos.json
 .dev.vars
-.cloudflare/
 test-results
 playwright-report
 e2e/.dev.log
 e2e/.auth
 .prod.vars
+# Saída do cf/v2 beta (branch cf-v2-beta); não é mais gerada em main
+.cloudflare/

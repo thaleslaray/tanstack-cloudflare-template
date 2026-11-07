@@ -1,7 +1,7 @@
 // Camada de e-mail (somente servidor). Escolhe o provedor a cada chamada:
 //   1. Resend (REST via fetch), se RESEND_API_KEY estiver preenchida;
 //   2. Cloudflare Email Service (binding EMAIL), se existir e EMAIL_FROM estiver preenchido;
-//   3. console (desenvolvimento): o e-mail aparece no terminal do `cf dev`.
+//   3. console (desenvolvimento): o e-mail aparece no terminal do `npm run dev`.
 import { env } from 'cloudflare:workers'
 
 import { appConfig } from '#/config/app'
@@ -64,7 +64,7 @@ export async function sendEmail({
     return { sent: true, provider: 'resend', id: data?.id }
   }
 
-  // O binding EMAIL fica comentado por padrão em cloudflare.config.ts.
+  // O binding EMAIL (`send_email`) fica comentado por padrão em wrangler.jsonc.
   const binding = (env as { EMAIL?: SendEmail }).EMAIL
   if (binding && from) {
     try {

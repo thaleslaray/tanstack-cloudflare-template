@@ -8,7 +8,8 @@ vi.mock('@tanstack/react-start/server', () => ({
   getRequest: () => new Request('http://localhost/'),
 }))
 
-const stubEnv = env as Record<string, unknown>
+// No teste, `env` é o stub mutável de src/test/cloudflare-workers.ts.
+const stubEnv = env as unknown as Record<string, unknown>
 const headers = new Headers({ 'cf-connecting-ip': '203.0.113.7' })
 
 beforeEach(() => {

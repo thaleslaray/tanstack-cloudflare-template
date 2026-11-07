@@ -1,12 +1,14 @@
 # Segredos LOCAIS. Copie para .dev.vars (não versionado): cp .dev.vars.example .dev.vars
 # Só BETTER_AUTH_SECRET é obrigatório. As outras chaves podem ficar vazias (vazio = desligado).
-# A URL do app NÃO fica aqui: é BETTER_AUTH_URL em cloudflare.config.ts.
-# Em produção, os mesmos nomes vão num .prod.vars e sobem com `cf deploy --secrets-file .prod.vars`.
+# A URL do app fica em BETTER_AUTH_URL, no wrangler.jsonc ("vars"). Para rodar o dev em outra
+# porta, acrescente aqui BETTER_AUTH_URL=http://localhost:3001: o .dev.vars vence o "vars" no dev.
+# Em produção, os mesmos nomes vão num .prod.vars e sobem com `npx wrangler secret bulk .prod.vars`.
+# Esta lista também gera os tipos do Env (`npm run cf-typegen`): chave nova entra aqui.
 
 # Assina os cookies de sessão. Gere com: openssl rand -base64 32
 BETTER_AUTH_SECRET=
 
-# E-mail (opcional). Sem estas duas variáveis, o e-mail aparece no terminal do `cf dev`.
+# E-mail (opcional). Sem estas duas variáveis, o e-mail aparece no terminal do `npm run dev`.
 # Crie a chave em https://resend.com/api-keys
 RESEND_API_KEY=
 # Remetente, ex.: Meu App <contato@seudominio.com.br>. Precisa ser de domínio verificado no provedor.

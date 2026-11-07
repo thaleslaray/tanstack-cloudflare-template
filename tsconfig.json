@@ -2,10 +2,9 @@
   "include": [
     "src",
     "e2e",
-    "cloudflare.config.ts",
     "vitest.config.ts",
     "playwright.config.ts",
-    ".cloudflare/types"
+    "worker-configuration.d.ts"
   ],
   "compilerOptions": {
     "target": "ES2022",
