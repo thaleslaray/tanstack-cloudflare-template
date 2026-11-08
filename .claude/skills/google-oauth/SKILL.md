@@ -40,7 +40,7 @@ produção no MESMO cliente.
 ```bash
 curl -s -X POST http://localhost:3000/api/auth/sign-in/social \
   -H "Content-Type: application/json" -H "Origin: http://localhost:3000" \
-  -d '{"provider":"google","callbackURL":"/conta"}'
+  -d '{"provider":"google","callbackURL":"/app"}'
 ```
 
 Esperado: um JSON com `url` apontando para `accounts.google.com` com o ID do

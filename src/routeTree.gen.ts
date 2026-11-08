@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
@@ -23,12 +24,18 @@ import { Route as DemoR2RouteImport } from './routes/demo/r2'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
+import { Route as AppAppIndexRouteImport } from './routes/_app/app/index'
+import { Route as AppAppConfiguracoesRouteImport } from './routes/_app/app/configuracoes'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiAvatarUserIdRouteImport } from './routes/api/avatar.$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContaRoute = ContaRouteImport.update({
@@ -96,6 +103,16 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
   path: '/docs/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAppIndexRoute = AppAppIndexRouteImport.update({
+  id: '/app/',
+  path: '/app/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAppConfiguracoesRoute = AppAppConfiguracoesRouteImport.update({
+  id: '/app/configuracoes',
+  path: '/app/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -122,8 +139,10 @@ export interface FileRoutesByFullPath {
   '/docs/$slug': typeof DocsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/app/configuracoes': typeof AppAppConfiguracoesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
+  '/app/': typeof AppAppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -140,12 +159,15 @@ export interface FileRoutesByTo {
   '/docs/$slug': typeof DocsSlugRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
+  '/app/configuracoes': typeof AppAppConfiguracoesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
+  '/app': typeof AppAppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/conta': typeof ContaRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -159,8 +181,10 @@ export interface FileRoutesById {
   '/docs/$slug': typeof DocsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/_app/app/configuracoes': typeof AppAppConfiguracoesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
+  '/_app/app/': typeof AppAppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -179,8 +203,10 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/blog/'
     | '/docs/'
+    | '/app/configuracoes'
     | '/api/auth/$'
     | '/api/avatar/$userId'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -197,11 +223,14 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/blog'
     | '/docs'
+    | '/app/configuracoes'
     | '/api/auth/$'
     | '/api/avatar/$userId'
+    | '/app'
   id:
     | '__root__'
     | '/'
+    | '/_app'
     | '/conta'
     | '/login'
     | '/privacidade'
@@ -215,12 +244,15 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/blog/'
     | '/docs/'
+    | '/_app/app/configuracoes'
     | '/api/auth/$'
     | '/api/avatar/$userId'
+    | '/_app/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   ContaRoute: typeof ContaRoute
   LoginRoute: typeof LoginRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -244,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conta': {
@@ -337,6 +376,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/app/': {
+      id: '/_app/app/'
+      path: '/app'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppAppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/app/configuracoes': {
+      id: '/_app/app/configuracoes'
+      path: '/app/configuracoes'
+      fullPath: '/app/configuracoes'
+      preLoaderRoute: typeof AppAppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -354,6 +407,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRouteChildren {
+  AppAppConfiguracoesRoute: typeof AppAppConfiguracoesRoute
+  AppAppIndexRoute: typeof AppAppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAppConfiguracoesRoute: AppAppConfiguracoesRoute,
+  AppAppIndexRoute: AppAppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 interface ApiAvatarRouteChildren {
   ApiAvatarUserIdRoute: typeof ApiAvatarUserIdRoute
 }
@@ -368,6 +433,7 @@ const ApiAvatarRouteWithChildren = ApiAvatarRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   ContaRoute: ContaRoute,
   LoginRoute: LoginRoute,
   PrivacidadeRoute: PrivacidadeRoute,

@@ -39,12 +39,16 @@ liga o login com Google e `/deploy` publica.
 | Runtime | Cloudflare Workers, via `@cloudflare/vite-plugin` v1 e Wrangler (as versões estáveis) |
 | Banco | Cloudflare D1 (SQLite) com Drizzle ORM e migrações geradas |
 | Login | Better Auth: código de 6 dígitos por e-mail, Google e GitHub opcionais, senha opcional |
+| Área logada | `/app` com barra lateral (gaveta no celular): painel com números e checklist de primeiro uso, e `/app/configuracoes` (nome, foto, baixar meus dados, encerrar conta) |
+| Foto de perfil | Upload para o R2 (PNG/JPEG/WebP, até 2 MB), servida com cache longo e ETag |
+| Conta | Encerramento em duas fases (sai na hora, apagada pelo cron em 7 dias, lembrete no dia 5) e "baixar meus dados" em JSON |
+| Auditoria | `audit()` com sinks; o padrão grava login, troca de nome, foto e encerramento na tabela `audit_log` |
 | E-mail | `src/lib/email.ts`: Resend, Cloudflare Email Service ou o terminal (sem chave) |
-| Arquivos | R2 (demo em `/demo/r2`) |
+| Arquivos | R2 (foto de perfil e demo em `/demo/r2`) |
 | Estado | Durable Object `Counter` (demo em `/demo/durable-object`) |
 | Conteúdo | MDX para blog, docs, termos e privacidade, pré-renderizados no build |
 | UI | Tailwind v4 + shadcn/ui, landing montada de `src/content/landing.ts`, quatro temas em claro e escuro |
-| Proteções | Rate limit por IP, cabeçalhos de segurança, cron diário limpando sessões vencidas |
+| Proteções | Rate limit por IP, cabeçalhos de segurança, cron diário limpando sessões vencidas e apagando contas encerradas |
 | Qualidade | Biome, Vitest (com as regras do `CLAUDE.md` como teste), Playwright (4 specs) |
 | Agentes | `CLAUDE.md`, `AGENTS.md` e skills em `.claude/skills/` |
 
@@ -72,6 +76,7 @@ liga o login com Google e `/deploy` publica.
 - **Tema padrão e cores**: `src/config/themes.ts` e os blocos de tokens em `src/styles.css`
 - **Tabelas**: `src/db/schema.ts` → `npm run db:generate` → `npm run db:migrate:local`
 - **Telas**: `src/routes/` (uma rota por arquivo; as demos mostram cada peça)
+- **Área logada**: páginas em `src/routes/_app/` e o menu em `mainNav` (`src/components/app-sidebar.tsx`)
 - **Blog, docs, termos, privacidade**: `content/`
 - **Bindings, cron, variáveis**: `wrangler.jsonc` (a lista de segredos é o `.dev.vars.example`)
 

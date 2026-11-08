@@ -22,8 +22,8 @@ Primeira vez: `npx playwright install chromium`.
 
 - `marketing.spec.ts`: home em pt-BR, links do header, redirecionamento de `/docs`, 404.
 - `helpers.ts`: portas, leitura do código no log e `loginWithCode()` (usado pelos specs de login).
-- `login.spec.ts`: login por código de ponta a ponta, até `/conta`.
-- `guards.spec.ts`: `/conta` anônimo redireciona para `/login?redirect=...` e, depois do login, volta para a página pedida.
+- `login.spec.ts`: o produto logado de ponta a ponta com UM login (o rate limit é 5/min por IP): entra por código e chega em `/app`, navega pela barra lateral, troca a foto (R2), baixa os dados em JSON e encerra a conta.
+- `guards.spec.ts`: `/app` anônimo redireciona para `/login?redirect=...`, `/conta` responde 301 para `/app/configuracoes` e, depois do login, volta para a página pedida.
 - `security-headers.spec.ts`: cabeçalhos de segurança nas respostas do Worker (dev) e nos estáticos (preview: página pré-renderizada, `public/`, `/assets/`).
 
 ## Convenções

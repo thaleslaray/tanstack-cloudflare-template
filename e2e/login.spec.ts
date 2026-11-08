@@ -1,14 +1,94 @@
-import { expect, test } from '@playwright/test'
-import { loginWithCode } from './helpers'
+import fs from 'node:fs'
+import { expect, type Page, test } from '@playwright/test'
+import { loginWithCode, waitForHydration } from './helpers'
 
-test('entra com o código enviado por e-mail e chega em /conta', async ({
-  page,
-}) => {
-  const email = `e2e-${Date.now()}@exemplo.test`
+// O produto logado de ponta a ponta, com UM login só: entrar, navegar pela
+// área logada, trocar a foto, baixar os dados e encerrar a conta. Um login por
+// teste estouraria o rate limit (5 por minuto por IP nos endpoints de login).
+test.describe.configure({ mode: 'serial' })
 
+// PNG 1x1 válido (os primeiros bytes são conferidos pelo servidor).
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==',
+  'base64',
+)
+
+let page: Page
+const email = `e2e-${Date.now()}@exemplo.test`
+
+test.beforeAll(async ({ browser }) => {
+  page = await browser.newPage()
+})
+
+test.afterAll(async () => {
+  await page.close()
+})
+
+test('entra com o código enviado por e-mail e chega em /app', async () => {
   await page.goto('/login')
   await loginWithCode(page, email)
 
-  await expect(page).toHaveURL(/\/conta$/)
+  await expect(page).toHaveURL(/\/app$/)
+  await expect(page.getByRole('heading', { name: /^Olá,/ })).toBeVisible()
   await expect(page.getByText(email).first()).toBeVisible()
+  await expect(page.getByText('Primeiros passos')).toBeVisible()
+})
+
+test('a barra lateral leva às configurações', async () => {
+  await page
+    .getByRole('navigation', { name: 'Área logada' })
+    .getByRole('link', { name: 'Configurações' })
+    .click()
+  await expect(page).toHaveURL(/\/app\/configuracoes$/)
+  await expect(
+    page.getByRole('heading', { name: 'Configurações', level: 1 }),
+  ).toBeVisible()
+})
+
+test('troca a foto de perfil (R2)', async () => {
+  const input = page.getByLabel('Foto de perfil')
+  await waitForHydration(page.getByLabel('Nome'))
+  await input.setInputFiles({
+    name: 'foto.png',
+    mimeType: 'image/png',
+    buffer: PNG,
+  })
+  await page.getByRole('button', { name: 'Salvar foto' }).click()
+  await expect(page.getByText('Foto atualizada')).toBeVisible()
+
+  // A URL nova aponta para /api/avatar/<id>?v=..., e a imagem carrega.
+  const src = await page
+    .locator('img[src*="/api/avatar/"]')
+    .first()
+    .getAttribute('src')
+  expect(src).toMatch(/^\/api\/avatar\/[\w-]+\?v=\d+$/)
+  const res = await page.request.get(src ?? '')
+  expect(res.status()).toBe(200)
+  expect(res.headers()['content-type']).toBe('image/png')
+  expect(res.headers().etag).toBeTruthy()
+})
+
+test('baixa os dados da conta em JSON', async () => {
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Baixar meus dados' }).click()
+  const file = await (await download).path()
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'))
+  expect(data.conta.email).toBe(email)
+  expect(data.foto?.url).toMatch(/^\/api\/avatar\//)
+  const actions = data.auditoria.map((row: { action: string }) => row.action)
+  expect(actions).toContain('auth.sign_in')
+  expect(actions).toContain('account.avatar_set')
+})
+
+test('encerra a conta: sai na hora e /app volta a pedir login', async () => {
+  await page.getByRole('button', { name: 'Encerrar conta' }).click()
+  const dialog = page.getByRole('dialog')
+  const confirm = dialog.getByRole('button', { name: 'Encerrar conta' })
+  await expect(confirm).toBeDisabled()
+  await dialog.getByLabel(/Digite ENCERRAR/).fill('ENCERRAR')
+  await confirm.click()
+
+  await expect(page).toHaveURL(/\/$/)
+  await page.goto('/app')
+  await expect(page).toHaveURL(/\/login\?redirect=%2Fapp$/)
 })

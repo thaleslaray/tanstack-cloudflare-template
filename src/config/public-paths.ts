@@ -3,7 +3,7 @@
 // Este arquivo é importado pelo `vite.config.ts` (Node), então NÃO importe nada
 // do app aqui (nem `#/`, nem React, nem `cloudflare:workers`).
 //
-// Páginas com sessão ou bindings (login, conta, demo, api) NUNCA podem ser
+// Páginas com sessão ou bindings (login, app, demo, api) NUNCA podem ser
 // pré-renderizadas: o HTML sairia congelado no build, sem cookie nem banco, e
 // seria servido como estático para todo mundo, pulando a verificação de
 // sessão. Por isso a regra é uma lista de PERMISSÃO (allow-list): o que não
@@ -34,5 +34,6 @@ export function isPrerenderable(path: string): boolean {
 export const SITEMAP_STATIC_PATHS = ['/', '/blog'] as const
 
 // Caminhos que os buscadores não devem visitar (robots.txt). São as áreas com
-// sessão ou sem conteúdo: o oposto da lista de cima.
-export const ROBOTS_DISALLOW = ['/api/', '/conta', '/demo/'] as const
+// sessão ou sem conteúdo: o oposto da lista de cima. `/app` é a área logada
+// (e `/app/...`); `/conta` é o endereço antigo, que só redireciona para lá.
+export const ROBOTS_DISALLOW = ['/api/', '/app', '/conta', '/demo/'] as const

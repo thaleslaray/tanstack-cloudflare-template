@@ -2,6 +2,7 @@
 # a lista de bloqueios fica em src/config/public-paths.ts e a URL em src/config/app.ts.
 User-agent: *
 Disallow: /api/
+Disallow: /app
 Disallow: /conta
 Disallow: /demo/
 

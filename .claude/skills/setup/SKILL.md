@@ -65,7 +65,7 @@ Confira de verdade, em outro terminal (não confie só no log de início):
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/        # 200
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/login   # 200
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/conta   # 307 (manda para /login)
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/app     # 307 (manda para /login)
 ```
 
 ## 5. Primeiro login
@@ -78,8 +78,8 @@ terminal do `npm run dev`, numa linha assim:
 [auth] código de login para voce@exemplo.com: 123456
 ```
 
-Digite o código na página e pronto: a conta foi criada e você está em
-`/conta`.
+Digite o código na página e pronto: a conta foi criada e você está no
+painel, em `/app` (as configurações da conta ficam em `/app/configuracoes`).
 
 ## 6. Próximos passos
 

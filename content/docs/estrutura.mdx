@@ -57,6 +57,6 @@ Três regras evitam dor de cabeça:
 
 ## Páginas públicas e páginas com sessão
 
-As páginas de conteúdo (landing, blog, docs, termos e privacidade) são pré-renderizadas no build: viram HTML estático. Páginas que dependem de sessão ou de bindings, como `/login`, `/conta`, `/demo` e `/api`, **nunca** são pré-renderizadas. A lista do que pode ser estático está em `src/config/public-paths.ts`.
+As páginas de conteúdo (landing, blog, docs, termos e privacidade) são pré-renderizadas no build: viram HTML estático. Páginas que dependem de sessão ou de bindings, como `/login`, `/app` (a área logada), `/demo` e `/api`, **nunca** são pré-renderizadas. A lista do que pode ser estático está em `src/config/public-paths.ts`.
 
 Próximo passo: [Deploy na Cloudflare](/docs/deploy).

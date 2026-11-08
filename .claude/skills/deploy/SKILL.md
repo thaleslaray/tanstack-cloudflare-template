@@ -95,7 +95,7 @@ Confira:
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/          # 200
-curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/conta     # 307 → /login
+curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → /login
 ```
 
 ## 6. Depois do deploy

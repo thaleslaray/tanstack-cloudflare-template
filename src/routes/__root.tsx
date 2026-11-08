@@ -3,6 +3,7 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
+  useRouterState,
 } from '@tanstack/react-router'
 import { ThemeProvider } from 'next-themes'
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -89,6 +90,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  // A área logada (src/routes/_app.tsx) tem casca própria, com barra lateral:
+  // lá não entram o cabeçalho e o rodapé do site público.
+  const inApp = useRouterState({
+    select: (state) => state.matches.some((m) => m.routeId === '/_app'),
+  })
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
@@ -111,11 +117,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
         >
           <ThemeStyleProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1 pt-16">{children}</main>
-              <Footer />
-            </div>
+            {inApp ? (
+              children
+            ) : (
+              <div className="flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1 pt-16">{children}</main>
+                <Footer />
+              </div>
+            )}
           </ThemeStyleProvider>
           <LazyToaster />
           <Suspense fallback={null}>

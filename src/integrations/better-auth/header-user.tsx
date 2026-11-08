@@ -40,7 +40,10 @@ export default function BetterAuthHeader() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link to="/conta">Minha conta</Link>
+            <Link to="/app">Painel</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/app/configuracoes">Configurações</Link>
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => {

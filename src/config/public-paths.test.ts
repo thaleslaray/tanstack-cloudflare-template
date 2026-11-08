@@ -14,12 +14,19 @@ describe('isPrerenderable', () => {
     },
   )
 
-  it.each(['/login', '/conta', '/demo/r2', '/api/auth/x', '/blog?x=1'])(
-    'recusa %s',
-    (path) => {
-      expect(isPrerenderable(path)).toBe(false)
-    },
-  )
+  it.each([
+    '/login',
+    '/conta',
+    '/app',
+    '/app/',
+    '/app/configuracoes',
+    '/demo/r2',
+    '/api/auth/x',
+    '/api/avatar/x',
+    '/blog?x=1',
+  ])('recusa %s', (path) => {
+    expect(isPrerenderable(path)).toBe(false)
+  })
 })
 
 describe('sitemap e robots', () => {
@@ -27,6 +34,10 @@ describe('sitemap e robots', () => {
     for (const path of SITEMAP_STATIC_PATHS) {
       expect(isPrerenderable(path)).toBe(true)
     }
+  })
+
+  it('a área logada fica fora dos buscadores', () => {
+    expect(ROBOTS_DISALLOW).toContain('/app')
   })
 
   it('nada bloqueado no robots.txt é pré-renderizável', () => {

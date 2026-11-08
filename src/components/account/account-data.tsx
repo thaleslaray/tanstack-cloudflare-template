@@ -46,7 +46,7 @@ export function DownloadMyData() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="text-sm font-medium">Seus dados</p>
+        <p className="text-sm font-medium">Cópia dos seus dados</p>
         <p className="text-sm text-muted-foreground">
           Um arquivo JSON com tudo o que guardamos sobre a sua conta.
         </p>

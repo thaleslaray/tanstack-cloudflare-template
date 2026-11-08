@@ -23,7 +23,7 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - `npm run typecheck` — `cf-typegen` + `tsc --noEmit`
 - `npm run check` / `check:fix` — Biome
 - `npm run test` — Vitest (unidades, ambiente node, `cloudflare:workers` substituído por `src/test/cloudflare-workers.ts`)
-- `npm run e2e` — Playwright (4 specs, 13 testes); sobe o `vite dev` sozinho e grava o log em `e2e/.dev.log` (é de lá que o teste de login lê o código), e também o `npm run preview` na porta 4173 (`E2E_PREVIEW_PORT`), para checar os cabeçalhos do `public/_headers` nos estáticos. Porta ocupada: `E2E_PORT=3001 npm run e2e` (+ `BETTER_AUTH_URL` no `.dev.vars`)
+- `npm run e2e` — Playwright (4 specs, 19 testes); sobe o `vite dev` sozinho e grava o log em `e2e/.dev.log` (é de lá que o teste de login lê o código), e também o `npm run preview` na porta 4173 (`E2E_PREVIEW_PORT`), para checar os cabeçalhos do `public/_headers` nos estáticos. Porta ocupada: `E2E_PORT=3001 npm run e2e` (+ `BETTER_AUTH_URL` no `.dev.vars`)
 - `npm run db:generate` — migração a partir de `src/db/schema.ts` e `src/db/auth-schema.ts`
 - `npm run db:migrate:local` / `db:migrate:remote`
 - `npx wrangler deploy --dry-run` (depois de `npm run build`) — valida sem publicar; `npm run deploy -- --secrets-file .prod.vars` publica
@@ -33,11 +33,12 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - CI (GitHub Actions, sem deploy): `.github/workflows/ci.yml` em push na `main` e PR (`npm ci`, `.dev.vars` com segredo aleatório, typecheck, check, test, build, `wrangler deploy --dry-run`, e falha se `npm run db:generate` mudar `drizzle/`); `e2e.yml` à mão e toda segunda 09:00 UTC.
 
 ## Mapa
-- `src/routes/` — rotas por arquivo: `/` (landing), `/login`, `/conta` (protegida), `/blog`, `/docs`, `/termos`, `/privacidade`, `demo/*`, `api/auth/$`, `api/avatar` (POST, troca a foto) e `api/avatar/$userId` (GET, serve a foto).
+- `src/routes/` — rotas por arquivo: `/` (landing), `/login`, `_app.tsx` (layout protegido da área logada) com `_app/app/index.tsx` (`/app`, painel) e `_app/app/configuracoes.tsx` (`/app/configuracoes`), `/conta` (só redireciona 301 para `/app/configuracoes`), `/blog`, `/docs`, `/termos`, `/privacidade`, `demo/*`, `api/auth/$`, `api/avatar` (POST, troca a foto) e `api/avatar/$userId` (GET, serve a foto).
+- `src/components/app-sidebar.tsx` (`mainNav`, a única lista do menu da área logada; barra lateral e gaveta), `page-header.tsx` (`PageHeader`, `StatStrip`, `StatCard`), `account/` (foto, baixar dados, encerrar conta).
 - `src/content/landing.ts` — a landing como dados; `src/components/landing/` renderiza.
 - `src/config/` — `app.ts` (nome, URL base de SEO/sitemap, e-mail de suporte), `themes.ts` (os quatro temas), `public-paths.ts` (o que pode ser pré-renderizado, páginas fixas do sitemap, bloqueios do robots).
 - `scripts/generate-sitemap.ts` — gera `public/sitemap.xml` e `public/robots.txt` (versionados; não edite à mão). `public/og.png` — cartão social 1200x630 do `og:image`.
-- `src/lib/` — `audit.ts` (trilha de auditoria: `audit()`, `onAudit()`, `formatAuditEntry()`), `audit-d1.ts` (sink padrão, grava em `audit_log`), `auth-audit-hook.ts` (login e troca de nome via `hooks.after` do Better Auth), `avatar.ts` (limites e chave da foto de perfil; sem bindings, usado no servidor e no navegador), `account.ts` (hooks do ciclo de vida da conta e prazos; sem bindings), `account-handlers.ts` (o que cada módulo registra: apagar a foto no R2, tirar o e-mail da auditoria, fatias do "baixar meus dados"), `account-fns.ts` (`closeAccountFn`, `exportMyDataFn`), `seo.ts` (`seo()`: título, description, og/twitter, `article`, `noindex`), `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
+- `src/lib/` — `audit.ts` (trilha de auditoria: `audit()`, `onAudit()`, `formatAuditEntry()`), `audit-d1.ts` (sink padrão, grava em `audit_log`), `auth-audit-hook.ts` (login e troca de nome via `hooks.after` do Better Auth), `avatar.ts` (limites e chave da foto de perfil; sem bindings, usado no servidor e no navegador), `account.ts` (hooks do ciclo de vida da conta e prazos; sem bindings), `account-handlers.ts` (o que cada módulo registra: apagar a foto no R2, tirar o e-mail da auditoria, fatias do "baixar meus dados"), `account-fns.ts` (`closeAccountFn`, `exportMyDataFn`), `app-fns.ts` (números do painel), `seo.ts` (`seo()`: título, description, og/twitter, `article`, `noindex`), `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
 - `src/db/` — `index.ts` (`getDb(env.DB)`), `schema.ts` (suas tabelas e `audit_log`), `auth-schema.ts` (tabelas do Better Auth).
 - `content/{blog,docs,legal}/*.mdx` — compilados no build por `@mdx-js/rollup`.
 - `src/rules.test.ts` — regras do CLAUDE.md marcadas com (teste), checadas por texto em todo `src/`.
@@ -72,7 +73,7 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 ### Auth
 - Login principal é o plugin `emailOTP` (6 dígitos, `storeOTP: 'hashed'`, 3 tentativas, 10 min). Sem provedor de e-mail, o código sai no log: `[auth] código de login para <email>: <código>` (o e2e depende dessa linha; não mude o formato).
 - Google e GitHub entram só quando o PAR de variáveis existe (`googleEnabled`/`githubEnabled`). O client lê `getAuthProvidersFn` para decidir quais botões mostrar.
-- Rotas protegidas: `beforeLoad` com `ensureQueryData(sessionQuery)` e `redirect({ to: '/login', search: { redirect } })`; destino de volta passa por `safeRedirect`.
+- Rotas protegidas: `beforeLoad` com `ensureQueryData(sessionQuery)` e `redirect({ to: '/login', search: { redirect } })`; destino de volta passa por `safeRedirect` (padrão: `/app`). Página logada nova vai em `src/routes/_app/` e herda o guard do `_app.tsx`.
 - Mudou plugin ou campo do Better Auth? Ajuste `src/db/auth-schema.ts` e rode `db:generate`. O emailOTP usa a tabela `verification` existente.
 
 ### D1 e UUID
@@ -81,9 +82,16 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 
 ### Conteúdo e prerender
 - Páginas públicas (`/`, `/blog*`, `/docs*`, `/termos`, `/privacidade`) são pré-renderizadas no `npm run build` (`prerender` no `vite.config.ts`, allow-list em `src/config/public-paths.ts`). Nada com sessão ou binding em tempo de requisição pode entrar nessa lista: uma cópia estática serviria sem o guard. Rota nova de conteúdo? Adicione lá (e, se for página fixa, em `SITEMAP_STATIC_PATHS`).
-- SEO: o `__root.tsx` põe os padrões (canonical, `og:url`, `og:site_name`, `og:image` = `/og.png`, `twitter:card`); cada rota com `head` usa `seo()` de `src/lib/seo.ts` só com o que é dela. Login e conta levam `noindex`. A base das URLs é `appConfig.url`: troque antes de publicar e rode `npm run sitemap`.
+- SEO: o `__root.tsx` põe os padrões (canonical, `og:url`, `og:site_name`, `og:image` = `/og.png`, `twitter:card`); cada rota com `head` usa `seo()` de `src/lib/seo.ts` só com o que é dela. Login e a área logada (`/app*`) levam `noindex`. A base das URLs é `appConfig.url`: troque antes de publicar e rode `npm run sitemap`.
 - O prerender roda no build com os bindings LOCAIS; não leia D1/R2 em loader de página pré-renderizada.
 - Cada coleção MDX tem dois `import.meta.glob` literais (`?meta` eager para listas; lazy para o corpo). Não leia `frontmatter` do módulo compilado: isso põe todos os corpos no bundle principal.
+
+### Área logada (app shell)
+- `src/routes/_app.tsx` é rota de LAYOUT (o `_` não entra na URL): guard de sessão, barra lateral no desktop (`lg:`) e `Sheet` no celular, ambos lendo `mainNav`. O `__root.tsx` esconde o cabeçalho e o rodapé públicos quando a rota `/_app` está ativa.
+- Página nova: arquivo em `src/routes/_app/app/` + uma linha em `mainNav`. Título com `PageHeader`; números com `StatStrip`/`StatCard` (um por área, cada um é link para a área).
+- Para mostrar nome/foto atualizados, leia `useQuery(sessionQuery)` (o contexto do guard é só o valor inicial) e, depois de mudar, `invalidateQueries(['session'])` + `authClient.$store.notify('$sessionSignal')` (avatar do cabeçalho).
+- O checklist de primeiro uso do painel some quando completo ou dispensado (`localStorage`, chave `app-checklist-dispensado`); passo novo precisa ser verificável com dados que a página já tem.
+- `/app` está no `ROBOTS_DISALLOW` e fora do `PUBLIC_PATTERNS` (nunca pré-renderizar). `/conta` ficou só como redirect 301.
 
 ### Temas e landing
 - Um tema é SÓ tokens em `src/styles.css`. `data-theme` (autonomia, neutro, editorial, brutal) é o visual, escrito por `theme-provider.tsx`; a classe `dark` (next-themes) é o modo. Nenhum componente lê `data-theme`. Forma que varia por tema vira token (`--radius-btn`, `--radius-card`, `--display-font`, `--shadow-btn`).

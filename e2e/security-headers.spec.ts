@@ -16,7 +16,7 @@ function expectSecurityHeaders(res: APIResponse) {
 }
 
 // Respostas do Worker no dev: página SSR, redirect do guard e API.
-for (const path of ['/', '/login', '/conta', '/api/auth/ok']) {
+for (const path of ['/', '/login', '/app', '/conta', '/api/auth/ok']) {
   test(`Worker: cabeçalhos em ${path}`, async ({ request }) => {
     const res = await request.get(path, { maxRedirects: 0 })
     expect(res.status()).toBeLessThan(400)
