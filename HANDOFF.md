@@ -127,3 +127,13 @@ Pendências:
 4. Rodar a mesma bateria acima, mais um teste do fluxo de leigo numa máquina limpa, antes de publicar para aluno.
 
 **Próximo passo sugerido:** `@cloudflare/vitest-pool-workers@0.23.0` agora é possível (precisa de Wrangler) para testar bindings de verdade dentro do workerd.
+
+## 11. Peças do ShipKit Lite transplantadas (2026-11-07)
+
+Três grupos, três agentes Opus, 10 commits em `main` depois da volta para v1. Validação final pela sessão-mãe: typecheck, Biome (116 arquivos), 113 testes unitários, build com 11 páginas prerender, `wrangler deploy --dry-run` com 5 bindings, 19 testes Playwright (rodados pelos agentes), e no navegador: `/blocos` com os 13 blocos sem scroll horizontal, `/app` com painel e checklist.
+
+- **Grupo A (guardrails e CI):** `src/rules.test.ts` com 6 regras do CLAUDE.md como teste; `.github/workflows/ci.yml` (typecheck, lint, teste, build, dry-run, guard de migração) e `e2e.yml` (manual e semanal); `src/lib/seo.ts`, `og.png`, `sitemap.xml` gerado no `prebuild`, `robots.txt`; specs e2e de guards e cabeçalhos. Atenção: o Playwright agora sobe também o `vite preview` na 4173 porque o `vite dev` não aplica `public/_headers`.
+- **Grupo B (produto logado):** auditoria com sinks (`audit_log` no D1, migração 0001); foto de perfil no R2 (`/api/avatar`, 2 MB, tipo pelos bytes); encerramento de conta em duas fases (7 dias, lembrete no dia 5, purge pelo cron, migração 0002) e "baixar meus dados"; app shell em `/app` e `/app/configuracoes` (`/conta` virou 301). `deleteUser` do Better Auth desligado de propósito. Bug corrigido no caminho: troca de nome era auditada como login.
+- **Grupo C (landing):** 6 blocos novos (bento, compare, stats, logos, terminal, gallery), total 13; `/blocos` como catálogo com `noindex`; `stats` e `compare` entraram na landing real. Rodapé corrigido para 375 px. Achado não corrigido: no tema brutal claro, o `.kicker` amarelo tem pouco contraste.
+
+Fora do escopo, ainda: deploy real, botão Deploy, Google/GitHub/Resend com credenciais, `@cloudflare/vitest-pool-workers`, restaurar conta encerrada (só pelo D1), remover foto (só trocar).
