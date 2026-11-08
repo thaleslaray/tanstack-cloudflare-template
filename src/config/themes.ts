@@ -32,8 +32,8 @@ export const themes: ThemeDef[] = [
   {
     id: 'autonomia',
     label: 'Autonomia',
-    hint: 'Bege, laranja e Inter. O visual padrão.',
-    swatch: ['#efebe3', '#ff4d00', '#1a1a1a'],
+    hint: 'Branco, cinza e um laranja. O visual padrão.',
+    swatch: ['#ffffff', '#ff4d00', '#171717'],
   },
   {
     id: 'neutro',

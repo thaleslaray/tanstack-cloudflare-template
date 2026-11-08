@@ -77,7 +77,7 @@ export function FeaturesBlock({ block }: { block: Of<'features'> }) {
             key={item.title}
             className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-border bg-card p-6 shadow-[var(--shadow-card)]"
           >
-            <span className="font-mono text-xs text-brand">
+            <span className="font-mono text-xs text-muted-foreground">
               {String(i + 1).padStart(2, '0')}
             </span>
             <h3 className="text-lg font-bold tracking-tight">{item.title}</h3>

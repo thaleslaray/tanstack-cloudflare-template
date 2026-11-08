@@ -30,9 +30,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           activeOptions={{ exact: item.exact }}
           onClick={onNavigate}
           // Estilo pelo `data-status` que o router põe no link ativo.
-          className="group/nav flex items-center gap-3 border-l-2 border-transparent px-5 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent data-[status=active]:border-brand data-[status=active]:font-semibold"
+          className="group/nav flex items-center gap-3 border-l-2 border-transparent px-5 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent data-[status=active]:border-sidebar-primary data-[status=active]:font-semibold"
         >
-          <item.icon className="size-4 shrink-0 text-muted-foreground group-data-[status=active]/nav:text-brand" />
+          <item.icon className="size-4 shrink-0 text-muted-foreground group-data-[status=active]/nav:text-sidebar-foreground" />
           <span className="truncate">{item.label}</span>
         </Link>
       ))}

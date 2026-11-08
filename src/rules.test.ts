@@ -133,6 +133,20 @@ describe('regras do projeto (CLAUDE.md)', () => {
     ).toEqual([])
   })
 
+  it('a cor da marca nunca é cor de texto: só preenchimento (bg-brand + text-brand-foreground)', () => {
+    // Regra 1 de src/CLAUDE.md. `text-brand-foreground` e `text-brand-hover`
+    // são permitidos; `text-brand` sozinho (marca como cor de letra) não.
+    const offenders = matches(/\btext-brand(?!-foreground|-hover)\b/g, (f) =>
+      f.path.endsWith('.tsx') ? f.code : '',
+    )
+    expect(
+      offenders,
+      'Cor da marca em texto. Texto é só foreground ou muted-foreground; ' +
+        'a marca vai em preenchimento (bg-brand) com text-brand-foreground por cima. ' +
+        'Veja src/CLAUDE.md, regra 1.',
+    ).toEqual([])
+  })
+
   it('env de cloudflare:workers só é lido dentro de função', () => {
     const offenders = matches(/(?<![\w.$])env\s*\.\s*\w+|=\s*env\b/g, (f) =>
       importsWorkers(f.code) ? moduleScopeOnly(f.bare) : '',

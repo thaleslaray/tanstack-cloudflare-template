@@ -19,95 +19,99 @@
    (autonomia escuro), depois cada tema claro e `.dark[data-theme=...]`.
    --------------------------------------------------------------------------- */
 
-/* Autonomia (padrão): bege, laranja e Inter. Cores medidas em
-   ~/workspace/perfil/DESIGN.md. Botão em pílula com sombra laranja. */
+/* Autonomia (padrão): chão neutro (branco, cinza e tinta, sem matiz), UM
+   laranja (#ff4d00, da marca em ~/workspace/perfil/DESIGN.md) usado só como
+   PREENCHIMENTO sob texto branco, botão em pílula, borda fina, sombra zero.
+   As cinco regras e o porquê estão em src/CLAUDE.md. */
 :root {
-  --background: #f5f2ed;
-  --foreground: #1a1a1a;
-  --card: #fbf9f6;
-  --card-foreground: #1a1a1a;
-  --popover: #fbf9f6;
-  --popover-foreground: #1a1a1a;
-  --primary: #1a1a1a;
-  --primary-foreground: #f5f2ed;
-  --secondary: #e8e4dc;
-  --secondary-foreground: #1a1a1a;
-  --muted: #e8e4dc;
-  --muted-foreground: #5c5a56;
-  --accent: #e8e4dc;
-  --accent-foreground: #1a1a1a;
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #171717;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f4;
+  --secondary-foreground: #171717;
+  --muted: #f4f4f4;
+  --muted-foreground: #6b6b6b;
+  --accent: #f4f4f4;
+  --accent-foreground: #171717;
   --destructive: #c62828;
   --destructive-foreground: #ffffff;
-  --border: rgba(26, 26, 26, 0.12);
-  --input: rgba(26, 26, 26, 0.18);
+  --border: rgba(0, 0, 0, 0.1);
+  --input: rgba(0, 0, 0, 0.16);
   --ring: #ff4d00;
-  --surface: #e8e4dc;
+  --surface: #f7f7f7;
   --brand: #ff4d00;
   --brand-hover: #e64500;
   --brand-foreground: #ffffff;
   --success: #00b464;
   --warning: #f5a623;
-  --terminal: #1a1a1a;
-  --terminal-foreground: #f5f2ed;
-  --terminal-muted: #8a8680;
-  --hero-dot: rgba(26, 26, 26, 0.14);
+  --terminal: #171717;
+  --terminal-foreground: #fafafa;
+  --terminal-muted: #8a8a8a;
+  --hero-dot: rgba(0, 0, 0, 0.12);
   --chart-1: #ff4d00;
   --chart-2: #00b464;
   --chart-3: #f5a623;
-  --chart-4: #1a1a1a;
-  --chart-5: #8a8680;
+  --chart-4: #171717;
+  --chart-5: #8a8a8a;
   --radius: 12px;
   --radius-btn: 100px;
   --radius-card: 16px;
-  --shadow-btn: 0 8px 20px rgba(255, 77, 0, 0.22);
-  --shadow-card: 0 1px 2px rgba(26, 26, 26, 0.04);
+  --shadow-btn: none;
+  --shadow-card: none;
   --body-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --display-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --display-weight: 800;
   --tracking-display: -0.03em;
-  --sidebar: #e8e4dc;
-  --sidebar-foreground: #1a1a1a;
-  --sidebar-primary: #ff4d00;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #171717;
+  --sidebar-primary: #171717;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f5f2ed;
-  --sidebar-accent-foreground: #1a1a1a;
-  --sidebar-border: rgba(26, 26, 26, 0.12);
+  --sidebar-accent: #f0f0f0;
+  --sidebar-accent-foreground: #171717;
+  --sidebar-border: rgba(0, 0, 0, 0.08);
   --sidebar-ring: #ff4d00;
 }
 
 .dark {
-  --background: #0f0e0c;
-  --foreground: #f5f2ed;
-  --card: #1a1815;
-  --card-foreground: #f5f2ed;
-  --popover: #1a1815;
-  --popover-foreground: #f5f2ed;
-  --primary: #f5f2ed;
-  --primary-foreground: #0f0e0c;
-  --secondary: #26221c;
-  --secondary-foreground: #f5f2ed;
-  --muted: #26221c;
-  --muted-foreground: #a8a39b;
-  --accent: #26221c;
-  --accent-foreground: #f5f2ed;
+  --background: #121212;
+  --foreground: #f5f5f5;
+  --card: #1a1a1a;
+  --card-foreground: #f5f5f5;
+  --popover: #1a1a1a;
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #121212;
+  --secondary: #262626;
+  --secondary-foreground: #f5f5f5;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #f5f5f5;
   --destructive: #ef5350;
   --destructive-foreground: #ffffff;
-  --border: rgba(245, 242, 237, 0.12);
-  --input: rgba(245, 242, 237, 0.18);
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.18);
   --ring: #ff4d00;
-  --surface: #1a1815;
-  --terminal: #26221c;
-  --terminal-foreground: #f5f2ed;
-  --terminal-muted: #8a8680;
-  --hero-dot: rgba(245, 242, 237, 0.12);
-  --chart-4: #f5f2ed;
-  --shadow-btn: 0 8px 20px rgba(255, 77, 0, 0.3);
+  --surface: #1a1a1a;
+  --terminal: #1f1f1f;
+  --terminal-foreground: #f5f5f5;
+  --terminal-muted: #8a8a8a;
+  --hero-dot: rgba(255, 255, 255, 0.1);
+  --chart-4: #f5f5f5;
+  --shadow-btn: none;
   --shadow-card: none;
-  --sidebar: #1a1815;
-  --sidebar-foreground: #f5f2ed;
-  --sidebar-accent: #26221c;
-  --sidebar-accent-foreground: #f5f2ed;
-  --sidebar-border: rgba(245, 242, 237, 0.12);
+  --sidebar: #171717;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #f5f5f5;
+  --sidebar-primary-foreground: #121212;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
 }
 
 /* Neutro: preto, branco e cinza sem matiz; um único azul como marca.
@@ -411,14 +415,15 @@
   font-weight: var(--display-weight);
 }
 
-/* Etiqueta pequena em caixa alta, na cor da marca (como no DESIGN.md). */
+/* Etiqueta pequena acima de um título. Cinza, nunca na cor da marca: texto
+   colorido é a regra 1 de src/CLAUDE.md. A marca vai em preenchimento. */
 .kicker,
 .island-kicker {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--brand);
+  color: var(--muted-foreground);
 }
 
 /* O chão da primeira tela: uma grade de pontos que some nas bordas. Marca a
@@ -523,7 +528,7 @@
 .prose {
   --tw-prose-body: var(--foreground);
   --tw-prose-headings: var(--foreground);
-  --tw-prose-links: var(--brand);
+  --tw-prose-links: var(--foreground);
   --tw-prose-bold: var(--foreground);
   --tw-prose-code: var(--foreground);
   --tw-prose-quotes: var(--muted-foreground);

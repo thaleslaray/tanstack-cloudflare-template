@@ -38,7 +38,7 @@ export function CompareBlock({ block }: { block: BlockOf<'compare'> }) {
             ))}
           </ul>
         </div>
-        <div className="flex flex-col gap-5 rounded-[var(--radius-card)] border-2 border-brand bg-card p-6 shadow-[var(--shadow-card)] sm:p-8">
+        <div className="flex flex-col gap-5 rounded-[var(--radius-card)] border border-foreground bg-card p-6 shadow-[var(--shadow-card)] sm:p-8">
           <h3 className="text-base font-bold">{block.after.label}</h3>
           <ul className="flex flex-col gap-3.5">
             {block.after.items.map((text) => (

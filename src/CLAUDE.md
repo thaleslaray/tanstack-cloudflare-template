@@ -1,0 +1,75 @@
+# Linguagem visual (src/)
+
+Vale para tudo em `src/`: componentes, rotas, estilos. O `CLAUDE.md` da raiz
+diz como o app funciona; este diz como ele parece. Quando um pedido de design
+chegar, leia este arquivo antes de abrir qualquer componente.
+
+## Direção atual (decidida em 2026-11-08)
+
+**Chão neutro, uma cor de marca, e ela só em preenchimento.** A base é
+branco, cinza e tinta, sem matiz nenhum. O laranja `#ff4d00` é a marca e
+aparece em exatamente três lugares: o botão principal, o anel de foco e o
+estado selecionado. Nunca como cor de letra. A página não tem cor própria;
+o contraste faz o trabalho.
+
+O que isso inverteu, e por quê: o tema padrão nasceu bege (`#f5f2ed`) com
+rótulos laranja, medidos da página dos alunos (`~/workspace/perfil/DESIGN.md`).
+Comparado lado a lado com interfaces que lemos como "bonitas" (o painel do
+ShipKit foi a referência), a diferença estava toda em duas coisas: o fundo
+tinha tom, e o texto tinha cor. Numa página de quatro telas, qualquer tom
+deixa de ser detalhe e vira a página; e rótulo colorido é a marca registrada
+de interface feita por quem programa. O laranja ficou, porque é a marca.
+O bege e o rótulo laranja saíram.
+
+## Este documento descreve UM tema
+
+Tudo abaixo é o visual **autonomia**, o padrão, escrito em `:root` e `.dark`
+em `src/styles.css`. Os outros três (`neutro`, `editorial`, `brutal`) estão
+no mesmo arquivo e podem quebrar as regras de cor e forma de propósito: o
+editorial usa serifa e papel quente, o brutal usa borda preta e sombra sólida.
+
+O que vale para TODOS, sem exceção, é o mecanismo: **tema é token, nunca um
+`if` em componente.** Nenhum componente lê `data-theme`. Se um visual precisa
+que algo mude de forma, nasce um token para a forma (`--radius-btn`,
+`--radius-card`, `--display-font`, `--shadow-btn`) e cada tema dá o valor.
+Dois eixos, separados: `data-theme` é o estilo, a classe `dark` é o modo, e
+todo tema deve as duas faces.
+
+## As cinco regras
+
+1. **Texto nunca tem cor.** Só `text-foreground`, `text-muted-foreground` e
+   `text-brand-foreground` (este último só em cima de `bg-brand`). Cor de
+   estado (sucesso, alerta, erro) vai em preenchimento ou ícone, com texto
+   neutro ao lado. **(teste)** `text-brand` sozinho falha em `src/rules.test.ts`.
+2. **O chão é neutro, ponto.** Fundo, cartão, borda e preenchimento secundário
+   sem matiz (`#fff`, `#f4f4f4`, `#f7f7f7`, `rgba(0,0,0,.1)`). Superfície
+   elevada é MAIS CLARA que a página no escuro e igual ou mais clara no claro.
+   Se for tingir, tinja o bastante para ver; "cinza meio bege" é o pior dos
+   dois mundos.
+3. **Uma marca, em preenchimento.** `bg-brand` + `text-brand-foreground` no
+   botão principal (`error-pages.tsx`, `section.tsx`, formulários de login),
+   `--ring` no foco, item ativo. O botão padrão do shadcn (`bg-primary`) é
+   tinta, não laranja: a marca é a exceção, não o padrão. Borda colorida só
+   onde significa "selecionado"; destaque de cartão é `border-foreground`.
+4. **Pílula, borda fina, sombra zero.** `--radius-btn: 100px`, `--border` a 10%
+   de preto, `--shadow-btn` e `--shadow-card` em `none`. Profundidade vem de
+   borda e de contraste de superfície, não de sombra.
+5. **Rótulos pequenos em cinza.** `.kicker` é 12px, peso 600, caixa alta,
+   `letter-spacing: 0.08em`, cor `--muted-foreground`. Sem tracking exagerado,
+   sem cor de marca, sem emoji como ícone. Ícones só do `lucide-react`.
+
+## Exceções nomeadas
+
+- O logo do Google em `components/auth/social-buttons.tsx` usa as cores
+  oficiais da marca Google. É a única cor fixa permitida em `.tsx`.
+- Gráficos usam `--chart-1..5`; são a única série de cores além da marca.
+
+## Como mudar a direção
+
+Troque os valores em `:root`/`.dark` de `src/styles.css`, atualize este
+arquivo com a data e o motivo, e rode `npm run test`: as regras marcadas com
+(teste) vão acusar o que ficou fora da linha. Uma direção abandonada fica
+registrada aqui em uma linha, para ninguém refazer o caminho:
+
+- 2026-11-05 → 2026-11-08: bege `#f5f2ed` + rótulos laranja + sombra laranja
+  no botão (do DESIGN.md). Substituída pela direção acima.
