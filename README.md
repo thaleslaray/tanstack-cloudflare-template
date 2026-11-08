@@ -47,7 +47,7 @@ liga o login com Google e `/deploy` publica.
 | Arquivos | R2 (foto de perfil e demo em `/demo/r2`) |
 | Estado | Durable Object `Counter` (demo em `/demo/durable-object`) |
 | Conteúdo | MDX para blog, docs, termos e privacidade, pré-renderizados no build |
-| UI | Tailwind v4 + shadcn/ui, landing montada de `src/content/landing.ts`, quatro temas em claro e escuro |
+| UI | Tailwind v4 + shadcn/ui, landing montada de `src/content/landing.ts` com 13 formatos de bloco (catálogo em `/blocos`), quatro temas em claro e escuro |
 | Proteções | Rate limit por IP, cabeçalhos de segurança, cron diário limpando sessões vencidas e apagando contas encerradas |
 | Qualidade | Biome, Vitest (com as regras do `CLAUDE.md` como teste), Playwright (4 specs) |
 | Agentes | `CLAUDE.md`, `AGENTS.md` e skills em `.claude/skills/` |
@@ -72,7 +72,7 @@ liga o login com Google e `/deploy` publica.
 ## Onde mudar o quê
 
 - **Nome, descrição, URL pública (SEO e sitemap) e e-mail de suporte**: `src/config/app.ts`
-- **Landing**: `src/content/landing.ts` (é uma lista de blocos; a rota só renderiza)
+- **Landing**: `src/content/landing.ts` (é uma lista de blocos; a rota só renderiza). Para ver os 13 formatos e copiar um, abra `/blocos` (dados em `src/content/blocos-exemplo.ts`)
 - **Tema padrão e cores**: `src/config/themes.ts` e os blocos de tokens em `src/styles.css`
 - **Tabelas**: `src/db/schema.ts` → `npm run db:generate` → `npm run db:migrate:local`
 - **Telas**: `src/routes/` (uma rota por arquivo; as demos mostram cada peça)

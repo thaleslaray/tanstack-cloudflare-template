@@ -27,6 +27,30 @@ Repare que existem duas pastas parecidas: `src/content` guarda os dados da landi
 
 A página inicial não tem texto escrito dentro dela. Ela lê uma lista de blocos em `src/content/landing.ts` e desenha cada um. Para mudar o título, os botões ou as seções, edite essa lista. Para mudar o nome do app, o e-mail de suporte ou a descrição, edite `src/config/app.ts`.
 
+## Blocos da landing
+
+Cada item da lista em `src/content/landing.ts` é um bloco, e o campo `type` diz o formato. São 13:
+
+| `type` | O que desenha |
+| --- | --- |
+| `hero` | A primeira tela: promessa, uma linha de apoio e dois botões. |
+| `stats` | Uma faixa de números grandes com rótulo. |
+| `stack` | Uma fileira de nomes em pílulas, logo abaixo do hero. |
+| `logos` | Nomes de clientes ou tecnologias, em texto com SVG opcional; pode ser agrupada. |
+| `features` | Cartões iguais, três por linha. |
+| `bento` | Cartões de tamanhos diferentes numa grade; o largo ou destacado puxa o olho. |
+| `compare` | Duas colunas, "antes / depois" ou "eles / nós". |
+| `steps` | Passos numerados, cada um com um bloco de comandos. |
+| `terminal` | Uma janela de terminal com os comandos sendo digitados. |
+| `gallery` | Imagens da pasta `public/` com legenda. |
+| `testimonials` | Depoimentos em cartões. |
+| `faq` | Perguntas que abrem e fecham. |
+| `cta` | A última frase da página e o botão. |
+
+Para ver um exemplo de cada um, rode `npm run dev` e abra [/blocos](/blocos). Os dados de lá estão em `src/content/blocos-exemplo.ts`: copie o objeto do bloco que quiser para `landing.ts` e troque o texto. Os campos de cada formato estão comentados em `src/components/landing/types.ts`.
+
+Precisa de um formato que não existe? São três passos: o tipo em `types.ts`, um componente em `src/components/landing/blocks/` e um `case` em `render.tsx`. O typecheck avisa se faltar o `case`, e o teste `render.test.tsx` avisa se faltar o exemplo.
+
 ## Escrever artigos
 
 Para criar um post, adicione um arquivo em `content/blog/` com o frontmatter `title`, `description` e `date`. Para uma página de documentação, use `content/docs/` com `order`. O nome do arquivo vira o endereço: `content/blog/meu-post.mdx` vira `/blog/meu-post`. Se o frontmatter estiver errado, o build avisa na hora.

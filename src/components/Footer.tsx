@@ -23,7 +23,7 @@ export default function Footer() {
               {appConfig.description}
             </p>
           </div>
-          <div className="flex gap-12 sm:gap-20">
+          <div className="flex flex-wrap gap-x-12 gap-y-8 sm:gap-x-20">
             <div className="flex flex-col items-start gap-3">
               <span className="kicker">Produto</span>
               <a href="/docs" className={footerLink}>

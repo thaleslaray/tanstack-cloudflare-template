@@ -16,6 +16,7 @@ describe('isPrerenderable', () => {
 
   it.each([
     '/login',
+    '/blocos',
     '/conta',
     '/app',
     '/app/',
@@ -36,8 +37,9 @@ describe('sitemap e robots', () => {
     }
   })
 
-  it('a área logada fica fora dos buscadores', () => {
+  it('a área logada e o catálogo de blocos ficam fora dos buscadores', () => {
     expect(ROBOTS_DISALLOW).toContain('/app')
+    expect(ROBOTS_DISALLOW).toContain('/blocos')
   })
 
   it('nada bloqueado no robots.txt é pré-renderizável', () => {

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as BlocosRouteImport } from './routes/blocos'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
@@ -36,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlocosRoute = BlocosRouteImport.update({
+  id: '/blocos',
+  path: '/blocos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContaRoute = ContaRouteImport.update({
@@ -126,6 +132,7 @@ const ApiAvatarUserIdRoute = ApiAvatarUserIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/blocos': typeof BlocosRoute
   '/conta': typeof ContaRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/blocos': typeof BlocosRoute
   '/conta': typeof ContaRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/blocos': typeof BlocosRoute
   '/conta': typeof ContaRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/blocos'
     | '/conta'
     | '/login'
     | '/privacidade'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/blocos'
     | '/conta'
     | '/login'
     | '/privacidade'
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/blocos'
     | '/conta'
     | '/login'
     | '/privacidade'
@@ -253,6 +265,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  BlocosRoute: typeof BlocosRoute
   ContaRoute: typeof ContaRoute
   LoginRoute: typeof LoginRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -283,6 +296,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blocos': {
+      id: '/blocos'
+      path: '/blocos'
+      fullPath: '/blocos'
+      preLoaderRoute: typeof BlocosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conta': {
@@ -434,6 +454,7 @@ const ApiAvatarRouteWithChildren = ApiAvatarRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  BlocosRoute: BlocosRoute,
   ContaRoute: ContaRoute,
   LoginRoute: LoginRoute,
   PrivacidadeRoute: PrivacidadeRoute,
