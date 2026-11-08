@@ -1,17 +1,14 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { appConfig } from '#/config/app'
 import { formatDate, posts } from '#/lib/content/collections'
+import { seo } from '#/lib/seo'
 
 export const Route = createFileRoute('/blog/')({
   head: () => ({
-    meta: [
-      { title: `Blog — ${appConfig.name}` },
-      {
-        name: 'description',
-        content:
-          'Textos curtos sobre Cloudflare, bancos de dados e como este template funciona.',
-      },
-    ],
+    meta: seo({
+      title: 'Blog',
+      description:
+        'Textos curtos sobre Cloudflare, bancos de dados e como este template funciona.',
+    }),
   }),
   component: BlogIndex,
 })

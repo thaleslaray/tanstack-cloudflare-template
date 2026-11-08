@@ -17,6 +17,10 @@ import { appConfig } from '#/config/app'
 
 import appCss from '../styles.css?url'
 
+// Cartão das redes sociais (1200x630, em public/og.png). Redesenhou? Suba o
+// `v`: X, WhatsApp e cia guardam a imagem pela URL por dias.
+const socialCard = `${appConfig.url}/og.png?v=1`
+
 interface MyRouterContext {
   queryClient: QueryClient
 }
@@ -44,18 +48,41 @@ function LazyToaster() {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: appConfig.name },
-      { name: 'description', content: appConfig.description },
-      { property: 'og:site_name', content: appConfig.name },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:locale', content: 'pt_BR' },
-    ],
-    links: [{ rel: 'stylesheet', href: appCss }],
-  }),
+  // Padrões de SEO do site inteiro. Cada página sobrescreve título,
+  // descrição e og:* com seo() (src/lib/seo.ts); o router junta os `head`
+  // sem repetir name/property, e a rota mais funda vence.
+  head: ({ matches }) => {
+    // Canonical = a própria URL, sem barra no fim: é a forma que a camada de
+    // assets serve (`html_handling: drop-trailing-slash` no wrangler.jsonc) e
+    // a que vai no sitemap. A base vem de appConfig.url (src/config/app.ts).
+    const pathname = matches[matches.length - 1]?.pathname ?? '/'
+    const canonical =
+      appConfig.url +
+      (pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname)
+    return {
+      meta: [
+        { charSet: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { title: appConfig.name },
+        { name: 'description', content: appConfig.description },
+        { property: 'og:site_name', content: appConfig.name },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:locale', content: 'pt_BR' },
+        { property: 'og:title', content: appConfig.name },
+        { property: 'og:description', content: appConfig.description },
+        { property: 'og:url', content: canonical },
+        { property: 'og:image', content: socialCard },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:image', content: socialCard },
+      ],
+      links: [
+        { rel: 'stylesheet', href: appCss },
+        { rel: 'canonical', href: canonical },
+      ],
+    }
+  },
   shellComponent: RootDocument,
   notFoundComponent: NotFoundPage,
   errorComponent: ({ error }) => <ErrorPage error={error} />,

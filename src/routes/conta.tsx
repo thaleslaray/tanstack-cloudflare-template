@@ -18,6 +18,7 @@ import { Label } from '#/components/ui/label'
 import { Separator } from '#/components/ui/separator'
 import { authClient } from '#/lib/auth-client'
 import { sessionQuery } from '#/lib/auth-queries'
+import { seo } from '#/lib/seo'
 
 export const Route = createFileRoute('/conta')({
   beforeLoad: async ({ context, location }) => {
@@ -27,7 +28,7 @@ export const Route = createFileRoute('/conta')({
     }
     return { session }
   },
-  head: () => ({ meta: [{ title: 'Sua conta' }] }),
+  head: () => ({ meta: seo({ title: 'Sua conta', noindex: true }) }),
   component: AccountPage,
 })
 

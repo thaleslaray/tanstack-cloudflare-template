@@ -54,6 +54,7 @@ liga o login com Google e `/deploy` publica.
 | --- | --- |
 | `npm run dev` | `vite dev --port 3000`: o app em workerd local com D1, R2 e DO simulados |
 | `npm run build` | `vite build`: build de produção com prerender das páginas públicas |
+| `npm run sitemap` | gera `public/sitemap.xml` e `public/robots.txt` (roda sozinho antes do build) |
 | `npm run preview` | build e depois serve a saída de produção localmente |
 | `npm run deploy` | build e `wrangler deploy` (na primeira vez: `npm run deploy -- --secrets-file .prod.vars`) |
 | `npm run cf-typegen` | gera `worker-configuration.d.ts` (os tipos do `env`) a partir do `wrangler.jsonc` |
@@ -66,7 +67,7 @@ liga o login com Google e `/deploy` publica.
 
 ## Onde mudar o quê
 
-- **Nome, descrição e e-mail de suporte**: `src/config/app.ts`
+- **Nome, descrição, URL pública (SEO e sitemap) e e-mail de suporte**: `src/config/app.ts`
 - **Landing**: `src/content/landing.ts` (é uma lista de blocos; a rota só renderiza)
 - **Tema padrão e cores**: `src/config/themes.ts` e os blocos de tokens em `src/styles.css`
 - **Tabelas**: `src/db/schema.ts` → `npm run db:generate` → `npm run db:migrate:local`

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Gerado por scripts/generate-sitemap.ts (npm run sitemap). Não edite à mão. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>http://localhost:3000/</loc>
+  </url>
+  <url>
+    <loc>http://localhost:3000/blog</loc>
+    <lastmod>2026-11-07</lastmod>
+  </url>
+  <url>
+    <loc>http://localhost:3000/blog/d1-nao-tem-transacoes</loc>
+    <lastmod>2026-11-05</lastmod>
+  </url>
+  <url>
+    <loc>http://localhost:3000/blog/por-que-wrangler-hoje-e-cf-depois</loc>
+    <lastmod>2026-11-07</lastmod>
+  </url>
+  <url>
+    <loc>http://localhost:3000/docs/comecando</loc>
+  </url>
+  <url>
+    <loc>http://localhost:3000/docs/deploy</loc>
+  </url>
+  <url>
+    <loc>http://localhost:3000/docs/estrutura</loc>
+  </url>
+  <url>
+    <loc>http://localhost:3000/privacidade</loc>
+    <lastmod>2026-11-05</lastmod>
+  </url>
+  <url>
+    <loc>http://localhost:3000/termos</loc>
+    <lastmod>2026-11-05</lastmod>
+  </url>
+</urlset>

@@ -1,0 +1,8 @@
+# Gerado por scripts/generate-sitemap.ts (npm run sitemap). Não edite à mão:
+# a lista de bloqueios fica em src/config/public-paths.ts e a URL em src/config/app.ts.
+User-agent: *
+Disallow: /api/
+Disallow: /conta
+Disallow: /demo/
+
+Sitemap: http://localhost:3000/sitemap.xml

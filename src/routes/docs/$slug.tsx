@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
-import { appConfig } from '#/config/app'
 import { docs } from '#/lib/content/collections'
 import { MDXContent } from '#/lib/content/mdx-content'
+import { seo } from '#/lib/seo'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/docs/$slug')({
@@ -14,10 +14,10 @@ export const Route = createFileRoute('/docs/$slug')({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [
-          { title: `${loaderData.title} — Docs — ${appConfig.name}` },
-          { name: 'description', content: loaderData.description },
-        ]
+      ? seo({
+          title: `${loaderData.title} — Docs`,
+          description: loaderData.description,
+        })
       : [],
   }),
   component: DocPage,

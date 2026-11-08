@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import { ArrowLeftIcon } from 'lucide-react'
-import { appConfig } from '#/config/app'
 import { formatDate, posts } from '#/lib/content/collections'
 import { MDXContent } from '#/lib/content/mdx-content'
+import { seo } from '#/lib/seo'
 
 export const Route = createFileRoute('/blog/$slug')({
   loader: async ({ params }) => {
@@ -15,13 +15,11 @@ export const Route = createFileRoute('/blog/$slug')({
   },
   head: ({ loaderData }) => ({
     meta: loaderData
-      ? [
-          { title: `${loaderData.title} — ${appConfig.name}` },
-          { name: 'description', content: loaderData.description },
-          { property: 'og:title', content: loaderData.title },
-          { property: 'og:description', content: loaderData.description },
-          { property: 'og:type', content: 'article' },
-        ]
+      ? seo({
+          title: loaderData.title,
+          description: loaderData.description,
+          article: true,
+        })
       : [],
   }),
   component: PostPage,

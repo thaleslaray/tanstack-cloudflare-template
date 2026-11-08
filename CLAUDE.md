@@ -16,7 +16,8 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 
 ## Comandos
 - `npm run dev` — `vite dev --port 3000` em http://localhost:3000 (outra porta: `npx vite dev --port 3001`, e `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`)
-- `npm run build` — `vite build` (saída em `dist/client` e `dist/server`, com prerender)
+- `npm run build` — `vite build` (saída em `dist/client` e `dist/server`, com prerender); antes, o `prebuild` roda `npm run sitemap`
+- `npm run sitemap` — `scripts/generate-sitemap.ts` (via `tsx`) reescreve `public/sitemap.xml` e `public/robots.txt` a partir de `src/config/app.ts`, `src/config/public-paths.ts` e `content/`
 - `npm run preview` — build + `vite preview` (a saída de produção, local)
 - `npm run cf-typegen` — `wrangler types --env-file .dev.vars.example` → `worker-configuration.d.ts`
 - `npm run typecheck` — `cf-typegen` + `tsc --noEmit`
@@ -34,8 +35,9 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 ## Mapa
 - `src/routes/` — rotas por arquivo: `/` (landing), `/login`, `/conta` (protegida), `/blog`, `/docs`, `/termos`, `/privacidade`, `demo/*`, `api/auth/$`.
 - `src/content/landing.ts` — a landing como dados; `src/components/landing/` renderiza.
-- `src/config/` — `app.ts` (nome, URL, e-mail de suporte), `themes.ts` (os quatro temas), `public-paths.ts` (o que pode ser pré-renderizado).
-- `src/lib/` — `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
+- `src/config/` — `app.ts` (nome, URL base de SEO/sitemap, e-mail de suporte), `themes.ts` (os quatro temas), `public-paths.ts` (o que pode ser pré-renderizado, páginas fixas do sitemap, bloqueios do robots).
+- `scripts/generate-sitemap.ts` — gera `public/sitemap.xml` e `public/robots.txt` (versionados; não edite à mão). `public/og.png` — cartão social 1200x630 do `og:image`.
+- `src/lib/` — `seo.ts` (`seo()`: título, description, og/twitter, `article`, `noindex`), `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
 - `src/db/` — `index.ts` (`getDb(env.DB)`), `schema.ts` (suas tabelas), `auth-schema.ts` (tabelas do Better Auth).
 - `content/{blog,docs,legal}/*.mdx` — compilados no build por `@mdx-js/rollup`.
 - `src/rules.test.ts` — regras do CLAUDE.md marcadas com (teste), checadas por texto em todo `src/`.
@@ -78,7 +80,8 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - O estado local (D1, R2, DO) fica em `.wrangler/state/` (gitignorado e fora do watch do Vite).
 
 ### Conteúdo e prerender
-- Páginas públicas (`/`, `/blog*`, `/docs*`, `/termos`, `/privacidade`) são pré-renderizadas no `npm run build` (`prerender` no `vite.config.ts`, allow-list em `src/config/public-paths.ts`). Nada com sessão ou binding em tempo de requisição pode entrar nessa lista: uma cópia estática serviria sem o guard. Rota nova de conteúdo? Adicione lá.
+- Páginas públicas (`/`, `/blog*`, `/docs*`, `/termos`, `/privacidade`) são pré-renderizadas no `npm run build` (`prerender` no `vite.config.ts`, allow-list em `src/config/public-paths.ts`). Nada com sessão ou binding em tempo de requisição pode entrar nessa lista: uma cópia estática serviria sem o guard. Rota nova de conteúdo? Adicione lá (e, se for página fixa, em `SITEMAP_STATIC_PATHS`).
+- SEO: o `__root.tsx` põe os padrões (canonical, `og:url`, `og:site_name`, `og:image` = `/og.png`, `twitter:card`); cada rota com `head` usa `seo()` de `src/lib/seo.ts` só com o que é dela. Login e conta levam `noindex`. A base das URLs é `appConfig.url`: troque antes de publicar e rode `npm run sitemap`.
 - O prerender roda no build com os bindings LOCAIS; não leia D1/R2 em loader de página pré-renderizada.
 - Cada coleção MDX tem dois `import.meta.glob` literais (`?meta` eager para listas; lazy para o corpo). Não leia `frontmatter` do módulo compilado: isso põe todos os corpos no bundle principal.
 

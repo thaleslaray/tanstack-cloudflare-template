@@ -2,6 +2,7 @@
   "include": [
     "src",
     "e2e",
+    "scripts",
     "vitest.config.ts",
     "playwright.config.ts",
     "worker-configuration.d.ts"

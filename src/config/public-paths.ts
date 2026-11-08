@@ -27,3 +27,12 @@ export function isPrerenderable(path: string): boolean {
   const clean = path.length > 1 ? path.replace(/\/+$/, '') : path
   return PUBLIC_PATTERNS.some((re) => re.test(clean))
 }
+
+// Páginas fixas que entram no sitemap.xml (scripts/generate-sitemap.ts). Posts,
+// docs e páginas legais entram sozinhos, a partir de content/. `/docs` fica de
+// fora porque só redireciona para a primeira página das docs.
+export const SITEMAP_STATIC_PATHS = ['/', '/blog'] as const
+
+// Caminhos que os buscadores não devem visitar (robots.txt). São as áreas com
+// sessão ou sem conteúdo: o oposto da lista de cima.
+export const ROBOTS_DISALLOW = ['/api/', '/conta', '/demo/'] as const
