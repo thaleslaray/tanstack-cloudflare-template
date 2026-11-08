@@ -59,7 +59,7 @@ export default function Header() {
       <div className="mx-auto grid h-16 w-full max-w-6xl grid-cols-[1fr_auto] items-center px-4 sm:grid-cols-[1fr_auto_1fr] sm:px-6">
         <Link
           to="/"
-          className="flex w-fit items-center gap-2 py-2 text-base font-extrabold tracking-tight text-foreground no-underline"
+          className="flex w-fit items-center gap-2 py-2 text-base font-semibold tracking-tight text-foreground no-underline"
         >
           <Logo className="size-7" />
           {appConfig.name}

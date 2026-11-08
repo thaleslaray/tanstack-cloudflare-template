@@ -54,9 +54,35 @@ todo tema deve as duas faces.
 4. **Pílula, borda fina, sombra zero.** `--radius-btn: 100px`, `--border` a 10%
    de preto, `--shadow-btn` e `--shadow-card` em `none`. Profundidade vem de
    borda e de contraste de superfície, não de sombra.
-5. **Rótulos pequenos em cinza.** `.kicker` é 12px, peso 600, caixa alta,
-   `letter-spacing: 0.08em`, cor `--muted-foreground`. Sem tracking exagerado,
-   sem cor de marca, sem emoji como ícone. Ícones só do `lucide-react`.
+5. **Rótulos pequenos em cinza, em caixa normal.** `.kicker` é 13px, peso 500,
+   tracking zero, cor `--muted-foreground`. Nada de CAIXA ALTA COM TRACKING,
+   nada de cor de marca, nenhum emoji como ícone. Ícones só do `lucide-react`,
+   16 ou 18px, traço 1.5, na cor do texto ao lado.
+6. **Peso até 600.** Títulos em `--display-weight: 600` (brutal: 700, de
+   propósito). Em componente, `font-medium` ou `font-semibold`; hierarquia
+   vem de tamanho e cor. **(teste)** `font-bold`, `font-extrabold` e
+   `font-black` falham. Tamanhos na escala do Tailwind, sem `text-[15px]`.
+7. **Movimento com propósito.** Hover troca cor ou superfície, nunca sobe
+   nem cresce. Transição nomeada (`transition-colors`), nunca
+   `transition-all`. Uma única entrada na página, o `rise-in` do hero
+   (500ms, `cubic-bezier(0.22, 1, 0.36, 1)`, 8px), em escada de 50ms.
+   **(teste)** `hover:-translate-y-*`, `hover:scale-*`, `transition-all` e
+   `animate-bounce` falham.
+
+## O hero (2026-11-08, passe unslop)
+
+A primeira tela é dividida: texto à esquerda, alinhado à esquerda, e o
+**painel do app desenhado em código** (`src/components/landing/app-preview.tsx`)
+à direita, subindo da borda de baixo e cortado por ela, para convidar a
+rolar. É o "momento" da landing: a única coisa rica na tela, e ela mostra o
+produto de verdade, não uma ilustração. A grade de pontos atrás do título
+saiu. A **assinatura** do template é a etiqueta mono com o caminho do arquivo
+(`src/lib/auth.ts`) em cada cartão de recurso: só este produto diz onde cada
+coisa mora. Ela aparece ali e em mais lugar nenhum.
+
+Depoimentos de exemplo ("Nome da pessoa") não ficam na landing real: dado
+falso visível é slop. O bloco `testimonials` continua no catálogo `/blocos`
+para quem tiver depoimento de verdade.
 
 ## Exceções nomeadas
 
@@ -73,3 +99,8 @@ registrada aqui em uma linha, para ninguém refazer o caminho:
 
 - 2026-11-05 → 2026-11-08: bege `#f5f2ed` + rótulos laranja + sombra laranja
   no botão (do DESIGN.md). Substituída pela direção acima.
+- 2026-11-08 (manhã → tarde): títulos a 800/900, rótulos em caixa alta com
+  tracking, grade de pontos no hero, hero centralizado sem visual, passos
+  numerados em laranja, botões que sobem no hover, depoimentos de exemplo
+  na landing. Tudo saiu no passe unslop. Crédito do método: unslop, de
+  Damir Sokolovsky (@heydamir), CC BY 4.0.

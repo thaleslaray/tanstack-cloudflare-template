@@ -47,6 +47,12 @@ export type LandingBlock =
       secondary?: LandingLink
       /** Uma linha pequena abaixo dos botões. */
       note?: string
+      /**
+       * `'app'` põe o painel da área logada, desenhado em código
+       * (`app-preview.tsx`), à direita do texto, subindo da borda de baixo.
+       * Sem este campo o hero é curto e centralizado.
+       */
+      visual?: 'app'
     }
   /** Uma fileira de nomes (a stack) logo abaixo do hero. */
   | { type: 'stack'; label?: string; items: string[] }

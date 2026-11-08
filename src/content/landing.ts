@@ -13,7 +13,7 @@
  *
  * A ORDEM conta uma história: o que é (hero), quanto já vem pronto em
  * números (stats), em que foi feito (stack), o que já vem pronto (features),
- * como se usa (steps), quem já usou (depoimentos), o que muda em relação a
+ * como se usa (steps), o que muda em relação a
  * montar na mão (compare), o que ainda está em dúvida (faq) e a porta de
  * saída (cta).
  *
@@ -25,6 +25,10 @@ import type { LandingBlock } from '#/components/landing/types'
 export const landing: readonly LandingBlock[] = [
   {
     type: 'hero',
+    // O painel do app, desenhado em código, à direita do texto (ver
+    // src/components/landing/app-preview.tsx). Sem esta linha, o hero fica
+    // centralizado e sem visual.
+    visual: 'app',
     kicker: 'Template full-stack na Cloudflare',
     title: 'Seu app completo no ar, sem montar quebra-cabeça.',
     subtitle:
@@ -133,34 +137,6 @@ export const landing: readonly LandingBlock[] = [
 
   // TROQUE por depoimentos reais (com autorização de quem falou) ou apague o
   // bloco antes de publicar. Os três abaixo são exemplos marcados como tal.
-  {
-    type: 'testimonials',
-    kicker: 'Quem já usou',
-    title: 'O que dizem depois de publicar o primeiro app.',
-    items: [
-      {
-        quote:
-          'Eu achava que subir um app com login era coisa de programador. Em uma tarde o meu estava no ar.',
-        name: 'Nome da pessoa',
-        role: 'Exemplo: dona de clínica',
-        initials: 'NP',
-      },
-      {
-        quote:
-          'O que mais me travava era o deploy. Aqui é um comando, e o resto o template já resolveu.',
-        name: 'Nome da pessoa',
-        role: 'Exemplo: corretor de imóveis',
-        initials: 'NP',
-      },
-      {
-        quote:
-          'Peguei o template, troquei a landing, criei duas tabelas. Pronto, meu MVP para testar com clientes.',
-        name: 'Nome da pessoa',
-        role: 'Exemplo: consultora',
-        initials: 'NP',
-      },
-    ],
-  },
 
   {
     type: 'compare',

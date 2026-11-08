@@ -100,7 +100,7 @@ export function TerminalBlock({ block }: { block: BlockOf<'terminal'> }) {
             {block.label}
           </p>
         ) : null}
-        <pre className="overflow-x-auto p-5 font-mono text-[13px] leading-6 sm:text-sm">
+        <pre className="overflow-x-auto p-5 font-mono text-xs leading-6 sm:text-sm">
           {lines.map((line, i) => (
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: linhas fixas, nunca reordenadas; o mesmo comando pode repetir

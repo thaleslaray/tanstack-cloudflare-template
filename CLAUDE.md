@@ -95,7 +95,8 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - `/app` está no `ROBOTS_DISALLOW` e fora do `PUBLIC_PATTERNS` (nunca pré-renderizar). `/conta` ficou só como redirect 301.
 
 ### Temas e landing
-- **Direção visual, as cinco regras e as decisões datadas: `src/CLAUDE.md`.** Leia antes de qualquer mudança de aparência. (teste) A cor da marca nunca é cor de texto: `text-brand` sozinho falha; use `bg-brand` com `text-brand-foreground`.
+- **Direção visual, as sete regras e as decisões datadas: `src/CLAUDE.md`.** Leia antes de qualquer mudança de aparência. (teste) A cor da marca nunca é cor de texto (`text-brand` sozinho falha; use `bg-brand` + `text-brand-foreground`); peso até 600 (`font-bold`/`extrabold`/`black` falham); nada sobe ou cresce no hover e nunca `transition-all`.
+- O hero da landing real tem `visual: 'app'`: texto à esquerda e o painel da área logada desenhado em código (`src/components/landing/app-preview.tsx`) à direita. Mudou o painel em `src/routes/_app/app/`? Espelhe no preview.
 - Um tema é SÓ tokens em `src/styles.css`. `data-theme` (autonomia, neutro, editorial, brutal) é o visual, escrito por `theme-provider.tsx`; a classe `dark` (next-themes) é o modo. Nenhum componente lê `data-theme`. Forma que varia por tema vira token (`--radius-btn`, `--radius-card`, `--display-font`, `--shadow-btn`).
 - (teste) Cores só pelos tokens (`bg-background`, `text-muted-foreground`, `bg-brand`, `bg-surface`...). Sem hex/`rgb(` em componente (única exceção nomeada no teste: o logo do Google em `social-buttons.tsx`).
 - A landing é a lista em `src/content/landing.ts`; a rota `/` não tem texto. São 13 formatos (`hero`, `stats`, `stack`, `logos`, `features`, `bento`, `compare`, `steps`, `terminal`, `gallery`, `testimonials`, `faq`, `cta`); o catálogo com um exemplo de cada é `/blocos` (dados em `src/content/blocos-exemplo.ts`, `noindex`, fora do prerender e no `ROBOTS_DISALLOW`).

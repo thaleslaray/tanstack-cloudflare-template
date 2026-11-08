@@ -32,7 +32,7 @@ function BlogIndex() {
             <Link
               to="/blog/$slug"
               params={{ slug: post.slug }}
-              className="flex h-full flex-col gap-3 rounded-[var(--radius-card)] border border-border bg-card p-6 text-card-foreground no-underline shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:bg-surface"
+              className="flex h-full flex-col gap-3 rounded-[var(--radius-card)] border border-border bg-card p-6 text-card-foreground no-underline shadow-[var(--shadow-card)] transition-colors hover:bg-surface"
             >
               <time dateTime={post.date} className="kicker">
                 {formatDate(post.date)}

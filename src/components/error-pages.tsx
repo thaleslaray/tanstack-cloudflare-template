@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 
 const primaryBtn =
-  'inline-flex items-center justify-center rounded-[var(--radius-btn)] bg-brand px-7 py-3.5 text-[15px] font-bold text-brand-foreground shadow-[var(--shadow-btn)] transition hover:-translate-y-0.5 hover:bg-brand-hover'
+  'inline-flex h-12 items-center justify-center rounded-[var(--radius-btn)] bg-brand px-6 text-sm font-semibold text-brand-foreground shadow-[var(--shadow-btn)] transition-colors hover:bg-brand-hover'
 
 function Shell({
   kicker,
@@ -58,7 +58,7 @@ export function ErrorPage({ error }: { error: unknown }) {
         </button>
         <a
           href="/"
-          className="inline-flex items-center justify-center rounded-[var(--radius-btn)] border border-border bg-background px-7 py-3.5 text-[15px] font-semibold text-foreground transition hover:-translate-y-0.5 hover:bg-secondary"
+          className="inline-flex h-12 items-center justify-center rounded-[var(--radius-btn)] border border-border bg-background px-6 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
         >
           Ir para o início
         </a>

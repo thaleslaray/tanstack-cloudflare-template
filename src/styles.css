@@ -65,8 +65,8 @@
   --shadow-card: none;
   --body-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --display-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --display-weight: 800;
-  --tracking-display: -0.03em;
+  --display-weight: 600;
+  --tracking-display: -0.025em;
   --sidebar: #fafafa;
   --sidebar-foreground: #171717;
   --sidebar-primary: #171717;
@@ -149,8 +149,8 @@
   --radius-card: 12px;
   --shadow-btn: none;
   --shadow-card: none;
-  --display-weight: 700;
-  --tracking-display: -0.025em;
+  --display-weight: 600;
+  --tracking-display: -0.02em;
   --sidebar: oklch(0.975 0 0);
   --sidebar-primary: oklch(0.54 0.17 255);
   --sidebar-border: oklch(0.9 0 0);
@@ -291,8 +291,8 @@
   --radius-card: 0px;
   --shadow-btn: 4px 4px 0 #111111;
   --shadow-card: 4px 4px 0 #111111;
-  --display-weight: 900;
-  --tracking-display: -0.04em;
+  --display-weight: 700;
+  --tracking-display: -0.03em;
   --sidebar: #f6f6f6;
   --sidebar-primary: #111111;
   --sidebar-border: #111111;
@@ -415,33 +415,27 @@
   font-weight: var(--display-weight);
 }
 
-/* Etiqueta pequena acima de um título. Cinza, nunca na cor da marca: texto
-   colorido é a regra 1 de src/CLAUDE.md. A marca vai em preenchimento. */
+/* Etiqueta pequena acima de um título. Cinza e em caixa normal: texto
+   colorido e CAIXA ALTA COM TRACKING são as regras 1 e 5 de src/CLAUDE.md.
+   A marca vai em preenchimento, a hierarquia vem do tamanho. */
 .kicker,
 .island-kicker {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
   color: var(--muted-foreground);
 }
 
-/* O chão da primeira tela: uma grade de pontos que some nas bordas. Marca a
-   dobra por textura, não por outra cor. */
-.hero-ground {
-  background-image: radial-gradient(var(--hero-dot) 1px, transparent 1.5px);
-  background-size: 22px 22px;
-  mask-image: radial-gradient(ellipse 70% 80% at 50% 40%, black 30%, transparent 100%);
-}
-
+/* A única entrada animada: o hero. Curva e duração dos tokens de movimento
+   (src/CLAUDE.md, regra 7). Os filhos escalonam por animation-delay. */
 .rise-in {
-  animation: rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -515,7 +509,7 @@
   @apply rounded-[var(--radius-card)] border border-border bg-card p-6 shadow-[var(--shadow-card)] sm:p-8;
 }
 .demo-title {
-  @apply text-2xl font-bold tracking-tight;
+  @apply text-2xl font-semibold tracking-tight;
 }
 .demo-muted {
   @apply text-muted-foreground;

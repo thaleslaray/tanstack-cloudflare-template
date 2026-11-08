@@ -1,28 +1,43 @@
+import { AppPreview } from '../app-preview'
 import { primaryBtn, Section, SectionHead, secondaryBtn } from '../section'
 import type { BlockOf as Of } from '../types'
 
 // Os sete blocos com que a landing nasceu. Os formatos extras (bento,
 // compare, stats, logos, terminal, gallery) moram um por arquivo nesta pasta.
 
+/**
+ * Hero em duas formas. Com `visual: 'app'`, texto à esquerda e o painel do
+ * app (desenhado em código) à direita, subindo da borda de baixo: é a
+ * primeira tela da landing real. Sem `visual`, a forma curta e centralizada,
+ * para páginas sem o que mostrar. Uma única entrada animada (rise-in), em
+ * escada curta; nada mais se move nesta tela.
+ */
 export function HeroBlock({ block }: { block: Of<'hero'> }) {
-  return (
-    <section className="hero-ground mx-auto flex w-full max-w-5xl flex-col items-center gap-7 px-5 pb-16 pt-20 text-center sm:px-8 sm:pb-24 sm:pt-32">
+  const split = block.visual === 'app'
+  const text = (
+    <div
+      className={`flex flex-col gap-6 ${split ? 'items-start text-left' : 'items-center text-center'}`}
+    >
       {block.kicker ? <p className="kicker rise-in">{block.kicker}</p> : null}
       <h1
-        className="font-display rise-in max-w-4xl text-[2.75rem] leading-[1.0] tracking-[var(--tracking-display)] sm:text-7xl"
-        style={{ animationDelay: '60ms' }}
+        className={`font-display rise-in leading-[1.02] tracking-[var(--tracking-display)] ${
+          split
+            ? 'max-w-xl text-5xl sm:text-6xl'
+            : 'max-w-4xl text-5xl sm:text-7xl'
+        }`}
+        style={{ animationDelay: '50ms' }}
       >
         {block.title}
       </h1>
       <p
-        className="rise-in max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
-        style={{ animationDelay: '120ms' }}
+        className={`rise-in max-w-xl text-lg leading-relaxed text-muted-foreground ${split ? '' : 'sm:text-xl'}`}
+        style={{ animationDelay: '100ms' }}
       >
         {block.subtitle}
       </p>
       <div
-        className="rise-in flex flex-wrap items-center justify-center gap-3"
-        style={{ animationDelay: '180ms' }}
+        className={`rise-in flex flex-wrap items-center gap-3 ${split ? '' : 'justify-center'}`}
+        style={{ animationDelay: '150ms' }}
       >
         <a href={block.primary.to} className={primaryBtn}>
           {block.primary.label}
@@ -36,11 +51,33 @@ export function HeroBlock({ block }: { block: Of<'hero'> }) {
       {block.note ? (
         <p
           className="rise-in text-sm text-muted-foreground"
-          style={{ animationDelay: '240ms' }}
+          style={{ animationDelay: '200ms' }}
         >
           {block.note}
         </p>
       ) : null}
+    </div>
+  )
+
+  if (!split) {
+    return (
+      <section className="mx-auto flex w-full max-w-5xl flex-col items-center px-5 pb-16 pt-20 sm:px-8 sm:pb-24 sm:pt-28">
+        {text}
+      </section>
+    )
+  }
+
+  return (
+    <section className="w-full overflow-hidden border-b border-border">
+      <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-16 sm:px-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-16 lg:pt-20">
+        <div className="pb-4 lg:pb-16">{text}</div>
+        <div
+          className="rise-in translate-y-6 self-end lg:translate-y-10"
+          style={{ animationDelay: '200ms' }}
+        >
+          <AppPreview className="min-h-[360px] lg:min-h-[420px]" />
+        </div>
+      </div>
     </section>
   )
 }
@@ -80,7 +117,9 @@ export function FeaturesBlock({ block }: { block: Of<'features'> }) {
             <span className="font-mono text-xs text-muted-foreground">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <h3 className="text-lg font-bold tracking-tight">{item.title}</h3>
+            <h3 className="text-lg font-semibold tracking-tight">
+              {item.title}
+            </h3>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {item.body}
             </p>
@@ -104,15 +143,15 @@ export function StepsBlock({ block }: { block: Of<'steps'> }) {
         {block.steps.map((step, i) => (
           <li key={step.title} className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand font-mono text-sm font-bold text-brand-foreground">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary font-mono text-sm font-medium text-foreground tabular-nums">
                 {i + 1}
               </span>
-              <h3 className="text-lg font-bold tracking-tight">{step.title}</h3>
+              <h3 className="text-lg font-semibold">{step.title}</h3>
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {step.body}
             </p>
-            <pre className="mt-auto overflow-x-auto rounded-[var(--radius-card)] bg-terminal p-4 font-mono text-[13px] leading-relaxed text-terminal-foreground">
+            <pre className="mt-auto overflow-x-auto rounded-[var(--radius-card)] bg-terminal p-4 font-mono text-xs leading-relaxed text-terminal-foreground">
               {step.lines.map((line) => (
                 <div key={line}>
                   <span className="select-none text-terminal-muted">$ </span>
@@ -140,7 +179,7 @@ export function TestimonialsBlock({ block }: { block: Of<'testimonials'> }) {
           >
             <p className="text-base leading-relaxed">“{item.quote}”</p>
             <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-full bg-secondary text-sm font-bold">
+              <span className="flex size-10 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
                 {item.initials}
               </span>
               <span className="flex flex-col">

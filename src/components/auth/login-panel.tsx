@@ -19,7 +19,7 @@ export function LoginPanel({
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Entrar</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
         <p className="text-sm text-muted-foreground">
           Sem senha: enviamos um código para o seu e-mail.
         </p>

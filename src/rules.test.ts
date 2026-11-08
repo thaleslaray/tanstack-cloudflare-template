@@ -147,6 +147,33 @@ describe('regras do projeto (CLAUDE.md)', () => {
     ).toEqual([])
   })
 
+  it('nada sobe nem cresce no hover, e a transição é nomeada (sem transition-all)', () => {
+    // Regra 7 de src/CLAUDE.md: hover muda cor ou superfície; movimento só
+    // com propósito. `transition-all` anima layout e trava em máquina fraca.
+    const offenders = matches(
+      /\bhover:-?translate-y-|\bhover:scale-|\btransition-all\b|\banimate-bounce\b/g,
+      (f) => (f.path.endsWith('.tsx') ? f.code : ''),
+    )
+    expect(
+      offenders,
+      'Movimento de template: elemento que sobe ou cresce no hover, ou ' +
+        '`transition-all`. Use `transition-colors` (ou nomeie as propriedades) ' +
+        'e troque cor/superfície no hover. Veja src/CLAUDE.md, regra 7.',
+    ).toEqual([])
+  })
+
+  it('títulos até o peso 600: sem font-bold, font-extrabold ou font-black', () => {
+    // Regra 6 de src/CLAUDE.md: hierarquia vem de tamanho e cor, não de peso.
+    const offenders = matches(/\bfont-(?:bold|extrabold|black)\b/g, (f) =>
+      f.path.endsWith('.tsx') ? f.code : '',
+    )
+    expect(
+      offenders,
+      'Peso acima de 600 em componente. Use font-medium ou font-semibold e ' +
+        'dê hierarquia pelo tamanho. Veja src/CLAUDE.md, regra 6.',
+    ).toEqual([])
+  })
+
   it('env de cloudflare:workers só é lido dentro de função', () => {
     const offenders = matches(/(?<![\w.$])env\s*\.\s*\w+|=\s*env\b/g, (f) =>
       importsWorkers(f.code) ? moduleScopeOnly(f.bare) : '',

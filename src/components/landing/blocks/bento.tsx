@@ -48,7 +48,9 @@ export function BentoBlock({ block }: { block: BlockOf<'bento'> }) {
                   <Icon aria-hidden className="size-5" />
                 </span>
               ) : null}
-              <h3 className="text-lg font-bold tracking-tight">{item.title}</h3>
+              <h3 className="text-lg font-semibold tracking-tight">
+                {item.title}
+              </h3>
               <p
                 className={`max-w-xl text-sm leading-relaxed ${
                   item.featured

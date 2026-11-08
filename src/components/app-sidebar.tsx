@@ -44,7 +44,7 @@ export function Brand() {
   return (
     <Link
       to="/"
-      className="flex items-center gap-2 text-base font-extrabold tracking-tight whitespace-nowrap text-foreground no-underline"
+      className="flex items-center gap-2 text-base font-semibold tracking-tight whitespace-nowrap text-foreground no-underline"
     >
       <Logo className="size-6" />
       {appConfig.name}

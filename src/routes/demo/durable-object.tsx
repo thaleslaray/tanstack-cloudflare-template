@@ -31,7 +31,7 @@ function DemoDO() {
           <CardTitle className="text-2xl">Demo do Durable Object</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-4xl font-bold">{value ?? '—'}</p>
+          <p className="text-4xl font-semibold">{value ?? '—'}</p>
           <Button
             onClick={async () => {
               setValue(await increment())

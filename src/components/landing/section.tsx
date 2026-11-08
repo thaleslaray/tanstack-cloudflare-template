@@ -71,7 +71,9 @@ export function SectionHead({
   )
 }
 
+// Botões do hero e das seções: 48px de altura, pílula pelo token, hover só
+// muda a cor (nada sobe nem cresce), foco visível para teclado.
 export const primaryBtn =
-  'inline-flex items-center justify-center rounded-[var(--radius-btn)] bg-brand px-7 py-3.5 text-[15px] font-bold text-brand-foreground shadow-[var(--shadow-btn)] transition hover:-translate-y-0.5 hover:bg-brand-hover'
+  'inline-flex h-12 items-center justify-center rounded-[var(--radius-btn)] bg-brand px-6 text-sm font-semibold text-brand-foreground shadow-[var(--shadow-btn)] transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 export const secondaryBtn =
-  'inline-flex items-center justify-center rounded-[var(--radius-btn)] border border-border bg-background px-7 py-3.5 text-[15px] font-semibold text-foreground transition hover:-translate-y-0.5 hover:bg-secondary'
+  'inline-flex h-12 items-center justify-center rounded-[var(--radius-btn)] border border-border bg-background px-6 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'

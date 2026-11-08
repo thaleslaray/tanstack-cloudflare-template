@@ -14,7 +14,7 @@ export default function Footer() {
           <div className="max-w-xs">
             <Link
               to="/"
-              className="flex items-center gap-2 text-base font-extrabold tracking-tight text-foreground no-underline"
+              className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground no-underline"
             >
               <Logo className="size-5" />
               {appConfig.name}
