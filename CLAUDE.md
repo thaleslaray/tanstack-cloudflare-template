@@ -37,15 +37,18 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - `src/lib/` — `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
 - `src/db/` — `index.ts` (`getDb(env.DB)`), `schema.ts` (suas tabelas), `auth-schema.ts` (tabelas do Better Auth).
 - `content/{blog,docs,legal}/*.mdx` — compilados no build por `@mdx-js/rollup`.
+- `src/rules.test.ts` — regras do CLAUDE.md marcadas com (teste), checadas por texto em todo `src/`.
 - `src/styles.css` — tokens dos temas; `public/_headers` — cabeçalhos das páginas estáticas.
 - `wrangler.jsonc` — Worker e bindings; `worker-configuration.d.ts` — tipos gerados (não editar à mão).
 
 ## Regras
-- A config é `wrangler.jsonc` (com `$schema`; nomes de campo conferidos em `node_modules/wrangler/config-schema.json`). NÃO instalar o `cf` nem criar `cloudflare.config.ts` até o GA do `cf`/plugin v2: o `cf` ignora o `wrangler.jsonc` e pode gerar config sem bindings; o Wrangler não publica saída do v2. O caminho de ida, no GA, é `npx cf migrate` (o estado v2 está guardado na branch `cf-v2-beta`).
+As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no `npm run test`).
+
+- (teste) A config é `wrangler.jsonc` (com `$schema`; nomes de campo conferidos em `node_modules/wrangler/config-schema.json`). NÃO instalar o `cf` nem criar `cloudflare.config.ts` até o GA do `cf`/plugin v2: o `cf` ignora o `wrangler.jsonc` e pode gerar config sem bindings; o Wrangler não publica saída do v2. O caminho de ida, no GA, é `npx cf migrate` (o estado v2 está guardado na branch `cf-v2-beta`).
 - Versões FIXADAS sem `^`: `wrangler@4.158.0`, `@cloudflare/vite-plugin@1.67.0`. Atualizar só de propósito, lendo o changelog, e rodar `typecheck`, `build`, `test` e `e2e` antes de commitar.
 - Tipos de `Env` ficam em `worker-configuration.d.ts`, gerados por `npm run cf-typegen` a partir do `wrangler.jsonc` + chaves do `.dev.vars.example` (o `--env-file` faz funcionar em clone limpo, sem `.dev.vars`). Mudou `wrangler.jsonc` ou o `.dev.vars.example`? Regenere e versione o arquivo.
 - No `vite.config.ts`: plugins MDX (`enforce: 'pre'`) e `mdxMeta()` primeiro, depois `cloudflare({ viteEnvironment: { name: 'ssr' } })` ANTES de `tanstackStart()`. Não reordenar.
-- Bindings só via `import { env } from "cloudflare:workers"` em código de servidor (server functions, handlers, `src/lib/*` de servidor); ler `env` dentro de função, nunca em escopo de módulo, nunca em código que vá ao client.
+- (teste) Bindings só via `import { env } from "cloudflare:workers"` em código de servidor (server functions, handlers, `src/lib/*` de servidor); ler `env` dentro de função, nunca em escopo de módulo, nunca em código que vá ao client. Sem `process.env` em `src/`.
 - `getAuth(env)` e `getDb(env.DB)` são factories por request. Sem singletons. `tanstackStartCookies()` é sempre o último plugin do Better Auth.
 - D1 é SQLite: sem transação aninhada; use `db.batch([...])` ou uma instrução condicional.
 - Aguardar (`await`) toda promise; no `scheduled`, `ctx.waitUntil`.
@@ -59,7 +62,7 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - Produção: `npm run deploy -- --secrets-file .prod.vars` (gitignorado) ou `npx wrangler secret bulk .prod.vars`.
 
 ### E-mail
-- Tudo passa por `sendEmail()` em `src/lib/email.ts`. Ordem: Resend (se `RESEND_API_KEY`), binding `EMAIL` do Cloudflare Email Service (`send_email` descomentado no `wrangler.jsonc` e `EMAIL_FROM` definido), senão o e-mail inteiro vai para o console do `npm run dev`. Templates em `src/lib/email-templates.ts`, HTML com estilos inline.
+- (teste) Tudo passa por `sendEmail()` em `src/lib/email.ts`. Ordem: Resend (se `RESEND_API_KEY`), binding `EMAIL` do Cloudflare Email Service (`send_email` descomentado no `wrangler.jsonc` e `EMAIL_FROM` definido), senão o e-mail inteiro vai para o console do `npm run dev`. Templates em `src/lib/email-templates.ts`, HTML com estilos inline.
 - Não instalar SDK de e-mail; Resend é REST via `fetch`.
 
 ### Auth
@@ -79,7 +82,7 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 
 ### Temas e landing
 - Um tema é SÓ tokens em `src/styles.css`. `data-theme` (autonomia, neutro, editorial, brutal) é o visual, escrito por `theme-provider.tsx`; a classe `dark` (next-themes) é o modo. Nenhum componente lê `data-theme`. Forma que varia por tema vira token (`--radius-btn`, `--radius-card`, `--display-font`, `--shadow-btn`).
-- Cores só pelos tokens (`bg-background`, `text-muted-foreground`, `bg-brand`, `bg-surface`...). Sem hex em componente.
+- (teste) Cores só pelos tokens (`bg-background`, `text-muted-foreground`, `bg-brand`, `bg-surface`...). Sem hex/`rgb(` em componente (única exceção nomeada no teste: o logo do Google em `social-buttons.tsx`).
 - A landing é a lista em `src/content/landing.ts`; a rota `/` não tem texto. Formato novo de bloco = tipo em `types.ts` + componente + `case` no `render.tsx`.
 
 ### Proteções
