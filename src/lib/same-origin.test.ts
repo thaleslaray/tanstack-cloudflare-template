@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCrossSiteServerFnCall } from './same-origin'
+import { isCrossSiteRequest, isCrossSiteServerFnCall } from './same-origin'
 
 const call = (path: string, headers: Record<string, string> = {}) =>
   isCrossSiteServerFnCall(
@@ -39,5 +39,23 @@ describe('isCrossSiteServerFnCall', () => {
     expect(call('/api/webhooks/x', { 'sec-fetch-site': 'cross-site' })).toBe(
       false,
     )
+  })
+})
+
+describe('isCrossSiteRequest (rotas de API com cookie)', () => {
+  const req = (headers: Record<string, string> = {}) =>
+    isCrossSiteRequest(
+      new Request('https://app.exemplo.com/api/avatar', {
+        method: 'POST',
+        headers,
+      }),
+    )
+
+  it('vale para qualquer caminho, não só /_serverFn/', () => {
+    expect(req({ 'sec-fetch-site': 'cross-site' })).toBe(true)
+    expect(req({ 'sec-fetch-site': 'same-origin' })).toBe(false)
+    expect(req({ origin: 'https://evil.example' })).toBe(true)
+    expect(req({ origin: 'https://app.exemplo.com' })).toBe(false)
+    expect(req()).toBe(false)
   })
 })

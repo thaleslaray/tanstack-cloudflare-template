@@ -33,11 +33,11 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - CI (GitHub Actions, sem deploy): `.github/workflows/ci.yml` em push na `main` e PR (`npm ci`, `.dev.vars` com segredo aleatório, typecheck, check, test, build, `wrangler deploy --dry-run`, e falha se `npm run db:generate` mudar `drizzle/`); `e2e.yml` à mão e toda segunda 09:00 UTC.
 
 ## Mapa
-- `src/routes/` — rotas por arquivo: `/` (landing), `/login`, `/conta` (protegida), `/blog`, `/docs`, `/termos`, `/privacidade`, `demo/*`, `api/auth/$`.
+- `src/routes/` — rotas por arquivo: `/` (landing), `/login`, `/conta` (protegida), `/blog`, `/docs`, `/termos`, `/privacidade`, `demo/*`, `api/auth/$`, `api/avatar` (POST, troca a foto) e `api/avatar/$userId` (GET, serve a foto).
 - `src/content/landing.ts` — a landing como dados; `src/components/landing/` renderiza.
 - `src/config/` — `app.ts` (nome, URL base de SEO/sitemap, e-mail de suporte), `themes.ts` (os quatro temas), `public-paths.ts` (o que pode ser pré-renderizado, páginas fixas do sitemap, bloqueios do robots).
 - `scripts/generate-sitemap.ts` — gera `public/sitemap.xml` e `public/robots.txt` (versionados; não edite à mão). `public/og.png` — cartão social 1200x630 do `og:image`.
-- `src/lib/` — `audit.ts` (trilha de auditoria: `audit()`, `onAudit()`, `formatAuditEntry()`), `audit-d1.ts` (sink padrão, grava em `audit_log`), `auth-audit-hook.ts` (login e troca de nome via `hooks.after` do Better Auth), `seo.ts` (`seo()`: título, description, og/twitter, `article`, `noindex`), `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
+- `src/lib/` — `audit.ts` (trilha de auditoria: `audit()`, `onAudit()`, `formatAuditEntry()`), `audit-d1.ts` (sink padrão, grava em `audit_log`), `auth-audit-hook.ts` (login e troca de nome via `hooks.after` do Better Auth), `avatar.ts` (limites e chave da foto de perfil; sem bindings, usado no servidor e no navegador), `seo.ts` (`seo()`: título, description, og/twitter, `article`, `noindex`), `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
 - `src/db/` — `index.ts` (`getDb(env.DB)`), `schema.ts` (suas tabelas e `audit_log`), `auth-schema.ts` (tabelas do Better Auth).
 - `content/{blog,docs,legal}/*.mdx` — compilados no build por `@mdx-js/rollup`.
 - `src/rules.test.ts` — regras do CLAUDE.md marcadas com (teste), checadas por texto em todo `src/`.
@@ -93,7 +93,12 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 ### Proteções
 - `PUBLIC_RATE_LIMIT` (5/min por IP) cobre os endpoints de login e as escritas públicas; `isRateLimited()` falha ABERTA sem o binding. Endpoint público de escrita novo? Aplique.
 - Cabeçalhos de segurança em `src/lib/security-headers.ts` (Worker) e `public/_headers` (assets/páginas estáticas): mantenha os dois iguais. Sem CSP de propósito (scripts inline do TanStack).
-- Server functions recusam chamadas cross-site (`same-origin.ts`); use `method: 'POST'` em server function que muda estado.
+- Server functions recusam chamadas cross-site (`same-origin.ts`); use `method: 'POST'` em server function que muda estado. Rota de API que muda estado com o cookie do usuário chama `isCrossSiteRequest(request)` no começo (403), como `api/avatar.ts`.
+
+### Foto de perfil (R2)
+- **Avatar tem limite**: PNG, JPEG ou WebP, até 2 MB (`AVATAR_MAX_BYTES`/`AVATAR_TYPES` em `src/lib/avatar.ts`). O tipo gravado vem dos primeiros bytes (`detectImageType`), não do que o navegador declarou.
+- `POST /api/avatar`: same-origin → sessão (401) → `isRateLimited('avatar')` (429) → multipart com um campo `file` → grava em `env.BUCKET` na chave `avatars/<userId>` → `user.image = /api/avatar/<userId>?v=<timestamp>` → auditoria `account.avatar_set`. Não há "remover", só substituir.
+- `GET /api/avatar/<userId>`: público, `Cache-Control: public, max-age=31536000, immutable` (a URL muda a cada troca) e `ETag` (responde 304 com `If-None-Match`). Id inválido ou sem foto: 404.
 - Cron diário (03:00 UTC) roda `runJobs` em `src/lib/jobs.ts`; jobs precisam ser idempotentes.
 
 ### Auditoria

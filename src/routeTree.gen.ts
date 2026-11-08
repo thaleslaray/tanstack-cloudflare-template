@@ -14,6 +14,7 @@ import { Route as ContaRouteImport } from './routes/conta'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as ApiAvatarRouteImport } from './routes/api/avatar'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as DemoDrizzleRouteImport } from './routes/demo/drizzle'
@@ -23,6 +24,7 @@ import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-qu
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiAvatarUserIdRouteImport } from './routes/api/avatar.$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,6 +49,11 @@ const PrivacidadeRoute = PrivacidadeRouteImport.update({
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAvatarRoute = ApiAvatarRouteImport.update({
+  id: '/api/avatar',
+  path: '/api/avatar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
@@ -94,6 +101,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAvatarUserIdRoute = ApiAvatarUserIdRouteImport.update({
+  id: '/$userId',
+  path: '/$userId',
+  getParentRoute: () => ApiAvatarRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -101,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/api/avatar': typeof ApiAvatarRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
@@ -110,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -117,6 +131,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/api/avatar': typeof ApiAvatarRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
@@ -126,6 +141,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +150,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/api/avatar': typeof ApiAvatarRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
   '/demo/durable-object': typeof DemoDurableObjectRoute
@@ -143,6 +160,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -152,6 +170,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/privacidade'
     | '/termos'
+    | '/api/avatar'
     | '/blog/$slug'
     | '/demo/drizzle'
     | '/demo/durable-object'
@@ -161,6 +180,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/docs/'
     | '/api/auth/$'
+    | '/api/avatar/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -168,6 +188,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/privacidade'
     | '/termos'
+    | '/api/avatar'
     | '/blog/$slug'
     | '/demo/drizzle'
     | '/demo/durable-object'
@@ -177,6 +198,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/docs'
     | '/api/auth/$'
+    | '/api/avatar/$userId'
   id:
     | '__root__'
     | '/'
@@ -184,6 +206,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/privacidade'
     | '/termos'
+    | '/api/avatar'
     | '/blog/$slug'
     | '/demo/drizzle'
     | '/demo/durable-object'
@@ -193,6 +216,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/docs/'
     | '/api/auth/$'
+    | '/api/avatar/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -201,6 +225,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
+  ApiAvatarRoute: typeof ApiAvatarRouteWithChildren
   BlogSlugRoute: typeof BlogSlugRoute
   DemoDrizzleRoute: typeof DemoDrizzleRoute
   DemoDurableObjectRoute: typeof DemoDurableObjectRoute
@@ -247,6 +272,13 @@ declare module '@tanstack/react-router' {
       path: '/termos'
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/avatar': {
+      id: '/api/avatar'
+      path: '/api/avatar'
+      fullPath: '/api/avatar'
+      preLoaderRoute: typeof ApiAvatarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -312,8 +344,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/avatar/$userId': {
+      id: '/api/avatar/$userId'
+      path: '/$userId'
+      fullPath: '/api/avatar/$userId'
+      preLoaderRoute: typeof ApiAvatarUserIdRouteImport
+      parentRoute: typeof ApiAvatarRoute
+    }
   }
 }
+
+interface ApiAvatarRouteChildren {
+  ApiAvatarUserIdRoute: typeof ApiAvatarUserIdRoute
+}
+
+const ApiAvatarRouteChildren: ApiAvatarRouteChildren = {
+  ApiAvatarUserIdRoute: ApiAvatarUserIdRoute,
+}
+
+const ApiAvatarRouteWithChildren = ApiAvatarRoute._addFileChildren(
+  ApiAvatarRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -321,6 +372,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
+  ApiAvatarRoute: ApiAvatarRouteWithChildren,
   BlogSlugRoute: BlogSlugRoute,
   DemoDrizzleRoute: DemoDrizzleRoute,
   DemoDurableObjectRoute: DemoDurableObjectRoute,

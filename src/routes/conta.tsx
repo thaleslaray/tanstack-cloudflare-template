@@ -3,6 +3,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { AvatarUpload, initials } from '#/components/account/avatar-upload'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -38,11 +39,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   github: 'GitHub',
 }
 
-function initials(name: string, email: string) {
-  const source = name.trim() || email
-  return source.charAt(0).toUpperCase() || 'U'
-}
-
 // Contas vinculadas. Quem entra só por código não tem registro aqui.
 function useProviderLabel() {
   const { data } = useQuery({
@@ -63,7 +59,10 @@ function useProviderLabel() {
 function AccountPage() {
   const { session } = Route.useRouteContext()
   const queryClient = useQueryClient()
-  const user = session.user
+  // A sessão do cache (atualizada depois de salvar nome ou foto); a do guard
+  // da rota é o valor inicial.
+  const { data: fresh } = useQuery(sessionQuery)
+  const user = fresh?.user ?? session.user
   const provider = useProviderLabel()
   const [name, setName] = useState(user.name)
   const [saving, setSaving] = useState(false)
@@ -118,6 +117,8 @@ function AccountPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          <Separator />
+          <AvatarUpload user={user} />
           <Separator />
           <form onSubmit={saveName} className="grid gap-3">
             <div className="grid gap-2">
