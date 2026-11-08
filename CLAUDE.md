@@ -23,7 +23,7 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - `npm run typecheck` — `cf-typegen` + `tsc --noEmit`
 - `npm run check` / `check:fix` — Biome
 - `npm run test` — Vitest (unidades, ambiente node, `cloudflare:workers` substituído por `src/test/cloudflare-workers.ts`)
-- `npm run e2e` — Playwright; sobe o `vite dev` sozinho e grava o log em `e2e/.dev.log` (é de lá que o teste de login lê o código). Porta ocupada: `E2E_PORT=3001 npm run e2e` (+ `BETTER_AUTH_URL` no `.dev.vars`)
+- `npm run e2e` — Playwright (4 specs, 13 testes); sobe o `vite dev` sozinho e grava o log em `e2e/.dev.log` (é de lá que o teste de login lê o código), e também o `npm run preview` na porta 4173 (`E2E_PREVIEW_PORT`), para checar os cabeçalhos do `public/_headers` nos estáticos. Porta ocupada: `E2E_PORT=3001 npm run e2e` (+ `BETTER_AUTH_URL` no `.dev.vars`)
 - `npm run db:generate` — migração a partir de `src/db/schema.ts` e `src/db/auth-schema.ts`
 - `npm run db:migrate:local` / `db:migrate:remote`
 - `npx wrangler deploy --dry-run` (depois de `npm run build`) — valida sem publicar; `npm run deploy -- --secrets-file .prod.vars` publica

@@ -6,7 +6,10 @@ Primeira vez: `npx playwright install chromium`.
 
 ## Como funciona
 
-- O Playwright sobe o `vite dev` sozinho na porta 3000 (`--strictPort`: falha se ela
+- O Playwright sobe DOIS servidores sozinho: o `vite dev` (porta 3000, o app de verdade) e o
+  `npm run preview` (porta 4173 ou `E2E_PREVIEW_PORT`: faz o build e serve a saída de produção,
+  onde o `public/_headers` vale para os arquivos estáticos; o `vite dev` não aplica esse arquivo).
+- O `vite dev` sobe na porta 3000 (`--strictPort`: falha se ela
   estiver ocupada) e **não reaproveita** servidor já aberto (`reuseExistingServer: false`).
   Pare o seu `npm run dev` antes de rodar, ou use outra porta:
   `E2E_PORT=3001 npm run e2e`, com `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`
@@ -18,8 +21,10 @@ Primeira vez: `npx playwright install chromium`.
 ## Arquivos
 
 - `marketing.spec.ts`: home em pt-BR, links do header, redirecionamento de `/docs`, 404.
+- `helpers.ts`: portas, leitura do código no log e `loginWithCode()` (usado pelos specs de login).
 - `login.spec.ts`: login por código de ponta a ponta, até `/conta`.
-- `guards.spec.ts`: `/conta` anônimo redireciona para `/login`; cabeçalhos de segurança.
+- `guards.spec.ts`: `/conta` anônimo redireciona para `/login?redirect=...` e, depois do login, volta para a página pedida.
+- `security-headers.spec.ts`: cabeçalhos de segurança nas respostas do Worker (dev) e nos estáticos (preview: página pré-renderizada, `public/`, `/assets/`).
 
 ## Convenções
 

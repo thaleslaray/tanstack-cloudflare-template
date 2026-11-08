@@ -45,7 +45,7 @@ liga o login com Google e `/deploy` publica.
 | Conteúdo | MDX para blog, docs, termos e privacidade, pré-renderizados no build |
 | UI | Tailwind v4 + shadcn/ui, landing montada de `src/content/landing.ts`, quatro temas em claro e escuro |
 | Proteções | Rate limit por IP, cabeçalhos de segurança, cron diário limpando sessões vencidas |
-| Qualidade | Biome, Vitest, Playwright (3 specs) |
+| Qualidade | Biome, Vitest (com as regras do `CLAUDE.md` como teste), Playwright (4 specs) |
 | Agentes | `CLAUDE.md`, `AGENTS.md` e skills em `.claude/skills/` |
 
 ## Scripts

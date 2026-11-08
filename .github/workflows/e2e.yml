@@ -31,7 +31,8 @@ jobs:
       - run: npm run cf-typegen
       - run: npx playwright install --with-deps chromium
 
-      # O próprio Playwright aplica as migrações no D1 local e sobe o servidor.
+      # O próprio Playwright aplica as migrações no D1 local e sobe os dois
+      # servidores: `vite dev` e `npm run preview` (que faz o build).
       - run: npm run e2e
 
       # Falhou? O relatório, os traces e o log do servidor ficam 7 dias na
