@@ -137,3 +137,7 @@ Três grupos, três agentes Opus, 10 commits em `main` depois da volta para v1. 
 - **Grupo C (landing):** 6 blocos novos (bento, compare, stats, logos, terminal, gallery), total 13; `/blocos` como catálogo com `noindex`; `stats` e `compare` entraram na landing real. Rodapé corrigido para 375 px. Achado não corrigido: no tema brutal claro, o `.kicker` amarelo tem pouco contraste.
 
 Fora do escopo, ainda: deploy real, botão Deploy, Google/GitHub/Resend com credenciais, `@cloudflare/vitest-pool-workers`, restaurar conta encerrada (só pelo D1), remover foto (só trocar).
+
+## 12. Versões com `^` e Dependabot (2026-11-07)
+
+Os 10 pins exatos (8 do CLI do TanStack, 2 da regra do beta) viraram `^`. `.github/dependabot.yml` semanal com grupos (tanstack, cloudflare, react, ferramentas, resto) e majors de typescript/vite/vitest/@types/node ignorados. Regra no CLAUDE.md: pin exato só para beta; `compatibility_date` sobe à mão. Teste do pior caso: cópia descartável com `npm update` (85 pacotes, incluindo TanStack Start 1.169.5, Router, Query 5.107, Tailwind 4.3.5, Playwright 1.65, Biome 2.6.6) passou typecheck, lint, 113 testes, migração, build, dry-run e 19 e2e. Único aviso: o Biome 2.6.6 pede `biome migrate` para atualizar o `$schema` do `biome.json` (nível info, não falha). O ShipKit Lite, por comparação, fixa tudo e não tem bot: está em wrangler 4.99 por isso.

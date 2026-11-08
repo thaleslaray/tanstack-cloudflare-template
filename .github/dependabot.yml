@@ -1,0 +1,39 @@
+# Dependabot: abre um PR por semana com as atualizações, agrupadas por família.
+# O CI (.github/workflows/ci.yml) roda typecheck, lint, testes, build e dry-run
+# em cada PR, então um bump que quebra fica vermelho antes de entrar.
+# A `compatibility_date` do wrangler.jsonc NÃO é dependência: sobe à mão, lendo o changelog.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      tanstack:
+        patterns: ["@tanstack/*"]
+      cloudflare:
+        patterns: ["wrangler", "@cloudflare/*"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom", "@vitejs/plugin-react"]
+      ferramentas:
+        patterns: ["vite", "vitest", "@playwright/test", "@biomejs/biome", "typescript", "drizzle-kit"]
+      resto:
+        patterns: ["*"]
+    ignore:
+      # Majors de ferramentas de base saem à mão, com leitura do guia de migração.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
