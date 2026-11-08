@@ -3,6 +3,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { CloseAccount, DownloadMyData } from '#/components/account/account-data'
 import { AvatarUpload, initials } from '#/components/account/avatar-upload'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
@@ -147,6 +148,9 @@ function AccountPage() {
           >
             {leaving ? 'Saindo...' : 'Sair'}
           </Button>
+          <Separator />
+          <DownloadMyData />
+          <CloseAccount />
         </CardContent>
       </Card>
     </div>

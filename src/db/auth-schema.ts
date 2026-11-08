@@ -16,6 +16,11 @@ export const user = sqliteTable('user', {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => new Date())
     .notNull(),
+  // Encerramento de conta em duas fases (src/lib/account.ts): marcada aqui
+  // quando o usuário pede; o cron apaga de vez depois de 7 dias.
+  deletedAt: integer('deleted_at', { mode: 'timestamp_ms' }),
+  // Quando o lembrete "sua conta será apagada" saiu (uma vez por encerramento).
+  purgeRemindedAt: integer('purge_reminded_at', { mode: 'timestamp_ms' }),
 })
 
 export const session = sqliteTable(

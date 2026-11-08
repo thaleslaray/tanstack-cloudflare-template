@@ -2,6 +2,8 @@ import { DurableObject } from 'cloudflare:workers'
 import handler from '@tanstack/react-start/server-entry'
 // Registra o sink da auditoria no D1 (audit_log). Sem esta linha, audit() é no-op.
 import '#/lib/audit-d1'
+// Registra o que cada módulo faz ao encerrar a conta e no "baixar meus dados".
+import '#/lib/account-handlers'
 import { runJobs } from '#/lib/jobs'
 import { isCrossSiteServerFnCall } from '#/lib/same-origin'
 import { withSecurityHeaders } from '#/lib/security-headers'

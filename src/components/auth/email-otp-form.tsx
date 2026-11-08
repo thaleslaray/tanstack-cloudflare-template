@@ -18,6 +18,8 @@ function describeError(code: string | undefined) {
       return 'Código incorreto. Confira e tente de novo.'
     case 'TOO_MANY_ATTEMPTS':
       return 'Muitas tentativas erradas. Peça um novo código.'
+    case 'ACCOUNT_CLOSED':
+      return 'Esta conta foi encerrada e será apagada em breve. Para recuperá-la, fale com o suporte.'
     default:
       return 'Não deu certo. Tente de novo em instantes.'
   }

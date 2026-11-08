@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { escapeHtml, loginCodeEmail } from './email-templates'
+import {
+  accountClosedEmail,
+  accountPurgeReminderEmail,
+  escapeHtml,
+  formatDateBR,
+  loginCodeEmail,
+} from './email-templates'
 
 describe('loginCodeEmail', () => {
   it('traz o código no assunto, no html e no texto', () => {
@@ -25,5 +31,28 @@ describe('escapeHtml', () => {
     expect(escapeHtml('<b>"a" & \'b\'</b>')).toBe(
       '&lt;b&gt;&quot;a&quot; &amp; &#39;b&#39;&lt;/b&gt;',
     )
+  })
+})
+
+describe('e-mails de conta encerrada', () => {
+  const purgeAt = new Date('2026-11-14T15:00:00Z')
+
+  it('formata a data em pt-BR, no fuso de Brasília', () => {
+    expect(formatDateBR(purgeAt)).toBe('14 de novembro de 2026')
+  })
+
+  it('encerramento: diz quando apaga e como recuperar', () => {
+    const { subject, html, text } = accountClosedEmail({ purgeAt })
+    expect(subject).toContain('encerrada')
+    for (const body of [html, text]) {
+      expect(body).toContain('14 de novembro de 2026')
+      expect(body).toContain('suporte@exemplo.com.br')
+    }
+  })
+
+  it('lembrete: traz a data no assunto', () => {
+    const { subject, text } = accountPurgeReminderEmail({ purgeAt })
+    expect(subject).toContain('14 de novembro de 2026')
+    expect(text).toContain('apagados definitivamente')
   })
 })

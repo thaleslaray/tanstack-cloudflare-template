@@ -1,8 +1,11 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { APIError } from 'better-auth/api'
 import { emailOTP } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
+import { eq } from 'drizzle-orm'
 
+import { user as userTable } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
 import { auditAfterHook } from '#/lib/auth-audit-hook'
 import { sendEmail } from '#/lib/email'
@@ -32,6 +35,18 @@ export function getAuth(env: Env) {
     baseURL: env.BETTER_AUTH_URL,
     emailAndPassword: { enabled: true },
     session: { expiresIn: SEVEN_DAYS, updateAge: ONE_DAY },
+    user: {
+      // `input: false`: o navegador não consegue mexer nestes campos pelo
+      // /update-user. Quem escreve é src/lib/account-fns.ts e o cron.
+      additionalFields: {
+        deletedAt: { type: 'date', required: false, input: false },
+        purgeRemindedAt: { type: 'date', required: false, input: false },
+      },
+      // O `deleteUser` do Better Auth apaga NA HORA. Aqui encerrar é em duas
+      // fases (src/lib/account.ts), então o endpoint nativo fica desligado:
+      // ligado, qualquer cliente pularia o prazo de 7 dias.
+      deleteUser: { enabled: false },
+    },
     socialProviders: {
       ...(googleEnabled(env)
         ? {
@@ -58,6 +73,25 @@ export function getAuth(env: Env) {
     hooks: { after: auditAfterHook },
     // Login por código não traz nome: usa a parte local do e-mail.
     databaseHooks: {
+      // Conta encerrada não entra de novo durante o prazo, por nenhum método:
+      // todo login cria uma sessão, então esta é a única porta a fechar.
+      session: {
+        create: {
+          before: async (newSession) => {
+            const [owner] = await getDb(env.DB)
+              .select({ deletedAt: userTable.deletedAt })
+              .from(userTable)
+              .where(eq(userTable.id, newSession.userId))
+              .limit(1)
+            if (owner?.deletedAt) {
+              throw new APIError('FORBIDDEN', {
+                message: 'Esta conta foi encerrada.',
+                code: 'ACCOUNT_CLOSED',
+              })
+            }
+          },
+        },
+      },
       user: {
         create: {
           before: async (user) => {
