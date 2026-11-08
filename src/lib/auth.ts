@@ -4,6 +4,7 @@ import { emailOTP } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
 import { getDb } from '#/db/index'
+import { auditAfterHook } from '#/lib/auth-audit-hook'
 import { sendEmail } from '#/lib/email'
 import { loginCodeEmail } from '#/lib/email-templates'
 
@@ -53,6 +54,8 @@ export function getAuth(env: Env) {
           }
         : {}),
     },
+    // Auditoria de login e troca de nome (src/lib/auth-audit-hook.ts).
+    hooks: { after: auditAfterHook },
     // Login por código não traz nome: usa a parte local do e-mail.
     databaseHooks: {
       user: {

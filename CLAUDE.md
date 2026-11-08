@@ -37,8 +37,8 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - `src/content/landing.ts` — a landing como dados; `src/components/landing/` renderiza.
 - `src/config/` — `app.ts` (nome, URL base de SEO/sitemap, e-mail de suporte), `themes.ts` (os quatro temas), `public-paths.ts` (o que pode ser pré-renderizado, páginas fixas do sitemap, bloqueios do robots).
 - `scripts/generate-sitemap.ts` — gera `public/sitemap.xml` e `public/robots.txt` (versionados; não edite à mão). `public/og.png` — cartão social 1200x630 do `og:image`.
-- `src/lib/` — `seo.ts` (`seo()`: título, description, og/twitter, `article`, `noindex`), `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
-- `src/db/` — `index.ts` (`getDb(env.DB)`), `schema.ts` (suas tabelas), `auth-schema.ts` (tabelas do Better Auth).
+- `src/lib/` — `audit.ts` (trilha de auditoria: `audit()`, `onAudit()`, `formatAuditEntry()`), `audit-d1.ts` (sink padrão, grava em `audit_log`), `auth-audit-hook.ts` (login e troca de nome via `hooks.after` do Better Auth), `seo.ts` (`seo()`: título, description, og/twitter, `article`, `noindex`), `auth.ts` (factory do Better Auth), `auth-client.ts`, `auth-fns.ts`/`auth-queries.ts` (sessão e provedores), `email.ts` + `email-templates.ts`, `rate-limit.ts`, `security-headers.ts`, `same-origin.ts`, `jobs.ts` (cron), `content/` (MDX).
+- `src/db/` — `index.ts` (`getDb(env.DB)`), `schema.ts` (suas tabelas e `audit_log`), `auth-schema.ts` (tabelas do Better Auth).
 - `content/{blog,docs,legal}/*.mdx` — compilados no build por `@mdx-js/rollup`.
 - `src/rules.test.ts` — regras do CLAUDE.md marcadas com (teste), checadas por texto em todo `src/`.
 - `src/styles.css` — tokens dos temas; `public/_headers` — cabeçalhos das páginas estáticas.
@@ -95,6 +95,13 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - Cabeçalhos de segurança em `src/lib/security-headers.ts` (Worker) e `public/_headers` (assets/páginas estáticas): mantenha os dois iguais. Sem CSP de propósito (scripts inline do TanStack).
 - Server functions recusam chamadas cross-site (`same-origin.ts`); use `method: 'POST'` em server function que muda estado.
 - Cron diário (03:00 UTC) roda `runJobs` em `src/lib/jobs.ts`; jobs precisam ser idempotentes.
+
+### Auditoria
+- `audit({ action, actorId, actorEmail, targetType, targetId, meta, ...requestMeta(headers) })` em `src/lib/audit.ts`. **Sem sink registrado é no-op**: quem chama não precisa saber se a auditoria existe. O sink padrão (`src/lib/audit-d1.ts`, tabela `audit_log`) é registrado pelo import em `src/server.ts`; apagar aquela linha desliga a gravação.
+- `action` é `<area>.<verbo>` em minúsculas (`auth.sign_in`, `account.name_changed`, `account.avatar_set`, `account.close_requested`, `account.deleted`); formato inválido é descartado com log.
+- Nunca grave segredo (token, senha, código, cookie, chave) nem corpo de request. `formatAuditEntry` descarta chaves com cara de segredo em `meta` e só aceita valores primitivos, mas a regra é de quem chama.
+- Com `waitUntil` à mão, passe-o (`audit(entry, { waitUntil })`, de `cloudflare:workers` ou do `ctx`) e a resposta não espera a gravação; sem ele, `await`. Falha de sink nunca derruba a ação.
+- Evento novo do Better Auth? Acrescente no `auditAfterHook` (`src/lib/auth-audit-hook.ts`); ele só vê chamadas HTTP a `/api/auth/*`.
 
 ### Endpoints locais (dev)
 - Cron: `curl "http://localhost:3000/cdn-cgi/local/scheduled?cron=0+3+*+*+*"`.
