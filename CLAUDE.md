@@ -29,6 +29,7 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - Cron local: `curl "http://localhost:3000/cdn-cgi/local/scheduled?cron=0+3+*+*+*"`
 - Local Explorer (D1, R2, DO, logs): http://localhost:3000/cdn-cgi/local/explorer
 - Skills: `/setup`, `/deploy`, `/google-oauth` (em `.claude/skills/`)
+- CI (GitHub Actions, sem deploy): `.github/workflows/ci.yml` em push na `main` e PR (`npm ci`, `.dev.vars` com segredo aleatório, typecheck, check, test, build, `wrangler deploy --dry-run`, e falha se `npm run db:generate` mudar `drizzle/`); `e2e.yml` à mão e toda segunda 09:00 UTC.
 
 ## Mapa
 - `src/routes/` — rotas por arquivo: `/` (landing), `/login`, `/conta` (protegida), `/blog`, `/docs`, `/termos`, `/privacidade`, `demo/*`, `api/auth/$`.
@@ -39,6 +40,7 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - `content/{blog,docs,legal}/*.mdx` — compilados no build por `@mdx-js/rollup`.
 - `src/rules.test.ts` — regras do CLAUDE.md marcadas com (teste), checadas por texto em todo `src/`.
 - `src/styles.css` — tokens dos temas; `public/_headers` — cabeçalhos das páginas estáticas.
+- `.github/workflows/` — `ci.yml` (conferência a cada push/PR) e `e2e.yml` (Playwright manual e semanal). Nenhum faz deploy.
 - `wrangler.jsonc` — Worker e bindings; `worker-configuration.d.ts` — tipos gerados (não editar à mão).
 
 ## Regras

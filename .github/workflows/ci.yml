@@ -1,0 +1,55 @@
+name: CI
+
+# Roda a cada push na main e em todo pull request. Só confere: NÃO publica.
+# O deploy continua manual (`npm run deploy` ou a skill /deploy).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Um push novo no mesmo branch cancela a execução anterior, que ficou velha.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Tipos · lint · testes · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # O .dev.vars não é versionado e chave real nunca entra no CI: o build,
+      # o prerender e os testes rodam com um segredo aleatório descartável.
+      - name: .dev.vars de mentira
+        run: |
+          cp .dev.vars.example .dev.vars
+          sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(openssl rand -hex 32)|" .dev.vars
+
+      # typecheck = cf-typegen (tipos do env a partir do wrangler.jsonc) + tsc
+      - run: npm run typecheck
+      - run: npm run check
+      # Inclui src/rules.test.ts, as regras do CLAUDE.md em forma de teste.
+      - run: npm run test
+      - run: npm run build
+
+      # Valida o pacote e os bindings sem publicar nada (não precisa de conta).
+      - name: wrangler deploy --dry-run
+        run: npx wrangler deploy --dry-run
+
+      # drizzle/ guarda o snapshot do schema: gerar de novo sem mudança no
+      # schema não escreve nada. Se escreveu, alguém mudou src/db/*.ts e
+      # esqueceu de gerar e versionar a migração.
+      - name: Schema e migrações combinam
+        run: |
+          npm run db:generate
+          if [ -n "$(git status --porcelain drizzle)" ]; then
+            git status --porcelain drizzle
+            echo "::error::O schema mudou sem migração. Rode npm run db:generate e versione a pasta drizzle/."
+            exit 1
+          fi

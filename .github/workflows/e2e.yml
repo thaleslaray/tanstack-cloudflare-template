@@ -1,0 +1,48 @@
+name: E2E
+
+# Playwright contra o servidor de dev real (vite dev + workerd + D1 local).
+# Não roda em push nem em PR (é lento): só à mão (aba Actions ou
+# `gh workflow run e2e.yml`) e toda segunda-feira às 09:00 UTC.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * 1'
+
+jobs:
+  e2e:
+    name: Ponta a ponta (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Segredo aleatório: o login do teste usa o código impresso no log do
+      # servidor, então nenhuma chave real é necessária.
+      - name: .dev.vars de mentira
+        run: |
+          cp .dev.vars.example .dev.vars
+          sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(openssl rand -hex 32)|" .dev.vars
+
+      # Tipos do env (worker-configuration.d.ts) e o Chromium do Playwright.
+      - run: npm run cf-typegen
+      - run: npx playwright install --with-deps chromium
+
+      # O próprio Playwright aplica as migrações no D1 local e sobe o servidor.
+      - run: npm run e2e
+
+      # Falhou? O relatório, os traces e o log do servidor ficam 7 dias na
+      # aba Actions para investigar.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+            e2e/.dev.log
+          retention-days: 7
+          include-hidden-files: true

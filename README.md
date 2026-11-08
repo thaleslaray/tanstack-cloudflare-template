@@ -88,6 +88,13 @@ Resumo do que `/deploy` faz (detalhes em [content/docs/deploy.mdx](content/docs/
 7. `npx wrangler deploy --dry-run` e depois `npm run deploy -- --secrets-file .prod.vars`
    (ou suba os segredos à parte com `npx wrangler secret bulk .prod.vars`).
 
+## CI
+
+Todo push na `main` e todo pull request rodam no GitHub Actions
+(`.github/workflows/ci.yml`) tipos, Biome, testes, build, `wrangler deploy --dry-run`
+e a checagem de que o schema e as migrações combinam; o Playwright (`e2e.yml`)
+roda à mão e toda segunda, e nada é publicado automaticamente.
+
 ## Por que Wrangler, e não o `cf`
 
 A Cloudflare está lançando um CLI novo, o **`cf`**, junto com a versão 2 do
