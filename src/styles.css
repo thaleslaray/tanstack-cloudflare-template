@@ -450,6 +450,55 @@
   }
 }
 
+/* Bloco `terminal` da landing (src/components/landing/blocks/terminal.tsx).
+   O componente escreve `data-phase`: `static` (nada anima: o HTML como veio
+   do servidor), `armed` (fora da tela: linhas escondidas, animação pausada) e
+   `play` (entrou na tela). Cada linha aparece no seu `--line-delay`; o comando
+   é "digitado" abrindo a largura de 0 até `--chars` caracteres, em passos
+   (a fonte é monoespaçada, então 1ch = 1 letra). */
+.terminal-anim:not([data-phase='static']) .terminal-line {
+  animation: terminal-show 1ms linear backwards;
+  animation-delay: var(--line-delay);
+  animation-play-state: paused;
+}
+.terminal-anim:not([data-phase='static']) .terminal-typed {
+  display: inline-block;
+  overflow: hidden;
+  white-space: pre;
+  vertical-align: bottom;
+  width: calc(var(--chars) * 1ch);
+  animation: terminal-type var(--type-ms) steps(var(--chars), end) backwards;
+  animation-delay: var(--line-delay);
+  animation-play-state: paused;
+}
+.terminal-anim[data-phase='play'] .terminal-line,
+.terminal-anim[data-phase='play'] .terminal-typed {
+  animation-play-state: running;
+}
+
+/* Só `backwards`: antes do atraso vale o `from` (escondido); depois do fim
+   vale o estilo normal (à mostra). Não depender do `forwards` garante que,
+   acabada a animação, nada fica preso no estado do keyframe. */
+@keyframes terminal-show {
+  from,
+  to {
+    visibility: hidden;
+  }
+}
+
+@keyframes terminal-type {
+  from {
+    width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-anim .terminal-line,
+  .terminal-anim .terminal-typed {
+    animation: none !important;
+  }
+}
+
 /* Páginas de demonstração (src/routes/demo/*). */
 .demo-page {
   @apply mx-auto w-full max-w-6xl px-5 py-12 sm:px-8 sm:py-16;

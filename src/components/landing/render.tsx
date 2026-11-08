@@ -1,3 +1,5 @@
+import { BentoBlock } from './blocks/bento'
+import { CompareBlock } from './blocks/compare'
 import {
   CtaBlock,
   FaqBlock,
@@ -6,7 +8,11 @@ import {
   StackBlock,
   StepsBlock,
   TestimonialsBlock,
-} from './blocks'
+} from './blocks/core'
+import { GalleryBlock } from './blocks/gallery'
+import { LogosBlock } from './blocks/logos'
+import { StatsBlock } from './blocks/stats'
+import { TerminalBlock } from './blocks/terminal'
 import type { LandingBlock } from './types'
 
 /**
@@ -30,6 +36,18 @@ function renderBlock(block: LandingBlock) {
       return <FaqBlock block={block} />
     case 'cta':
       return <CtaBlock block={block} />
+    case 'bento':
+      return <BentoBlock block={block} />
+    case 'compare':
+      return <CompareBlock block={block} />
+    case 'stats':
+      return <StatsBlock block={block} />
+    case 'logos':
+      return <LogosBlock block={block} />
+    case 'terminal':
+      return <TerminalBlock block={block} />
+    case 'gallery':
+      return <GalleryBlock block={block} />
     default: {
       const exhaustive: never = block
       return exhaustive
@@ -37,12 +55,21 @@ function renderBlock(block: LandingBlock) {
   }
 }
 
+/**
+ * Cada bloco vai num invólucro sem caixa (`contents`) marcado com
+ * `data-block="<tipo>"`: não muda o layout e deixa teste, e2e e DevTools
+ * acharem um bloco pelo formato.
+ */
 export function LandingBlocks({ blocks }: { blocks: readonly LandingBlock[] }) {
   return (
     <div className="w-full">
       {blocks.map((block, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: blocos estáticos da landing, sem reordenação; o mesmo tipo pode repetir
-        <div key={`${block.type}-${i}`} className="contents">
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: blocos estáticos da landing, sem reordenação; o mesmo tipo pode repetir
+          key={`${block.type}-${i}`}
+          data-block={block.type}
+          className="contents"
+        >
           {renderBlock(block)}
         </div>
       ))}

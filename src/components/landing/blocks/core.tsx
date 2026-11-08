@@ -1,70 +1,8 @@
-import type { LandingBlock } from './types'
+import { primaryBtn, Section, SectionHead, secondaryBtn } from '../section'
+import type { BlockOf as Of } from '../types'
 
-type Of<T extends LandingBlock['type']> = Extract<LandingBlock, { type: T }>
-
-// Os destinos vêm de dados (strings), então os links são <a> comuns: o
-// `Link` tipado do TanStack só aceita rotas conhecidas em tempo de compilação.
-
-/**
- * A moldura de toda seção: uma largura máxima, um ritmo vertical. `tone`
- * escolhe o chão: `plain` é o fundo da página; `sheet` deita uma folha
- * `--surface` arredondada sob a seção. Alternar os dois dá ritmo a uma
- * página longa sem precisar de imagem.
- */
-function Section({
-  tone = 'plain',
-  id,
-  children,
-}: {
-  tone?: 'plain' | 'sheet'
-  id?: string
-  children: React.ReactNode
-}) {
-  if (tone === 'sheet') {
-    return (
-      <section id={id} className="w-full px-4 py-4 sm:px-6">
-        <div className="mx-auto w-full max-w-6xl rounded-[var(--radius-card)] bg-surface px-6 py-14 sm:px-12 sm:py-20">
-          {children}
-        </div>
-      </section>
-    )
-  }
-  return (
-    <section
-      id={id}
-      className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 sm:py-28"
-    >
-      {children}
-    </section>
-  )
-}
-
-/** Etiqueta + título, o mesmo ritmo em toda seção com cabeçalho. */
-function SectionHead({
-  kicker,
-  title,
-  align = 'start',
-}: {
-  kicker: string
-  title: string
-  align?: 'start' | 'center'
-}) {
-  return (
-    <div
-      className={`flex flex-col gap-4 ${align === 'center' ? 'items-center text-center' : ''}`}
-    >
-      <p className="kicker">{kicker}</p>
-      <h2 className="font-display max-w-3xl text-4xl leading-[1.02] tracking-[var(--tracking-display)] sm:text-5xl">
-        {title}
-      </h2>
-    </div>
-  )
-}
-
-const primaryBtn =
-  'inline-flex items-center justify-center rounded-[var(--radius-btn)] bg-brand px-7 py-3.5 text-[15px] font-bold text-brand-foreground shadow-[var(--shadow-btn)] transition hover:-translate-y-0.5 hover:bg-brand-hover'
-const secondaryBtn =
-  'inline-flex items-center justify-center rounded-[var(--radius-btn)] border border-border bg-background px-7 py-3.5 text-[15px] font-semibold text-foreground transition hover:-translate-y-0.5 hover:bg-secondary'
+// Os sete blocos com que a landing nasceu. Os formatos extras (bento,
+// compare, stats, logos, terminal, gallery) moram um por arquivo nesta pasta.
 
 export function HeroBlock({ block }: { block: Of<'hero'> }) {
   return (

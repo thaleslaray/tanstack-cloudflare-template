@@ -11,9 +11,14 @@
  *   adicionar uma seção   adicione um bloco com um dos formatos em
  *                         `src/components/landing/types.ts`
  *
- * A ORDEM conta uma história: o que é (hero), em que foi feito (stack), o que
- * já vem pronto (features), como se usa (steps), quem já usou (depoimentos),
- * o que ainda está em dúvida (faq) e a porta de saída (cta).
+ * A ORDEM conta uma história: o que é (hero), quanto já vem pronto em
+ * números (stats), em que foi feito (stack), o que já vem pronto (features),
+ * como se usa (steps), quem já usou (depoimentos), o que muda em relação a
+ * montar na mão (compare), o que ainda está em dúvida (faq) e a porta de
+ * saída (cta).
+ *
+ * Há 13 formatos de bloco. Para ver um exemplo de cada um (e copiar), abra
+ * `/blocos` no navegador; os dados de lá estão em `src/content/blocos-exemplo.ts`.
  */
 import type { LandingBlock } from '#/components/landing/types'
 
@@ -27,6 +32,24 @@ export const landing: readonly LandingBlock[] = [
     primary: { label: 'Entrar no app', to: '/login' },
     secondary: { label: 'Ler a documentação', to: '/docs' },
     note: 'Roda inteiro em um Worker da Cloudflare. Plano gratuito dá conta do começo.',
+  },
+
+  // Números que dá para conferir no próprio repositório. Mudou o template?
+  // Atualize aqui também.
+  {
+    type: 'stats',
+    items: [
+      {
+        value: '1',
+        label: 'Worker roda tudo: páginas, API, login e tarefas agendadas.',
+      },
+      { value: '4', label: 'temas visuais, cada um em claro e escuro.' },
+      { value: '13', label: 'formatos de bloco para montar esta landing.' },
+      {
+        value: 'R$ 0',
+        label: 'para começar: o plano gratuito da Cloudflare cobre o início.',
+      },
+    ],
   },
 
   {
@@ -137,6 +160,30 @@ export const landing: readonly LandingBlock[] = [
         initials: 'NP',
       },
     ],
+  },
+
+  {
+    type: 'compare',
+    kicker: 'Montar na mão ou começar daqui',
+    title: 'As duas primeiras semanas de um app novo, lado a lado.',
+    before: {
+      label: 'Começando do zero',
+      items: [
+        'Escolher framework, banco, login e hospedagem, e torcer para conversarem.',
+        'Ligar login, e-mail e banco na mão, uma peça de cada vez.',
+        'Descobrir no deploy que a variável de ambiente não chegou.',
+        'Lembrar de rate limit e cabeçalho de segurança só depois do susto.',
+      ],
+    },
+    after: {
+      label: 'Com este template',
+      items: [
+        'Stack escolhida e versões fixadas, tudo num Worker só.',
+        'Login por código, D1, R2 e e-mail já ligados, com demo de cada um.',
+        'Um comando publica, e o /deploy da IA cuida do banco e dos segredos.',
+        'Limite por IP, cabeçalhos e cron de limpeza ligados desde o primeiro dia.',
+      ],
+    },
   },
 
   {

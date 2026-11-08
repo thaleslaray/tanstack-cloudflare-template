@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Exemplo: página de blog com título e parágrafos">
+  <rect width="800" height="600" fill="#ece9e3"/>
+  <rect x="150" y="60" width="500" height="480" rx="20" fill="#fbf9f6"/>
+  <rect x="200" y="110" width="80" height="10" rx="5" fill="#ff4d00"/>
+  <rect x="200" y="140" width="380" height="26" rx="8" fill="#1a1a1a"/>
+  <rect x="200" y="178" width="260" height="26" rx="8" fill="#1a1a1a"/>
+  <g fill="#a8a39b">
+    <rect x="200" y="236" width="400" height="10" rx="5"/>
+    <rect x="200" y="258" width="380" height="10" rx="5"/>
+    <rect x="200" y="280" width="396" height="10" rx="5"/>
+    <rect x="200" y="302" width="240" height="10" rx="5"/>
+    <rect x="200" y="346" width="400" height="10" rx="5"/>
+    <rect x="200" y="368" width="360" height="10" rx="5"/>
+    <rect x="200" y="390" width="390" height="10" rx="5"/>
+  </g>
+  <rect x="200" y="430" width="400" height="70" rx="12" fill="#1a1a1a"/>
+  <rect x="222" y="454" width="180" height="10" rx="5" fill="#8a8680"/>
+  <rect x="222" y="474" width="120" height="10" rx="5" fill="#8a8680"/>
+</svg>

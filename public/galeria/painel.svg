@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Exemplo: tela de painel com barra lateral, números e gráfico">
+  <rect width="800" height="600" fill="#ece9e3"/>
+  <rect x="0" y="0" width="180" height="600" fill="#ddd9d1"/>
+  <rect x="28" y="36" width="96" height="14" rx="7" fill="#1a1a1a"/>
+  <rect x="28" y="92" width="124" height="12" rx="6" fill="#ff4d00"/>
+  <rect x="28" y="124" width="100" height="12" rx="6" fill="#a8a39b"/>
+  <rect x="28" y="156" width="112" height="12" rx="6" fill="#a8a39b"/>
+  <rect x="220" y="40" width="220" height="22" rx="11" fill="#1a1a1a"/>
+  <g fill="#fbf9f6">
+    <rect x="220" y="96" width="170" height="104" rx="14"/>
+    <rect x="410" y="96" width="170" height="104" rx="14"/>
+    <rect x="600" y="96" width="170" height="104" rx="14"/>
+    <rect x="220" y="224" width="550" height="336" rx="14"/>
+  </g>
+  <g fill="#1a1a1a">
+    <rect x="244" y="148" width="64" height="28" rx="6"/>
+    <rect x="434" y="148" width="48" height="28" rx="6"/>
+    <rect x="624" y="148" width="80" height="28" rx="6"/>
+  </g>
+  <g fill="#a8a39b">
+    <rect x="244" y="120" width="90" height="10" rx="5"/>
+    <rect x="434" y="120" width="70" height="10" rx="5"/>
+    <rect x="624" y="120" width="100" height="10" rx="5"/>
+  </g>
+  <g fill="#ff4d00">
+    <rect x="270" y="440" width="44" height="90" rx="6"/>
+    <rect x="340" y="400" width="44" height="130" rx="6"/>
+    <rect x="410" y="360" width="44" height="170" rx="6"/>
+    <rect x="480" y="410" width="44" height="120" rx="6"/>
+    <rect x="550" y="320" width="44" height="210" rx="6"/>
+    <rect x="620" y="290" width="44" height="240" rx="6"/>
+  </g>
+</svg>
