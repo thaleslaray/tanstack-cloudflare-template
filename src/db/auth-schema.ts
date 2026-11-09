@@ -1,27 +1,32 @@
 import { sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
-export const user = sqliteTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: integer('email_verified', { mode: 'boolean' })
-    .default(false)
-    .notNull(),
-  image: text('image'),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' })
-    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-    .notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
-    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-    .$onUpdate(() => new Date())
-    .notNull(),
-  // Encerramento de conta em duas fases (src/lib/account.ts): marcada aqui
-  // quando o usuário pede; o cron apaga de vez depois de 7 dias.
-  deletedAt: integer('deleted_at', { mode: 'timestamp_ms' }),
-  // Quando o lembrete "sua conta será apagada" saiu (uma vez por encerramento).
-  purgeRemindedAt: integer('purge_reminded_at', { mode: 'timestamp_ms' }),
-})
+export const user = sqliteTable(
+  'user',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    email: text('email').notNull().unique(),
+    emailVerified: integer('email_verified', { mode: 'boolean' })
+      .default(false)
+      .notNull(),
+    image: text('image'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+    // Encerramento de conta em duas fases (src/lib/account.ts): marcada aqui
+    // quando o usuário pede; o cron apaga de vez depois de 7 dias.
+    deletedAt: integer('deleted_at', { mode: 'timestamp_ms' }),
+    // Quando o lembrete "sua conta será apagada" saiu (uma vez por encerramento).
+    purgeRemindedAt: integer('purge_reminded_at', { mode: 'timestamp_ms' }),
+  },
+  // O cron de encerramento filtra e ordena por `deleted_at`.
+  (table) => [index('user_deletedAt_idx').on(table.deletedAt)],
+)
 
 export const session = sqliteTable(
   'session',
@@ -41,7 +46,11 @@ export const session = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
   },
-  (table) => [index('session_userId_idx').on(table.userId)],
+  (table) => [
+    index('session_userId_idx').on(table.userId),
+    // O cron `auth.limpar-expirados` filtra por `expires_at`.
+    index('session_expiresAt_idx').on(table.expiresAt),
+  ],
 )
 
 export const account = sqliteTable(
@@ -89,5 +98,9 @@ export const verification = sqliteTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index('verification_identifier_idx').on(table.identifier)],
+  (table) => [
+    index('verification_identifier_idx').on(table.identifier),
+    // O cron `auth.limpar-expirados` filtra por `expires_at`.
+    index('verification_expiresAt_idx').on(table.expiresAt),
+  ],
 )

@@ -39,7 +39,7 @@ Para quem está começando, isso pesa demais. Um erro estranho no deploy no prim
 
 - A configuração vive no `wrangler.jsonc`, com um comentário curto em cada binding.
 - `npm run dev` roda o `vite dev`; `npm run deploy` faz o build e chama o `wrangler deploy`.
-- As versões ficam **fixadas** no `package.json`, sem o `^`. Atualize de propósito, rodando a checagem de tipos, o build e os testes antes.
+- As dependências usam `^` e o `package-lock.json` é versionado: quem clona recebe o que está no lock. Suba o Wrangler de propósito, rodando a checagem de tipos, o build e os testes antes.
 
 ## Por que não misturar os dois
 

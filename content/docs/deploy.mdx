@@ -1,16 +1,20 @@
 ---
 title: Deploy na Cloudflare
-description: Do banco real ao app no ar, passo a passo com o Wrangler.
+description: Do primeiro deploy ao app no ar, com o Wrangler ou com o botão Deploy to Cloudflare.
 order: 3
 ---
 
-Publicar é trocar três coisas locais por coisas reais: um banco D1 de verdade, a URL pública e os segredos. Siga a ordem abaixo. Todos os comandos usam o **Wrangler**, o CLI estável da Cloudflare, que já vem instalado no projeto.
+Publicar é trocar três coisas locais por coisas reais: o banco e o bucket de verdade, a URL pública e os segredos. Todos os comandos usam o **Wrangler**, o CLI estável da Cloudflare, que já vem instalado no projeto.
 
 <aside>
 
-**Versões fixadas.** O `wrangler` e o plugin do Vite para Cloudflare estão fixados no `package.json` (sem `^`). Não atualize por impulso: leia o changelog e rode `npm run typecheck`, `npm run build` e `npx wrangler deploy --dry-run` antes de confiar numa versão nova.
+**Dependências.** O `package.json` usa `^` (versões menores sobem sozinhas) e o `package-lock.json` é versionado: quem clona recebe o que está no lock. O Dependabot abre PRs semanais; leia o changelog do `wrangler` e confira o CI (`typecheck`, `build`, `wrangler deploy --dry-run`) antes de mesclar.
 
 </aside>
+
+## Antes de tudo: a URL pública no SEO
+
+Em `src/config/app.ts`, troque `url` pela URL pública (por exemplo `https://meu-app.seudominio.com.br`) **antes do build**. Ela entra no sitemap, no canonical e no `og:url`. Com `localhost`, o `npm run sitemap` avisa.
 
 ## 1. Entre na sua conta
 
@@ -20,67 +24,65 @@ npx wrangler login
 
 Isso abre o navegador para você autorizar o Wrangler. `npx wrangler whoami` confirma em qual conta você entrou.
 
-## 2. Crie o banco D1
+## 2. Banco e bucket: criados sozinhos
 
-```bash
-npx wrangler d1 create meu-app-db
-```
+O `wrangler.jsonc` não tem `database_id` (D1) nem `bucket_name` (R2) de propósito. Pela documentação da Cloudflare, o Wrangler cria esses recursos no primeiro `wrangler deploy` (provisionamento automático), com o nome do Worker como prefixo. Você não roda `d1 create` nem `r2 bucket create`.
 
-O comando mostra um trecho de configuração com um `database_id`. Guarde: ele identifica o banco.
+Já tem um banco D1 seu? Acrescente `"database_id": "<id>"` no binding `DB`.
 
-## 3. Cole o ID no `wrangler.jsonc`
+## 3. Crie os segredos de produção
 
-O template vem com `"database_id": "REPLACE_ME"` dentro de `d1_databases`. Troque `REPLACE_ME` pelo ID real (e `database_name` pelo nome que você usou). É só esse lugar: os scripts de migração usam o nome do binding, `DB`.
+Crie `.prod.vars` (não vai para o Git) com os nomes do `.dev.vars.example`:
 
-Depois da troca, rode `npm run db:migrate:local` de novo: o banco local também é identificado por esse ID.
+- `BETTER_AUTH_SECRET`: **obrigatório**, um valor diferente do local, com 32 caracteres ou mais (`openssl rand -base64 32`; no Windows, `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`).
+- `RESEND_API_KEY` e `EMAIL_FROM`: **recomendados**. Em produção, sem provedor de e-mail o login **recusa enviar** o código (o envio só vai para o terminal no localhost).
+- `GOOGLE_*` e `GITHUB_*`: opcionais (cada provedor liga só com o par id + segredo).
+- `PASSWORD_LOGIN_ENABLED=true`: opcional. O login com senha vem desligado.
 
-## 4. Crie o bucket de arquivos (R2)
+`BETTER_AUTH_URL` é opcional: a URL do app vem da requisição. Para fixar uma URL, defina `BETTER_AUTH_URL` como segredo.
 
-```bash
-npx wrangler r2 bucket create tanstack-cloudflare-template-files
-```
-
-Use o mesmo nome que está em `bucket_name`, no `wrangler.jsonc`.
-
-## 5. Aplique as migrations no banco remoto
-
-```bash
-npm run db:migrate:remote
-```
-
-## 6. Ajuste a URL pública
-
-No `wrangler.jsonc`, dentro de `"vars"`, troque o valor de `BETTER_AUTH_URL` pela URL em que o app vai viver, por exemplo `https://meu-app.seudominio.com.br`. O login usa esse endereço para montar links e cookies, então ele precisa estar certo.
-
-## 7. Teste sem publicar
+## 4. Primeiro deploy
 
 ```bash
 npm run build
 npx wrangler deploy --dry-run
+npx wrangler deploy --secrets-file .prod.vars
+npm run db:migrate:remote
 ```
 
-O resultado lista os bindings que o Worker vai receber: `COUNTER`, `DB`, `BUCKET`, `PUBLIC_RATE_LIMIT` e `BETTER_AUTH_URL`.
+O `--dry-run` lista os bindings (`COUNTER`, `DB`, `BUCKET`, `PUBLIC_RATE_LIMIT`). O `deploy` cria o banco e o bucket e publica; só então dá para migrar o banco, por isso `db:migrate:remote` vem depois.
 
-## 8. Publique com os segredos
-
-Crie um arquivo só com os segredos de produção, `.prod.vars` (ele não vai para o Git), com os mesmos nomes do `.dev.vars.example`, e publique:
+## 5. Deploys seguintes
 
 ```bash
-npm run deploy -- --secrets-file .prod.vars
+npm run deploy
 ```
 
-O arquivo precisa ter pelo menos `BETTER_AUTH_SECRET`. Use um valor **diferente** do local.
-
-Prefere subir os segredos separado do deploy? `npx wrangler secret bulk .prod.vars` manda todos de uma vez, e `npx wrangler secret put BETTER_AUTH_SECRET` manda um (ele pergunta o valor). Os segredos ficam guardados no Worker: nos próximos deploys basta `npm run deploy`.
+O `predeploy` aplica as migrações no banco remoto **antes** do build e da publicação, então a tabela nova já existe quando o código novo sobe. Os segredos ficam guardados no Worker; use `-- --secrets-file .prod.vars` só quando mudar algum. Prefere subir segredos à parte? `npx wrangler secret bulk .prod.vars`, ou `npx wrangler secret put NOME` (um por vez).
 
 ## O botão Deploy to Cloudflare
 
-O `README.md` tem um botão **Deploy to Cloudflare**. Quem clica nele clona o repositório para a própria conta e publica o Worker. Na tela de configuração, use `npm run build` como comando de build e `npx wrangler deploy` como comando de deploy. O banco, a URL pública e os segredos continuam sendo os passos acima.
+O `README.md` tem um botão **Deploy to Cloudflare**. Segundo a documentação da Cloudflare, ele clona o repositório para a sua conta do GitHub/GitLab, deixa você escolher os nomes na tela de configuração, e compila e publica com o **Workers Builds**, criando e ligando os recursos (aqui: o Worker, o banco D1, o bucket R2 e o Durable Object).
+
+Na tela de configuração:
+
+- **Build command:** `npm run build`
+- **Deploy command:** `npx wrangler deploy && npx wrangler d1 migrations apply DB --remote`. A Cloudflare usa `npx wrangler deploy` por padrão e permite trocar. A migração vai depois porque o banco só existe depois do primeiro deploy; por isso não use `npm run deploy` aqui (ele migra antes).
+- **Segredos:** a tela lê o `.dev.vars.example` e as descrições em `cloudflare.bindings`, no `package.json`. Preencha `BETTER_AUTH_SECRET` e, para o login funcionar, `RESEND_API_KEY` e `EMAIL_FROM`.
+
+<aside>
+
+**Atenção: publicação automática.** O botão liga o Workers Builds ao seu repositório: **todo push na `main` publica o app**, inclusive PRs do Dependabot depois de mesclados. Só mescle com o CI verde. O CI do GitHub Actions, sozinho, nunca publica.
+
+</aside>
+
+Não esqueça de trocar `url` em `src/config/app.ts` antes de clicar no botão.
 
 ## Depois do deploy
 
 - Abra a URL publicada e faça um login de teste.
-- Confira os logs no painel da Cloudflare (a observabilidade já está ligada no `wrangler.jsonc`) ou ao vivo com `npx wrangler tail`.
-- Configure um provedor de e-mail (Resend ou o Cloudflare Email Service). Sem isso, o código de login só aparece nos logs, e seus usuários não conseguem entrar.
+- Confira os logs no painel da Cloudflare (a observabilidade já está ligada) ou ao vivo com `npx wrangler tail`.
+- Login social: cadastre `https://<domínio>/api/auth/callback/google` (e `/github`) nos apps OAuth.
+- As demos `/demo/*` só existem no `npm run dev`; na versão publicada elas não aparecem.
 
 Voltou ao começo? Veja [Começando](/docs/comecando).

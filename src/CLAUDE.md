@@ -48,7 +48,9 @@ todo tema deve as duas faces.
    dois mundos.
 3. **Uma marca, em preenchimento.** `bg-brand` + `text-brand-foreground` no
    botão principal (`error-pages.tsx`, `section.tsx`, formulários de login),
-   `--ring` no foco, item ativo. O botão padrão do shadcn (`bg-primary`) é
+   `--ring` no foco, item ativo. Sobre o laranja o texto é **tinta**
+   (`--brand-foreground: #171717`, 5,4:1), não branco (3,33:1, reprovado no
+   AA). A cor da marca não muda para caber o texto; o texto é que muda. O botão padrão do shadcn (`bg-primary`) é
    tinta, não laranja: a marca é a exceção, não o padrão. Borda colorida só
    onde significa "selecionado"; destaque de cartão é `border-foreground`.
 4. **Pílula, borda fina, sombra zero.** `--radius-btn: 100px`, `--border` a 10%
@@ -99,6 +101,12 @@ registrada aqui em uma linha, para ninguém refazer o caminho:
 
 - 2026-11-05 → 2026-11-08: bege `#f5f2ed` + rótulos laranja + sombra laranja
   no botão (do DESIGN.md). Substituída pela direção acima.
+- 2026-11-08 (noite): texto branco sobre o laranja (3,33:1) reprovava no
+  WCAG AA; passou a tinta `#171717` (5,4:1), hover `#eb4800` (4,66:1). O azul
+  do tema neutro no escuro desceu de L 0.6 para 0.52 pelo mesmo motivo. As
+  fontes saíram do `@import` (bloqueava a renderização) para `<link>` com
+  `preconnect` no `__root.tsx`, e os pesos 800/900 da Inter, que a regra 6
+  proíbe, deixaram de ser baixados.
 - 2026-11-08 (manhã → tarde): títulos a 800/900, rótulos em caixa alta com
   tracking, grade de pontos no hero, hero centralizado sem visual, passos
   numerados em laranja, botões que sobem no hover, depoimentos de exemplo

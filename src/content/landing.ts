@@ -91,7 +91,7 @@ export const landing: readonly LandingBlock[] = [
       },
       {
         title: 'Arquivos no R2',
-        body: 'Upload e download sem taxa de saída. Tem uma demo pronta para você copiar.',
+        body: 'Upload e download sem taxa de saída. A demo roda no `npm run dev` e serve de ponto de partida para copiar.',
         path: 'src/routes/demo/r2.tsx',
       },
       {
@@ -154,7 +154,7 @@ export const landing: readonly LandingBlock[] = [
     after: {
       label: 'Com este template',
       items: [
-        'Stack escolhida e versões fixadas, tudo num Worker só.',
+        'Stack escolhida, dependências travadas no lock, tudo num Worker só.',
         'Login por código, D1, R2 e e-mail já ligados, com demo de cada um.',
         'Um comando publica, e o /deploy da IA cuida do banco e dos segredos.',
         'Limite por IP, cabeçalhos e cron de limpeza ligados desde o primeiro dia.',
@@ -177,7 +177,7 @@ export const landing: readonly LandingBlock[] = [
       },
       {
         q: 'Por que Wrangler, e não o cf novo?',
-        a: 'O cf é o novo CLI da Cloudflare, mas ainda está em beta. O template usa o Wrangler e o plugin do Vite v1, o caminho estável do guia oficial, com as versões fixadas no package.json. Quando o cf ficar estável, um comando (cf migrate) faz a troca.',
+        a: 'O cf é o novo CLI da Cloudflare, mas ainda está em beta. O template usa o Wrangler e o plugin do Vite v1, o caminho estável do guia oficial, com as dependências no package.json (com ^) e o package-lock.json versionado. Quando o cf ficar estável, um comando (cf migrate) faz a troca.',
       },
       {
         q: 'Posso instalar o cf para testar?',
@@ -185,7 +185,7 @@ export const landing: readonly LandingBlock[] = [
       },
       {
         q: 'Funciona com outro agente além do Claude Code?',
-        a: 'Funciona. O CLAUDE.md e o AGENTS.md carregam as mesmas regras, e as skills são Markdown comum em .claude/skills. Codex, Cursor e afins leem o mesmo texto.',
+        a: 'Funciona. O AGENTS.md guarda as regras do projeto (e o CLAUDE.md aponta para ele), e as skills são Markdown comum em .claude/skills. Codex, Cursor e afins leem o mesmo texto.',
       },
     ],
   },

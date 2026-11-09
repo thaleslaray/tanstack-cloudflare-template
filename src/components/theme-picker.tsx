@@ -43,7 +43,7 @@ export default function ThemePicker() {
       <DropdownMenuTrigger
         aria-label="Escolher visual"
         title="Escolher visual"
-        className="inline-flex size-9 items-center justify-center rounded-[var(--radius-btn)] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none"
+        className="inline-flex size-9 items-center justify-center rounded-[var(--radius-btn)] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <PaletteIcon className="size-4" aria-hidden="true" />
       </DropdownMenuTrigger>

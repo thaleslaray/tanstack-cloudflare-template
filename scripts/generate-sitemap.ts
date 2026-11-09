@@ -24,6 +24,19 @@ import {
 const root = fileURLToPath(new URL('..', import.meta.url))
 const base = appConfig.url.replace(/\/+$/, '')
 
+// Só avisa, nunca falha (nem no CI nem com NODE_ENV=production): o template
+// precisa buildar antes de você ter um domínio.
+if (/localhost|127\.0\.0\.1/.test(base)) {
+  const onde =
+    process.env.CI || process.env.NODE_ENV === 'production'
+      ? ' (build de produção/CI!)'
+      : ''
+  console.warn(
+    `\n[sitemap] AVISO${onde}: appConfig.url é "${base}". O sitemap.xml, o robots.txt e o canonical sairão com localhost.\n` +
+      '[sitemap] Para publicar, troque `url` em src/config/app.ts pela URL pública e rode `npm run sitemap` de novo.\n',
+  )
+}
+
 type Page = { path: string; lastmod?: string }
 
 // Lê o frontmatter (o bloco entre os dois `---` do topo) de cada .mdx.

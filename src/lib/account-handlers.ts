@@ -2,6 +2,7 @@
 // (src/lib/account.ts). Somente servidor: registrado como efeito colateral do
 // import em src/server.ts. Módulo novo com dados do usuário fora do D1 (ou que
 // deva sair no "baixar meus dados")? Registre aqui.
+import '@tanstack/react-start/server-only'
 import { env } from 'cloudflare:workers'
 import { desc, eq } from 'drizzle-orm'
 
@@ -17,11 +18,12 @@ onBeforeAccountDelete('avatar', async (ref) => {
 })
 
 // A trilha de auditoria fica (é a história do que aconteceu), mas sem o
-// e-mail: depois de apagada, a conta não deixa dado pessoal para trás.
+// e-mail, IP nem navegador: depois de apagada, a conta não deixa dado pessoal
+// para trás.
 onBeforeAccountDelete('auditoria', async (ref) => {
   await getDb(env.DB)
     .update(auditLog)
-    .set({ actorEmail: null })
+    .set({ actorEmail: null, ip: null, userAgent: null })
     .where(eq(auditLog.actorId, ref.id))
 })
 

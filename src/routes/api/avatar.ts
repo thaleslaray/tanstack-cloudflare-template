@@ -33,7 +33,7 @@ export const Route = createFileRoute('/api/avatar')({
         if (isCrossSiteRequest(request)) {
           return text('Requisição cross-site recusada.', 403)
         }
-        const session = await getAuth(env).api.getSession({
+        const session = await getAuth(env, request).api.getSession({
           headers: request.headers,
         })
         if (!session) return text('Entre na sua conta primeiro.', 401)
@@ -42,8 +42,13 @@ export const Route = createFileRoute('/api/avatar')({
           return tooManyRequests()
         }
         // Barra corpo gigante antes de ler (folga para o envelope multipart).
-        const length = Number(request.headers.get('content-length') ?? 0)
-        if (length > AVATAR_MAX_BYTES + 64 * 1024) {
+        // Sem Content-Length não dá para saber o tamanho antes de ler: recusa.
+        const lengthHeader = request.headers.get('content-length')
+        if (lengthHeader === null) {
+          return text('Envie o tamanho do arquivo (Content-Length).', 411)
+        }
+        const length = Number(lengthHeader)
+        if (!Number.isFinite(length) || length > AVATAR_MAX_BYTES + 64 * 1024) {
           return text('A imagem precisa ter no máximo 2 MB.', 413)
         }
 

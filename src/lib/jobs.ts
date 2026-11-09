@@ -1,8 +1,10 @@
 // Registro simples de jobs agendados. O cron (wrangler.jsonc) chama `runJobs` pelo
 // `scheduled()` do src/server.ts. Cada job roda isolado: um erro não impede os demais.
-import { and, eq, gte, isNotNull, isNull, lt } from 'drizzle-orm'
+import '@tanstack/react-start/server-only'
+import { and, asc, eq, gte, isNotNull, isNull, lt } from 'drizzle-orm'
 import { session, user, verification } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
+import { auditLog } from '#/db/schema'
 import {
   purgeCutoff,
   purgeDateFor,
@@ -125,6 +127,8 @@ registerJob({
           lt(user.deletedAt, purgeCutoff(new Date())),
         ),
       )
+      // As mais antigas primeiro: ninguém fica para sempre no fim da fila.
+      .orderBy(asc(user.deletedAt))
       .limit(PURGE_BATCH)
     let purged = 0
     let kept = 0
@@ -146,5 +150,27 @@ registerJob({
       }
     }
     return `apagadas=${purged} mantidas=${kept}`
+  },
+})
+
+// Quantos dias a trilha de auditoria fica guardada. Passou disso, a linha some:
+// guardar para sempre IP e navegador de quem entrou é dado pessoal sem prazo.
+export const AUDIT_RETENTION_DAYS = 180
+
+/** Data de corte: linhas de auditoria mais antigas que isto são apagadas. */
+export function auditCutoff(now: Date): Date {
+  return new Date(now.getTime() - AUDIT_RETENTION_DAYS * 86_400_000)
+}
+
+// Apaga a auditoria vencida. Idempotente: rodar duas vezes seguidas apaga zero
+// na segunda. Usa o índice `audit_log_created_idx`.
+registerJob({
+  name: 'auditoria.retencao',
+  async run(env) {
+    const db = getDb(env.DB)
+    const result = await db
+      .delete(auditLog)
+      .where(lt(auditLog.createdAt, auditCutoff(new Date())))
+    return `apagadas=${result.meta.changes}`
   },
 })

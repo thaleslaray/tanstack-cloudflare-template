@@ -19,9 +19,13 @@ import { getAuth } from '#/lib/auth'
 import { sendEmailSafely } from '#/lib/email'
 import { accountClosedEmail } from '#/lib/email-templates'
 
+// Mesmo valor de `session.freshAge` em src/lib/auth.ts.
+const FRESH_SESSION_MS = 60 * 60 * 1000
+
 async function requireSession() {
-  const headers = getRequest().headers
-  const current = await getAuth(env).api.getSession({ headers })
+  const request = getRequest()
+  const headers = request.headers
+  const current = await getAuth(env, request).api.getSession({ headers })
   if (!current) throw new Error('Entre na sua conta primeiro.')
   return { current, headers }
 }
@@ -34,6 +38,20 @@ async function requireSession() {
 export const closeAccountFn = createServerFn({ method: 'POST' }).handler(
   async () => {
     const { current, headers } = await requireSession()
+    // Quem não confirmou o e-mail pode ter criado a conta no nome de outra pessoa.
+    if (!current.user.emailVerified) {
+      throw new Error('Confirme seu e-mail antes de encerrar a conta.')
+    }
+    // "freshAge" feito à mão: o do Better Auth só vale para os endpoints dele
+    // (senha, e-mail), e aqui o login é por código. Sessão com mais de 1 hora
+    // (cookie esquecido ou roubado) não encerra a conta.
+    const sessionAge =
+      Date.now() - new Date(current.session.createdAt).getTime()
+    if (sessionAge > FRESH_SESSION_MS) {
+      throw new Error(
+        'Por segurança, entre de novo (peça um novo código) antes de encerrar a conta.',
+      )
+    }
     const me = { id: current.user.id, email: current.user.email }
     // Um guard pode recusar (ex.: assinatura ativa); a mensagem chega à tela.
     await runAccountDeletionGuards(me)

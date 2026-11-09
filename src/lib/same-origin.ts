@@ -26,6 +26,14 @@ export function isCrossSiteRequest(request: Request): boolean {
 /** True para chamada cross-site a uma server function (`/_serverFn/...`). */
 export function isCrossSiteServerFnCall(request: Request): boolean {
   const url = new URL(request.url)
-  if (!url.pathname.startsWith(SERVER_FN_PREFIX)) return false
+  // Decodifica antes de comparar: `/%5FserverFn/` chegaria ao roteador como
+  // `/_serverFn/` e escaparia da checagem.
+  let pathname = url.pathname
+  try {
+    pathname = decodeURIComponent(pathname)
+  } catch {
+    // Percent-encoding inválido: vale o caminho como veio.
+  }
+  if (!pathname.startsWith(SERVER_FN_PREFIX)) return false
   return isCrossSiteRequest(request)
 }

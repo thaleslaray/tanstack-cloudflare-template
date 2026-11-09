@@ -10,6 +10,7 @@ Este guia leva você de zero até o template rodando no seu computador, com banc
 
 - **Node.js 22 ou mais novo.** Confira com `node -v`.
 - **npm**, que já vem junto com o Node.
+- **git**, para clonar o repositório.
 - Um terminal e um editor de código.
 
 Você não precisa de conta na Cloudflare para rodar localmente. A conta só entra na hora de publicar (veja a página de deploy).
@@ -23,6 +24,8 @@ git clone <url-do-seu-repositorio> meu-app
 cd meu-app
 npm install
 ```
+
+Avisos do `npm install` (como `peer dependency`) pode ignorar; só mensagens de erro importam.
 
 ## Crie o arquivo de segredos locais
 
@@ -38,7 +41,15 @@ Abra o `.dev.vars` e troque o valor de `BETTER_AUTH_SECRET` por uma sequência l
 openssl rand -base64 32
 ```
 
-As outras chaves (Resend, Google, GitHub) são opcionais. Sem elas o template continua funcionando: os e-mails aparecem no terminal em vez de serem enviados.
+No Windows, sem `openssl`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+O segredo precisa ter 32 caracteres ou mais.
+
+As outras chaves (Resend, Google, GitHub) são opcionais no seu computador. Sem elas o template continua funcionando: os e-mails aparecem no terminal em vez de serem enviados (isso só vale no localhost; em produção é preciso um provedor de e-mail). O login com senha é opcional e vem desligado: `PASSWORD_LOGIN_ENABLED=true` no `.dev.vars` liga.
 
 ## Crie as tabelas do banco
 
@@ -56,7 +67,7 @@ Faça isso uma vez, e de novo sempre que você criar uma migration nova.
 npm run dev
 ```
 
-Abra `http://localhost:3000`. Se a porta 3000 estiver ocupada, rode `npx vite dev --port 3001` e acrescente `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars` (no dev, o `.dev.vars` vence o valor do `wrangler.jsonc`).
+Abra `http://localhost:3000`. Se a porta 3000 estiver ocupada, rode `npx vite dev --port 3001` e acrescente `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`.
 
 Com o app rodando, `http://localhost:3000/cdn-cgi/local/explorer` abre um painel com o banco, os arquivos e os logs de cada requisição.
 
@@ -64,7 +75,7 @@ Com o app rodando, `http://localhost:3000/cdn-cgi/local/explorer` abre um painel
 
 Entre em **Entrar** e escolha o login por código. Digite seu e-mail e envie.
 
-Como você ainda não configurou um serviço de e-mail, **o código aparece no terminal** onde o `npm run dev` está rodando, dentro de uma mensagem de e-mail simulada. Copie os seis dígitos, cole no formulário e pronto: você está logado, e a página **Conta** já mostra seus dados.
+Como você ainda não configurou um serviço de e-mail, **o código aparece no terminal** onde o `npm run dev` está rodando, dentro de uma mensagem de e-mail simulada. Copie os seis dígitos, cole no formulário e pronto: você está logado, e você cai no painel (`/app`). Nome, foto e encerramento de conta ficam em `/app/configuracoes`. As demos em `/demo/*` só existem no `npm run dev`.
 
 ## Usando o Claude Code
 
@@ -74,10 +85,11 @@ Se você usa o Claude Code, abra a pasta do projeto e rode:
 /setup
 ```
 
-O comando conversa com você, confere os pré-requisitos, cria o `.dev.vars`, aplica as migrations e sobe o servidor. O arquivo `CLAUDE.md` na raiz do projeto explica ao Claude as regras do template (por exemplo, que a configuração fica em `wrangler.jsonc` e que o CLI `cf`, ainda em beta, fica de fora por enquanto), então ele já começa sabendo o que pode e o que não pode fazer.
+O comando conversa com você, confere os pré-requisitos, cria o `.dev.vars`, aplica as migrations e sobe o servidor. O arquivo `AGENTS.md` na raiz (o `CLAUDE.md` aponta para ele) do projeto explica ao Claude as regras do template (por exemplo, que a configuração fica em `wrangler.jsonc` e que o CLI `cf`, ainda em beta, fica de fora por enquanto), então ele já começa sabendo o que pode e o que não pode fazer.
 
 ## Se algo der errado
 
+- **O `npm run e2e` falha com porta ocupada:** ele precisa da porta 3000 livre (não rode junto com o `npm run dev`); ou use `E2E_PORT=3001 npm run e2e`. Na primeira vez rode também `npx playwright install chromium`.
 - **A porta está ocupada:** use `npx vite dev --port 3001` (e o `BETTER_AUTH_URL` no `.dev.vars`, como acima).
 - **Erro de tabela inexistente:** rode `npm run db:migrate:local` de novo.
 - **Tipos dos bindings desatualizados:** rode `npm run typecheck`, que regenera os tipos antes de checar.

@@ -54,7 +54,7 @@ consentimento → de volta logado) precisa de um clique do usuário no botão.
   `<URL do app>/api/auth/callback/google` (esquema, porta, sem barra final).
 - `invalid_client`: chave errada ou ID e chave trocados.
 - Funciona no dev e falha em produção: faltou adicionar a origem/redirect de
-  produção no cliente, ou `BETTER_AUTH_URL` (em `"vars"` no `wrangler.jsonc`)
+  produção no cliente, ou `BETTER_AUTH_URL` (se você a fixou como segredo)
   ainda aponta para localhost.
 - Botão não aparece: uma das duas variáveis está vazia. O par precisa estar completo.
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   accountClosedEmail,
   accountPurgeReminderEmail,
+  emailVerificationCodeEmail,
   escapeHtml,
   formatDateBR,
   loginCodeEmail,
@@ -23,6 +24,28 @@ describe('loginCodeEmail', () => {
     const { html, text } = loginCodeEmail({ code: '000000', minutes: 15 })
     expect(html).toContain('15 minutos')
     expect(text).toContain('15 minutos')
+  })
+})
+
+describe('emailVerificationCodeEmail', () => {
+  it('traz o código no assunto, no html e no texto', () => {
+    const { subject, html, text } = emailVerificationCodeEmail({
+      code: '654321',
+      minutes: 10,
+    })
+    expect(subject).toContain('654321')
+    expect(html).toContain('654321')
+    expect(text).toContain('654321')
+  })
+
+  it('informa a validade e escapa o código no html', () => {
+    const { html, text } = emailVerificationCodeEmail({
+      code: '<b>',
+      minutes: 10,
+    })
+    expect(text).toContain('10 minutos')
+    expect(html).toContain('&lt;b&gt;')
+    expect(html).not.toContain('<b>')
   })
 })
 

@@ -1,7 +1,11 @@
+// Demo: existe só no `npm run dev`; em produção responde 404.
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, notFound } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/demo/tanstack-query')({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) throw notFound()
+  },
   component: TanStackQueryDemo,
 })
 

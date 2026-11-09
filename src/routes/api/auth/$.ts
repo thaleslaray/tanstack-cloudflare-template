@@ -1,30 +1,19 @@
 import { env } from 'cloudflare:workers'
 import { createFileRoute } from '@tanstack/react-router'
 import { getAuth } from '#/lib/auth'
-import { isRateLimited, tooManyRequests } from '#/lib/rate-limit'
+import { authRateLimit } from '#/lib/auth-rate-limit'
 
-// Endpoints de escrita do Better Auth que disparam e-mail ou tentativa de login:
-// alvo clássico de abuso (spam de OTP, força bruta). Limite por IP via PUBLIC_RATE_LIMIT.
-const RATE_LIMITED_SUFFIXES = [
-  '/email-otp/send-verification-otp',
-  '/sign-in/email',
-  '/sign-up/email',
-  '/sign-in/email-otp',
-]
-
+// Todo POST em /api/auth/* passa pelo rate limit (exceto /sign-out e /get-session):
+// por IP (/64 no IPv6) e, onde há e-mail no corpo, também por e-mail.
+// Detalhes em src/lib/auth-rate-limit.ts.
 export const Route = createFileRoute('/api/auth/$')({
   server: {
     handlers: {
-      GET: ({ request }) => getAuth(env).handler(request),
+      GET: ({ request }) => getAuth(env, request).handler(request),
       POST: async ({ request }) => {
-        const { pathname } = new URL(request.url)
-        if (
-          RATE_LIMITED_SUFFIXES.some((s) => pathname.endsWith(s)) &&
-          (await isRateLimited('auth', { headers: request.headers }))
-        ) {
-          return tooManyRequests()
-        }
-        return getAuth(env).handler(request)
+        const refused = await authRateLimit(request)
+        if (refused) return refused
+        return getAuth(env, request).handler(request)
       },
     },
   },

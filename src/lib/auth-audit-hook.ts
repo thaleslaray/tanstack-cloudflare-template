@@ -11,7 +11,10 @@ const FRESH_SESSION_MS = 60_000
 
 // Endpoints que fazem login. Outros também devolvem `newSession` (o
 // `/update-user` regrava o cookie), e aquilo não é login.
-const SIGN_IN_PATHS = /^\/(sign-in|sign-up|callback|oauth2\/callback)(\/|$)/
+// `email-otp/verify-email` entra na lista: com cadastro por senha, a sessão
+// nasce ali (autoSignInAfterVerification), não no /sign-up.
+const SIGN_IN_PATHS =
+  /^\/(sign-in|sign-up|callback|oauth2\/callback|email-otp\/verify-email)(\/|$)/
 
 export function isSignInPath(path: string): boolean {
   return SIGN_IN_PATHS.test(path)

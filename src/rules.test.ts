@@ -99,6 +99,50 @@ const files = sourceFiles().map((path) => {
   }
 })
 
+// Cor fixa (hex, rgb, hsl) em código de componente. Só olha dentro de strings
+// (className, style, atributos): texto de JSX como "Pedido #1234" não conta.
+// Dentro da string, hex só vale em contexto de CSS: depois de `:`, espaço, `(`,
+// `[` ou `,` (ex.: `bg-[#ff0000]`, `color: #fff`), ou como valor de atributo de
+// cor (`fill="#fff"`). Âncoras (`href="#add"`), ids e rotas ficam de fora, e
+// número puro (`#1234`) só conta com `:`, `[` ou `(` antes.
+const HEX = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/g
+const COLOR_ATTR =
+  /\b(?:fill|stroke|color|stopColor|floodColor|background\w*)\s*[=:]\s*$/
+const COLOR_FN = /\b(?:rgba?|hsla?)\(/g
+
+function hardcodedColors(code: string): { index: number; text: string }[] {
+  const out: { index: number; text: string }[] = []
+  const literal = /(['"])((?:\\.|(?!\1)[^\\\n])*)\1|`((?:\\.|[^\\`])*)`/g
+  for (const m of code.matchAll(literal)) {
+    const body = m[2] ?? m[3] ?? ''
+    const start = (m.index ?? 0) + 1
+    // Âncora ou rota (`#secao`, `/docs#x`): não é cor.
+    if (body.startsWith('#') && !/^#[0-9a-fA-F]{3,8}$/.test(body)) continue
+    if (body.startsWith('/')) continue
+    for (const h of body.matchAll(HEX)) {
+      const at = h.index ?? 0
+      const before = body[at - 1]
+      const attrOnly =
+        at === 0 && COLOR_ATTR.test(code.slice(0, start - 1).slice(-30))
+      const cssContext = before !== undefined && ':[(, '.includes(before)
+      if (!attrOnly && !cssContext) continue
+      const onlyDigits = /^#\d+$/.test(h[0])
+      if (
+        onlyDigits &&
+        !(before !== undefined && ':[('.includes(before)) &&
+        !attrOnly
+      ) {
+        continue
+      }
+      out.push({ index: start + at, text: h[0] })
+    }
+    for (const f of body.matchAll(COLOR_FN)) {
+      out.push({ index: start + (f.index ?? 0), text: f[0] })
+    }
+  }
+  return out
+}
+
 const importsWorkers = (code: string) =>
   /from\s+['"]cloudflare:workers['"]/.test(code)
 
@@ -120,17 +164,36 @@ describe('regras do projeto (CLAUDE.md)', () => {
     // Logo oficial do Google: as cores da marca são exigidas pelo próprio
     // Google e não mudam com o tema. Única exceção, de propósito.
     const ALLOWED = ['components/auth/social-buttons.tsx']
-    const offenders = matches(
-      /(?<![\w&])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b|\b(?:rgba?|hsla?)\(/g,
-      (f) =>
-        f.path.endsWith('.tsx') && !ALLOWED.includes(f.path) ? f.code : '',
-    )
+    const offenders = files
+      .filter((f) => f.path.endsWith('.tsx') && !ALLOWED.includes(f.path))
+      .flatMap((f) =>
+        hardcodedColors(f.code).map(
+          (hit) => `${f.path}:${lineOf(f.code, hit.index)}  ${hit.text}`,
+        ),
+      )
     expect(
       offenders,
       'Cor fixa em componente. Use as classes de token do Tailwind ' +
         '(bg-background, text-muted-foreground, bg-brand...). Cor nova? ' +
         'Crie o token em src/styles.css, em todos os temas.',
     ).toEqual([])
+  })
+
+  it('o detector de cor fixa pega cor de verdade e ignora falsos positivos', () => {
+    const hits = (code: string) => hardcodedColors(code).length
+    // Pega:
+    expect(hits('<div className="bg-[#ff0000]" />')).toBe(1)
+    expect(hits("const s = 'color: #fff'")).toBe(1)
+    expect(hits('<path fill="#4285F4" />')).toBe(1)
+    expect(hits("style={{ background: '#00000080' }}")).toBe(1)
+    expect(hits('const c = `rgb(0 0 0)`')).toBe(1)
+    // Ignora: âncoras, ids, números, rotas e texto de JSX.
+    expect(hits('<a href="#add">ir</a>')).toBe(0)
+    expect(hits('<a href="#fade">ir</a>')).toBe(0)
+    expect(hits('<div id="#abc" />')).toBe(0)
+    expect(hits('<p>Pedido #1234</p>')).toBe(0)
+    expect(hits("const msg = 'Pedido #1234'")).toBe(0)
+    expect(hits("navigate({ to: '/docs#add' })")).toBe(0)
   })
 
   it('a cor da marca nunca é cor de texto: só preenchimento (bg-brand + text-brand-foreground)', () => {
@@ -234,6 +297,14 @@ describe('regras do projeto (CLAUDE.md)', () => {
         'chave nova vai no .dev.vars.example e em npm run cf-typegen.',
     ).toEqual([])
   })
+
+  // Ideia para depois: exigir `import '@tanstack/react-start/server-only'`
+  // como primeiro import nos módulos que leem `env` de cloudflare:workers
+  // (rate-limit, email, audit-d1, account-handlers, auth, jobs). O subpath
+  // existe e faz o build falhar se o arquivo for parar no navegador. Ficou de
+  // fora porque rate-limit.ts é importado pelas rotas de demo e auth.ts pelas
+  // server functions: antes de ligar, confirme no build que nada disso vai ao
+  // bundle do client. jobs.ts e account-handlers.ts já têm a linha.
 
   it('só src/lib/email.ts fala com a API do Resend', () => {
     const offenders = matches(/api\.resend\.com/g, (f) =>

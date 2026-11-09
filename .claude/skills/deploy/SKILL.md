@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: Publica o app na Cloudflare Workers com o Wrangler — login, cria o banco D1 e cola o ID no wrangler.jsonc, cria o bucket R2, aplica as migrações remotas, sobe os segredos e faz o deploy. Use quando o app estiver pronto para ir ao ar ou para publicar uma versão nova.
+description: Publica o app na Cloudflare Workers com o Wrangler — login, deixa o Wrangler criar o D1 e o R2 no primeiro deploy, aplica as migrações remotas, sobe os segredos e faz o deploy. Use quando o app estiver pronto para ir ao ar ou para publicar uma versão nova.
 ---
 
 # Publicar na Cloudflare Workers
@@ -8,7 +8,7 @@ description: Publica o app na Cloudflare Workers com o Wrangler — login, cria 
 O agente roda cada comando e edita cada arquivo; o usuário só confirma o
 que envolve a conta dele (login no navegador) e informa os valores de
 produção. A configuração vive em `wrangler.jsonc` e o deploy é com o
-Wrangler. Não use o `cf` aqui (ele está em beta; veja o `CLAUDE.md`).
+Wrangler. Não use o `cf` aqui (ele está em beta; veja o `AGENTS.md`).
 
 ## 0. Antes de começar
 
@@ -21,75 +21,58 @@ Confirme com o usuário o nome do projeto (hoje `tanstack-cloudflare-template`
 em `wrangler.jsonc` e `package.json`) e o domínio final, se houver.
 Sem domínio próprio, o app sai em `<nome>.<conta>.workers.dev`.
 
-## 1. Banco de dados (D1)
+## 1. Banco e bucket (criados sozinhos)
 
-O `wrangler.jsonc` tem `"database_id": "REPLACE_ME"` no binding `DB`. Ele
-serve para o dev local e precisa virar o ID do banco real:
+O `wrangler.jsonc` não tem `database_id` nem `bucket_name` de propósito: o
+Wrangler cria o D1 e o R2 no primeiro `wrangler deploy` (provisionamento
+automático, documentado pela Cloudflare). Não rode `d1 create` nem
+`r2 bucket create`. Se o usuário já tem um banco, acrescente `database_id`.
 
-```bash
-npx wrangler d1 create tanstack-cloudflare-template-db
-```
+Troque `url` em `src/config/app.ts` pela URL pública ANTES do build
+(sitemap, canonical, og:url).
 
-O comando mostra um trecho de config com `database_id`. Copie esse valor
-para o `wrangler.jsonc`, no lugar de `REPLACE_ME`. É o único lugar: os
-scripts `db:migrate:*` usam o nome do binding (`DB`).
+## 2. URL pública
 
-Depois aplique as migrações no banco remoto:
+`BETTER_AUTH_URL` é opcional (a URL vem da requisição). Só defina como
+segredo se o usuário quiser fixar uma URL.
 
-```bash
-npm run db:migrate:remote
-```
+## 3. Primeiro deploy
 
-Atenção: o D1 local é chaveado por esse ID. Depois da troca, rode
-`npm run db:migrate:local` de novo para o dev continuar funcionando.
-
-## 2. Arquivos (R2)
+Veja os segredos no passo 4 (crie o `.prod.vars` antes). Depois:
 
 ```bash
-npx wrangler r2 bucket create tanstack-cloudflare-template-files
+npm run build
+npx wrangler deploy --dry-run
+npx wrangler deploy --secrets-file .prod.vars   # cria banco e bucket e publica
+npm run db:migrate:remote                       # só depois do primeiro deploy
 ```
 
-Se o `bucket_name` no `wrangler.jsonc` for outro, use o mesmo nome.
-
-## 3. URL pública
-
-No `wrangler.jsonc`, em `"vars"`, troque `BETTER_AUTH_URL` de
-`http://localhost:3000` para a URL pública (`https://meuapp.exemplo.com.br`
-ou a URL `workers.dev`). O Better Auth usa esse valor para cookies e para os
-redirects do login social. Rode `npm run cf-typegen` depois (o tipo do
-`env` guarda o valor literal).
-
-## 4. Segredos de produção
+## 4. Segredos de produção (crie ANTES do primeiro deploy)
 
 Crie um arquivo `.prod.vars` (já está no `.gitignore`; nunca o versione)
 com os mesmos nomes do `.dev.vars.example`:
 
 ```
 BETTER_AUTH_SECRET=<novo, gerado com openssl rand -base64 32>
-RESEND_API_KEY=<obrigatório para o código de login chegar por e-mail>
+RESEND_API_KEY=<recomendado: sem provedor de e-mail em produção o login RECUSA enviar>
 EMAIL_FROM=Meu App <contato@seudominio.com.br>
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+PASSWORD_LOGIN_ENABLED=   # opcional; true liga o login com senha
 ```
 
-Nunca reaproveite o segredo do dev. Sem provedor de e-mail em produção o
-código de login vai só para o log, e ninguém consegue entrar: configure o
+Nunca reaproveite o segredo do dev (mínimo de 32 caracteres). Sem provedor de
+e-mail em produção o login recusa enviar o código: configure o
 Resend (ou o Email Service da Cloudflare, veja `src/lib/email.ts`) ou um
 provedor social.
 
-## 5. Validar e publicar
+## 5. Deploys seguintes
 
 ```bash
-npm run build && npx wrangler deploy --dry-run   # checa config e bindings, sem subir nada
-npm run deploy -- --secrets-file .prod.vars      # build + publica o Worker com os segredos
+npm run deploy    # predeploy migra o banco remoto, depois build + publica
 ```
-
-O `--dry-run` deve listar `COUNTER`, `DB`, `BUCKET`, `PUBLIC_RATE_LIMIT` e
-`BETTER_AUTH_URL`. Prefere subir os segredos à parte? Use
-`npx wrangler secret bulk .prod.vars` (todos) ou
-`npx wrangler secret put BETTER_AUTH_SECRET` (um por vez, pede o valor).
 
 Confira:
 
@@ -102,18 +85,18 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
 
 1. Login social: adicione `https://<domínio>/api/auth/callback/google` (e
    `/github`) nos apps OAuth (veja `/google-oauth`).
-2. `src/config/app.ts`: ajuste `url` para a URL pública (links em e-mails e SEO).
+2. `src/config/app.ts`: confirme que `url` é a URL pública (links em e-mails e SEO).
 3. Resend: verifique o domínio de envio e ajuste `EMAIL_FROM`.
 4. Domínio próprio: Cloudflare → Workers → o Worker → Domains & Routes.
 
-Deploys seguintes são só `npm run deploy` (segredos já ficam no Worker;
-use `-- --secrets-file .prod.vars` só quando mudar algum). Quando houver
-migração nova, `npm run db:migrate:remote` ANTES: migre sempre antes de
-publicar o código que depende da tabela nova.
+Botão Deploy to Cloudflare (Workers Builds): publica a cada push na `main`.
+Build command `npm run build`; deploy command
+`npx wrangler deploy && npx wrangler d1 migrations apply DB --remote` (a migração
+vai depois porque o banco só existe depois do primeiro deploy).
 
 ## Lembretes
 
-- Versões fixadas: `wrangler@4.158.0` e `@cloudflare/vite-plugin@1.67.0`.
+- Dependências com `^` e `package-lock.json` versionado; quem clona recebe o lock.
 - A saída do build fica em `dist/` (`dist/server/wrangler.json` é a config
   que o Wrangler publica, gerada pelo plugin a partir do `wrangler.jsonc`).
 - Logs ao vivo: `npx wrangler tail`.

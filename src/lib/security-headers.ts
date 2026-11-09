@@ -16,6 +16,20 @@ export const SECURITY_HEADERS: Record<string, string> = {
 
 const HSTS = 'max-age=63072000; includeSubDomains'
 
+// Área logada (`/app`, `/app/...`) e server functions (`/_serverFn/...`) têm
+// dado de um usuário só: nenhum cache (navegador, proxy ou CDN) pode guardar.
+const PRIVATE_PATH = /^\/(?:app(?:\/|$)|_serverFn\/)/
+
+function isPrivateResponse(res: Response, req: Request): boolean {
+  if (!PRIVATE_PATH.test(new URL(req.url).pathname)) return false
+  // Server functions devolvem JSON/stream; as páginas, HTML. Os dois valem.
+  const type = res.headers.get('content-type') ?? ''
+  return (
+    new URL(req.url).pathname.startsWith('/_serverFn/') ||
+    type.includes('text/html')
+  )
+}
+
 /** Devolve a resposta com os cabeçalhos de segurança (HSTS só em https). */
 export function withSecurityHeaders(res: Response, req: Request): Response {
   // Respostas de redirect/WebSocket podem ter headers imutáveis: copia para uma nova Response.
@@ -23,6 +37,10 @@ export function withSecurityHeaders(res: Response, req: Request): Response {
   // Só preenche o que falta: uma rota que já definiu o cabeçalho sabe o que quer.
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     if (!headers.has(name)) headers.set(name, value)
+  }
+  // Só preenche: uma rota que já escolheu o Cache-Control sabe o que quer.
+  if (!headers.has('Cache-Control') && isPrivateResponse(res, req)) {
+    headers.set('Cache-Control', 'no-store')
   }
   if (
     new URL(req.url).protocol === 'https:' &&

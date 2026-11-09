@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: '0 9 * * 1'
 
+permissions:
+  contents: read
+
 jobs:
   e2e:
     name: Ponta a ponta (Playwright)

@@ -42,5 +42,5 @@ export const ROBOTS_DISALLOW = [
   '/app',
   '/blocos',
   '/conta',
-  '/demo/',
+  '/demo/', // as demos só existem no `npm run dev`; em produção dão 404
 ] as const

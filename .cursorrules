@@ -1,7 +1,9 @@
+# Leia AGENTS.md e src/CLAUDE.md antes de editar.
+
 # shadcn instructions
 
 Use the latest version of Shadcn to install new components, like this command to add a button component:
 
 ```bash
-pnpm dlx shadcn@latest add button
+npx shadcn@latest add button
 ```

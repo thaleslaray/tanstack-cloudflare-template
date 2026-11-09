@@ -61,7 +61,7 @@ Para criar um post, adicione um arquivo em `content/blog/` com o frontmatter `ti
 2. Gere a migration com `npm run db:generate`.
 3. Aplique no banco local com `npm run db:migrate:local`.
 
-Quando for publicar, aplique no banco remoto com `npm run db:migrate:remote`. O arquivo `src/db/auth-schema.ts` espelha as tabelas do login; mexa nele só se mudar os plugins do Better Auth.
+Quando for publicar, `npm run deploy` aplica as migrações no banco remoto antes de subir o código (ou, à mão, `npm run db:migrate:remote`). O arquivo `src/db/auth-schema.ts` espelha as tabelas do login; mexa nele só se mudar os plugins do Better Auth.
 
 ## Como funcionam os bindings
 
@@ -81,6 +81,6 @@ Três regras evitam dor de cabeça:
 
 ## Páginas públicas e páginas com sessão
 
-As páginas de conteúdo (landing, blog, docs, termos e privacidade) são pré-renderizadas no build: viram HTML estático. Páginas que dependem de sessão ou de bindings, como `/login`, `/app` (a área logada), `/demo` e `/api`, **nunca** são pré-renderizadas. A lista do que pode ser estático está em `src/config/public-paths.ts`.
+As páginas de conteúdo (landing, blog, docs, termos e privacidade) são pré-renderizadas no build: viram HTML estático. Páginas que dependem de sessão ou de bindings, como `/login`, `/app` (a área logada), `/demo` (que só existe no `npm run dev`) e `/api`, **nunca** são pré-renderizadas. A lista do que pode ser estático está em `src/config/public-paths.ts`.
 
 Próximo passo: [Deploy na Cloudflare](/docs/deploy).

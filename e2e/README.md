@@ -12,7 +12,7 @@ Primeira vez: `npx playwright install chromium`.
 - O `vite dev` sobe na porta 3000 (`--strictPort`: falha se ela
   estiver ocupada) e **não reaproveita** servidor já aberto (`reuseExistingServer: false`).
   Pare o seu `npm run dev` antes de rodar, ou use outra porta:
-  `E2E_PORT=3001 npm run e2e`, com `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`
+  `E2E_PORT=3001 npm run e2e` (a URL do app vem da requisição; nada a mudar no `.dev.vars`)
   (senão o login recusa a origem).
 - A saída do servidor vai para `e2e/.dev.log`. Sem provedor de e-mail, o servidor imprime
   `[auth] código de login para <email>: <6 dígitos>`; o teste de login lê esse arquivo.

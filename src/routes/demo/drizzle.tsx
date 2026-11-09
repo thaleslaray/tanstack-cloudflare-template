@@ -1,5 +1,6 @@
+// Demo: existe só no `npm run dev`; em produção responde 404.
 import { env } from 'cloudflare:workers'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { desc } from 'drizzle-orm'
 import { Badge } from '#/components/ui/badge'
@@ -19,9 +20,11 @@ import { isRateLimited } from '#/lib/rate-limit'
 const getTodos = createServerFn({
   method: 'GET',
 }).handler(async () => {
+  if (!import.meta.env.DEV) throw notFound()
   const db = getDb(env.DB)
   return await db.query.todos.findMany({
     orderBy: [desc(todos.createdAt)],
+    limit: 100,
   })
 })
 
@@ -30,15 +33,24 @@ const createTodo = createServerFn({
 })
   .validator((data: { title: string }) => data)
   .handler(async ({ data }) => {
+    if (!import.meta.env.DEV) throw notFound()
+    const title = data.title.trim()
+    if (!title) throw new Error('Escreva um título para a tarefa.')
+    if (title.length > 200) {
+      throw new Error('O título pode ter no máximo 200 caracteres.')
+    }
     if (await isRateLimited('demo')) {
       throw new Error('Muitas requisições. Tente de novo em um minuto.')
     }
     const db = getDb(env.DB)
-    await db.insert(todos).values({ title: data.title })
+    await db.insert(todos).values({ title })
     return { success: true }
   })
 
 export const Route = createFileRoute('/demo/drizzle')({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) throw notFound()
+  },
   component: DemoDrizzle,
   loader: async () => await getTodos(),
 })

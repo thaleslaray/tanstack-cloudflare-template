@@ -1,11 +1,15 @@
 name: CI
 
 # Roda a cada push na main e em todo pull request. Só confere: NÃO publica.
-# O deploy continua manual (`npm run deploy` ou a skill /deploy).
+# O CI nunca publica. (O botão Deploy to Cloudflare é outra coisa: liga o
+# Workers Builds, que publica a cada push na main.)
 on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 # Um push novo no mesmo branch cancela a execução anterior, que ficou velha.
 concurrency:
@@ -34,7 +38,7 @@ jobs:
       # typecheck = cf-typegen (tipos do env a partir do wrangler.jsonc) + tsc
       - run: npm run typecheck
       - run: npm run check
-      # Inclui src/rules.test.ts, as regras do CLAUDE.md em forma de teste.
+      # Inclui src/rules.test.ts, as regras do AGENTS.md em forma de teste.
       - run: npm run test
       - run: npm run build
 

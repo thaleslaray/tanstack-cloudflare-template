@@ -23,4 +23,21 @@ describe('safeRedirect', () => {
     expect(safeRedirect('https://evil.com')).toBe('/app')
     expect(safeRedirect('javascript:alert(1)')).toBe('/app')
   })
+
+  it('recusa barra invertida e caracteres de controle', () => {
+    expect(safeRedirect('/\\evil.com')).toBe('/app')
+    expect(safeRedirect('/\t/evil.com')).toBe('/app')
+    expect(safeRedirect('/\n/evil.com')).toBe('/app')
+    expect(safeRedirect('/app\\x')).toBe('/app')
+  })
+
+  it('não decodifica: %5C literal passa como caminho local', () => {
+    expect(safeRedirect('/%5Cevil.com')).toBe('/%5Cevil.com')
+  })
+
+  it('devolve caminho, query e hash', () => {
+    expect(safeRedirect('/app/configuracoes?x=1#y')).toBe(
+      '/app/configuracoes?x=1#y',
+    )
+  })
 })

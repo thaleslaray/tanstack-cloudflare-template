@@ -24,14 +24,33 @@ afterEach(() => {
 
 describe('sendEmail', () => {
   it('sem provedor configurado imprime no console e não envia', async () => {
+    Object.assign(stubEnv, { BETTER_AUTH_URL: 'http://localhost:3000' })
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const result = await sendEmail(params)
     expect(result).toEqual({ sent: false, provider: 'console' })
     expect(log).toHaveBeenCalledOnce()
   })
 
+  it('sem provedor e com URL pública (https) lança erro', async () => {
+    Object.assign(stubEnv, { BETTER_AUTH_URL: 'https://app.exemplo.com' })
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await expect(sendEmail(params)).rejects.toThrow(
+      /Nenhum provedor de e-mail configurado/,
+    )
+    expect(log).not.toHaveBeenCalled()
+  })
+
+  it('127.0.0.1 também conta como desenvolvimento', async () => {
+    Object.assign(stubEnv, { BETTER_AUTH_URL: 'http://127.0.0.1:3000' })
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    expect((await sendEmail(params)).provider).toBe('console')
+  })
+
   it('trata chave vazia como ausente', async () => {
-    Object.assign(stubEnv, { RESEND_API_KEY: '   ' })
+    Object.assign(stubEnv, {
+      RESEND_API_KEY: '   ',
+      BETTER_AUTH_URL: 'http://localhost:3000',
+    })
     vi.spyOn(console, 'log').mockImplementation(() => {})
     const result = await sendEmail(params)
     expect(result.provider).toBe('console')

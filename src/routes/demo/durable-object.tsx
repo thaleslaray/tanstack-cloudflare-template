@@ -1,5 +1,6 @@
+// Demo: existe só no `npm run dev`; em produção responde 404.
 import { env } from 'cloudflare:workers'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { Button } from '#/components/ui/button'
@@ -7,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 import { isRateLimited } from '#/lib/rate-limit'
 
 const increment = createServerFn({ method: 'POST' }).handler(async () => {
+  if (!import.meta.env.DEV) throw notFound()
   if (await isRateLimited('demo')) {
     throw new Error('Muitas requisições. Tente de novo em um minuto.')
   }
@@ -16,6 +18,9 @@ const increment = createServerFn({ method: 'POST' }).handler(async () => {
 })
 
 export const Route = createFileRoute('/demo/durable-object')({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) throw notFound()
+  },
   component: DemoDO,
 })
 

@@ -5,12 +5,41 @@
   "imports": {
     "#/*": "./src/*"
   },
+  "cloudflare": {
+    "bindings": {
+      "BETTER_AUTH_SECRET": {
+        "description": "Obrigatório. Assina as sessões. Gere com `openssl rand -base64 32` (mínimo de 32 caracteres)."
+      },
+      "RESEND_API_KEY": {
+        "description": "Recomendado em produção: sem provedor de e-mail o login por código recusa enviar. Crie em [resend.com/api-keys](https://resend.com/api-keys)."
+      },
+      "EMAIL_FROM": {
+        "description": "Recomendado: remetente de domínio verificado, como `Meu App <contato@seudominio.com.br>`."
+      },
+      "GOOGLE_CLIENT_ID": {
+        "description": "Opcional: login com Google (precisa do par id + segredo)."
+      },
+      "GOOGLE_CLIENT_SECRET": {
+        "description": "Opcional: login com Google (precisa do par id + segredo)."
+      },
+      "GITHUB_CLIENT_ID": {
+        "description": "Opcional: login com GitHub (precisa do par id + segredo)."
+      },
+      "GITHUB_CLIENT_SECRET": {
+        "description": "Opcional: login com GitHub (precisa do par id + segredo)."
+      },
+      "PASSWORD_LOGIN_ENABLED": {
+        "description": "Opcional: `true` liga o login com senha (vem desligado)."
+      }
+    }
+  },
   "scripts": {
     "dev": "vite dev --port 3000",
     "sitemap": "tsx scripts/generate-sitemap.ts",
     "prebuild": "npm run sitemap",
     "build": "vite build",
     "preview": "npm run build && vite preview",
+    "predeploy": "wrangler d1 migrations apply DB --remote",
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types --env-file .dev.vars.example",
     "typecheck": "npm run cf-typegen && tsc --noEmit",
@@ -74,13 +103,5 @@
     "vitest": "^4.1.12",
     "wrangler": "^4.158.0",
     "yaml": "^2.9.1"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss",
-      "sharp",
-      "workerd"
-    ]
   }
 }

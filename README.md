@@ -6,20 +6,51 @@ agendadas, blog e docs. Feito para você clonar, trocar o texto e publicar.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/SEU_USUARIO/tanstack-cloudflare-template)
 
-> O botão clona o repositório na sua conta Cloudflare e cria o Worker. Na tela
-> de configuração use **build command** `npm run build` e **deploy command**
-> `npx wrangler deploy`. Depois siga a seção [Publicar](#publicar) para
-> criar o banco e subir os segredos (o botão não faz isso por você).
+> **O que o botão faz.** Clona o repositório para a sua conta do GitHub/GitLab,
+> cria o Worker, o banco D1 e o bucket R2 (o Durable Object vem junto) e publica.
+> Ele liga o **Workers Builds**: **a partir daí, todo push na `main` publica o
+> app** (inclusive PRs do Dependabot depois de mesclados; só mescle com o CI verde).
+> Na tela de configuração:
+>
+> - **Build command:** `npm run build`
+> - **Deploy command:** `npx wrangler deploy && npx wrangler d1 migrations apply DB --remote`
+>   (a Cloudflare usa `npx wrangler deploy` por padrão e deixa trocar. Aqui o banco
+>   só existe depois do primeiro deploy, então a migração vai **depois** dele.
+>   Por isso não é `npm run deploy`, que migra antes).
+> - **Segredos:** a tela pede os do `.dev.vars.example`. Preencha `BETTER_AUTH_SECRET`
+>   (obrigatório) e, **para o login funcionar**, `RESEND_API_KEY` e `EMAIL_FROM`.
+>   Sem provedor de e-mail em produção, o login **recusa enviar** o código.
+> - Antes de clicar, troque `url` em `src/config/app.ts` pela URL pública
+>   (sitemap, canonical e `og:url` saem do build).
+
+## Pré-requisitos
+
+- **Node.js 22 ou mais novo** (`node -v`), **npm** (vem com o Node) e **git**.
+- Conta na Cloudflare só para publicar; rodar local não precisa.
 
 ## Começar em cinco comandos
 
 ```bash
+git clone <url-do-seu-repositorio> meu-app && cd meu-app
 npm install
-cp .dev.vars.example .dev.vars        # depois cole um `openssl rand -base64 32` em BETTER_AUTH_SECRET
+cp .dev.vars.example .dev.vars        # depois cole um segredo em BETTER_AUTH_SECRET (abaixo)
 npm run db:migrate:local
 npm run dev                           # http://localhost:3000
-npm run e2e                           # opcional: Playwright de ponta a ponta
 ```
+
+Para gerar o segredo (mínimo de 32 caracteres): `openssl rand -base64 32`. No
+Windows, sem `openssl`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Avisos do `npm install` (como `peer dependency`) pode ignorar; só erro importa.
+
+`npm run e2e` (opcional, Playwright) precisa da porta 3000 **livre**: não rode
+junto com o `npm run dev` (ou use `E2E_PORT=3001 npm run e2e`, com
+`BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`). Na primeira vez rode
+`npx playwright install chromium`.
 
 Abra http://localhost:3000/login e peça um código. Sem provedor de e-mail
 configurado, ele aparece no terminal do `npm run dev`:
@@ -27,6 +58,8 @@ configurado, ele aparece no terminal do `npm run dev`:
 ```
 [auth] código de login para voce@exemplo.com: 123456
 ```
+
+O login com senha é opcional e vem desligado (`PASSWORD_LOGIN_ENABLED=true` no `.dev.vars` liga). As demos em `/demo/*` só existem no `npm run dev`.
 
 Com o Claude Code aberto na pasta, `/setup` faz tudo isso, `/google-oauth`
 liga o login com Google e `/deploy` publica.
@@ -49,8 +82,8 @@ liga o login com Google e `/deploy` publica.
 | Conteúdo | MDX para blog, docs, termos e privacidade, pré-renderizados no build |
 | UI | Tailwind v4 + shadcn/ui, landing montada de `src/content/landing.ts` com 13 formatos de bloco (catálogo em `/blocos`), quatro temas em claro e escuro |
 | Proteções | Rate limit por IP, cabeçalhos de segurança, cron diário limpando sessões vencidas e apagando contas encerradas |
-| Qualidade | Biome, Vitest (com as regras do `CLAUDE.md` como teste), Playwright (4 specs) |
-| Agentes | `CLAUDE.md`, `AGENTS.md` e skills em `.claude/skills/` |
+| Qualidade | Biome, Vitest (com as regras do `AGENTS.md` como teste), Playwright (4 specs) |
+| Agentes | `AGENTS.md` (as regras; o `CLAUDE.md` aponta para ele), `src/CLAUDE.md` (visual) e skills em `.claude/skills/` |
 
 ## Scripts
 
@@ -60,7 +93,7 @@ liga o login com Google e `/deploy` publica.
 | `npm run build` | `vite build`: build de produção com prerender das páginas públicas |
 | `npm run sitemap` | gera `public/sitemap.xml` e `public/robots.txt` (roda sozinho antes do build) |
 | `npm run preview` | build e depois serve a saída de produção localmente |
-| `npm run deploy` | build e `wrangler deploy` (na primeira vez: `npm run deploy -- --secrets-file .prod.vars`) |
+| `npm run deploy` | migra o banco remoto (`predeploy`), faz o build e `wrangler deploy` |
 | `npm run cf-typegen` | gera `worker-configuration.d.ts` (os tipos do `env`) a partir do `wrangler.jsonc` |
 | `npm run typecheck` | `cf-typegen` e depois o `tsc` |
 | `npm run check` | Biome (lint + formatação); `check:fix` corrige |
@@ -78,28 +111,31 @@ liga o login com Google e `/deploy` publica.
 - **Telas**: `src/routes/` (uma rota por arquivo; as demos mostram cada peça)
 - **Área logada**: páginas em `src/routes/_app/` e o menu em `mainNav` (`src/components/app-sidebar.tsx`)
 - **Blog, docs, termos, privacidade**: `content/`
-- **Bindings, cron, variáveis**: `wrangler.jsonc` (a lista de segredos é o `.dev.vars.example`)
+- **Bindings e cron**: `wrangler.jsonc` (a lista de segredos é o `.dev.vars.example`)
 
 ## Publicar
 
-Resumo do que `/deploy` faz (detalhes em [content/docs/deploy.mdx](content/docs/deploy.mdx)):
+Resumo do que `/deploy` faz (detalhes em [content/docs/deploy.mdx](content/docs/deploy.mdx)).
+O `wrangler.jsonc` não tem `database_id` nem `bucket_name`: o Wrangler cria o
+banco D1 e o bucket R2 no primeiro deploy (provisionamento automático).
 
-1. `npx wrangler login`
-2. `npx wrangler d1 create tanstack-cloudflare-template-db` e cole o
-   `database_id` que ele mostrar no lugar de `REPLACE_ME`, no `wrangler.jsonc`.
-3. `npx wrangler r2 bucket create tanstack-cloudflare-template-files`
-4. `npm run db:migrate:remote`
-5. Troque `BETTER_AUTH_URL` (em `"vars"`, no `wrangler.jsonc`) pela URL pública.
-6. Crie `.prod.vars` com os segredos de produção (mesmos nomes do `.dev.vars.example`).
-7. `npx wrangler deploy --dry-run` e depois `npm run deploy -- --secrets-file .prod.vars`
-   (ou suba os segredos à parte com `npx wrangler secret bulk .prod.vars`).
+1. Troque `url` em `src/config/app.ts` pela URL pública.
+2. `npx wrangler login`
+3. Crie `.prod.vars` com os segredos de produção (nomes do `.dev.vars.example`;
+   inclua `RESEND_API_KEY` e `EMAIL_FROM`, senão o login recusa enviar).
+4. Primeiro deploy: `npm run build && npx wrangler deploy --secrets-file .prod.vars`
+   (cria banco e bucket), depois `npm run db:migrate:remote`.
+5. Deploys seguintes: `npm run deploy` (o `predeploy` aplica as migrações antes de publicar).
 
-## CI
+`BETTER_AUTH_URL` é opcional: a URL vem da requisição.
 
-Todo push na `main` e todo pull request rodam no GitHub Actions
-(`.github/workflows/ci.yml`) tipos, Biome, testes, build, `wrangler deploy --dry-run`
-e a checagem de que o schema e as migrações combinam; o Playwright (`e2e.yml`)
-roda à mão e toda segunda, e nada é publicado automaticamente.
+## CI e publicação automática
+
+O GitHub Actions (`.github/workflows/ci.yml`) roda em todo push na `main` e em todo
+pull request: tipos, Biome, testes, build, `wrangler deploy --dry-run` e a checagem
+de que o schema e as migrações combinam. O CI **nunca publica**; o Playwright
+(`e2e.yml`) roda à mão e toda segunda. Já o botão **Deploy to Cloudflare** (Workers
+Builds) **publica a cada push na `main`**: são coisas separadas.
 
 ## Por que Wrangler, e não o `cf`
 
@@ -109,9 +145,9 @@ plugin do Vite (config em `cloudflare.config.ts`). Os dois ainda estão em
 estável e documentado no guia oficial do TanStack Start: **Wrangler +
 `@cloudflare/vite-plugin` v1**, com a configuração em `wrangler.jsonc`.
 
-As versões ficam **fixadas** no `package.json` (`wrangler@4.158.0` e
-`@cloudflare/vite-plugin@1.67.0`). Atualize de propósito e rode
-`npm run typecheck`, `npm run build` e `npm run e2e` antes de commitar.
+As dependências usam `^` e o `package-lock.json` é versionado: quem clona
+recebe o que está no lock. O Dependabot abre PRs semanais; antes de mesclar,
+confira que o CI está verde (e `npm run e2e` para mudanças maiores).
 
 Quando o `cf` sair do beta, `npx cf migrate` converte o projeto. A versão
 com `cf` já existe, guardada na branch `cf-v2-beta`. Até lá, não instale o

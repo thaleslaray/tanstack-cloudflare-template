@@ -22,6 +22,13 @@
       "when": 1794097215714,
       "tag": "0002_user_deleted_at",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794192519458,
+      "tag": "0003_tiresome_boomerang",
+      "breakpoints": true
     }
   ]
 }

@@ -22,6 +22,10 @@ const NAV = [
   { href: '/blog', label: 'Blog' },
 ] as const
 
+// Demos só existem no `npm run dev` (em produção as rotas dão 404): o menu
+// também só aparece em dev.
+const SHOW_DEMOS = import.meta.env.DEV
+
 const DEMOS = [
   { href: '/demo/drizzle', label: 'Banco (D1 + Drizzle)' },
   { href: '/demo/r2', label: 'Arquivos (R2)' },
@@ -71,27 +75,29 @@ export default function Header() {
               {item.label}
             </a>
           ))}
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger
-              className={`${navLink} focus-visible:outline-none`}
-            >
-              Demos
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="min-w-56">
-              {DEMOS.map((item) => (
-                <DropdownMenuItem key={item.href} asChild>
-                  <a href={item.href}>{item.label}</a>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {SHOW_DEMOS && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger
+                className={`${navLink} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background`}
+              >
+                Demos
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="min-w-56">
+                {DEMOS.map((item) => (
+                  <DropdownMenuItem key={item.href} asChild>
+                    <a href={item.href}>{item.label}</a>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </nav>
 
         <div className="flex items-center justify-end gap-1 sm:gap-2">
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger
               aria-label="Abrir menu"
-              className="inline-flex size-9 items-center justify-center rounded-[var(--radius-btn)] text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none sm:hidden"
+              className="inline-flex size-9 items-center justify-center rounded-[var(--radius-btn)] text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:hidden"
             >
               <MenuIcon className="size-5" />
             </DropdownMenuTrigger>
@@ -101,13 +107,17 @@ export default function Header() {
                   <a href={item.href}>{item.label}</a>
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Demos</DropdownMenuLabel>
-              {DEMOS.map((item) => (
-                <DropdownMenuItem key={item.href} asChild>
-                  <a href={item.href}>{item.label}</a>
-                </DropdownMenuItem>
-              ))}
+              {SHOW_DEMOS && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Demos</DropdownMenuLabel>
+                  {DEMOS.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <a href={item.href}>{item.label}</a>
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           <ThemePicker />

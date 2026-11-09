@@ -62,6 +62,30 @@ ${appConfig.name}`
   return { subject, html, text }
 }
 
+export function emailVerificationCodeEmail({
+  code,
+  minutes,
+}: {
+  code: string
+  minutes: number
+}) {
+  const subject = `${code} é seu código de confirmação — ${appConfig.name}`
+  const html = layout({
+    title: 'Confirme seu e-mail',
+    bodyHtml: `<p style="margin:0 0 16px">Use o código abaixo para confirmar seu e-mail e terminar de criar a conta. Ele vale por ${minutes} minutos.</p>
+<p style="margin:0 0 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:0.3em;color:${ink}">${escapeHtml(code)}</p>
+<p style="margin:0;color:${muted};font-size:13px">Se você não criou uma conta, ignore este e-mail.</p>`,
+  })
+  const text = `Use o código abaixo para confirmar seu e-mail e terminar de criar a conta. Ele vale por ${minutes} minutos.
+
+${code}
+
+Se você não criou uma conta, ignore este e-mail.
+
+${appConfig.name}`
+  return { subject, html, text }
+}
+
 // Data por extenso, ex.: "14 de novembro de 2026". Fuso de Brasília.
 export function formatDateBR(date: Date): string {
   return new Intl.DateTimeFormat('pt-BR', {

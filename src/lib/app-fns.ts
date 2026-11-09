@@ -10,8 +10,9 @@ import { getAuth } from '#/lib/auth'
 
 export const getDashboardStatsFn = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const current = await getAuth(env).api.getSession({
-      headers: getRequest().headers,
+    const request = getRequest()
+    const current = await getAuth(env, request).api.getSession({
+      headers: request.headers,
     })
     if (!current) throw new Error('Entre na sua conta primeiro.')
     const [row] = await getDb(env.DB)

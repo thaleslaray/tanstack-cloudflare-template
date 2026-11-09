@@ -19,21 +19,22 @@
   "assets": {
     "html_handling": "drop-trailing-slash"
   },
-  // Banco D1, acessado via Drizzle (src/db). Troque "REPLACE_ME" pelo ID real
-  // que o `wrangler d1 create` mostrar, antes do deploy. No dev, o banco é local.
+  // Banco D1, acessado via Drizzle (src/db). Sem `database_id` de propósito: o
+  // Wrangler cria o banco no primeiro `wrangler deploy` (provisionamento
+  // automático, docs da Cloudflare) e o botão Deploy também. No dev, o banco é
+  // local e se cria sozinho. Já tem um banco? Acrescente "database_id": "<id>".
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "tanstack-cloudflare-template-db",
-      "database_id": "REPLACE_ME",
       "migrations_dir": "drizzle"
     }
   ],
-  // Armazenamento de arquivos (R2).
+  // Armazenamento de arquivos (R2). Sem `bucket_name`: o bucket também é criado
+  // no primeiro deploy, com o nome do Worker como prefixo.
   "r2_buckets": [
     {
-      "binding": "BUCKET",
-      "bucket_name": "tanstack-cloudflare-template-files"
+      "binding": "BUCKET"
     }
   ],
   // Durable Object `Counter` (classe exportada em src/server.ts).
@@ -67,11 +68,9 @@
   "triggers": {
     "crons": ["0 3 * * *"]
   },
-  // Variáveis em texto (não secretas). Troque pela URL pública ao publicar.
-  // Segredos NÃO entram aqui: no dev vêm do .dev.vars; em produção, de `wrangler secret`.
-  "vars": {
-    "BETTER_AUTH_URL": "http://localhost:3000"
-  }
+  // Sem bloco "vars" de propósito. A URL pública do app (BETTER_AUTH_URL) é
+  // deduzida da requisição. Quer fixar uma URL? Crie a variável BETTER_AUTH_URL
+  // no `.dev.vars` (dev) ou como segredo (produção). Segredos NÃO entram aqui.
   // Cloudflare Email Service (opcional, plano Workers Paid, domínio verificado em
   // Compute → Email Service → Email Sending). Descomente, defina EMAIL_FROM com um
   // endereço do domínio verificado e src/lib/email.ts passa a usar este binding

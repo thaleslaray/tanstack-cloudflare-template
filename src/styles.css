@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap');
+/* As fontes (Inter, JetBrains Mono, Fraunces) entram por <link> em src/routes/__root.tsx,
+   com preconnect: um @import aqui bloquearia a renderização até o CSS do Google chegar. */
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 @import 'tw-animate-css';
@@ -45,8 +46,9 @@
   --ring: #ff4d00;
   --surface: #f7f7f7;
   --brand: #ff4d00;
-  --brand-hover: #e64500;
-  --brand-foreground: #ffffff;
+  /* Texto em tinta sobre o laranja: 5,4:1 (branco dava 3,33:1, abaixo do AA). */
+  --brand-hover: #eb4800;
+  --brand-foreground: #171717;
   --success: #00b464;
   --warning: #f5a623;
   --terminal: #171717;
@@ -98,6 +100,9 @@
   --input: rgba(255, 255, 255, 0.18);
   --ring: #ff4d00;
   --surface: #1a1a1a;
+  --brand: #ff4d00;
+  --brand-hover: #eb4800;
+  --brand-foreground: #171717;
   --terminal: #1f1f1f;
   --terminal-foreground: #f5f5f5;
   --terminal-muted: #8a8a8a;
@@ -175,8 +180,9 @@
   --border: oklch(0.28 0 0);
   --input: oklch(0.32 0 0);
   --surface: oklch(0.19 0 0);
-  --brand: oklch(0.6 0.17 255);
-  --brand-hover: oklch(0.55 0.17 255);
+  /* L 0.52: texto claro sobre o azul fica em ~5,5:1 (com 0.6 dava ~3,9:1). */
+  --brand: oklch(0.52 0.17 255);
+  --brand-hover: oklch(0.47 0.17 255);
   --terminal: oklch(0.1 0 0);
   --hero-dot: oklch(0.3 0 0);
   --chart-4: oklch(0.97 0 0);

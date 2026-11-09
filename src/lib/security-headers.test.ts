@@ -51,4 +51,49 @@ describe('withSecurityHeaders', () => {
     expect(res.statusText).toBe('Bule')
     expect(await res.text()).toBe('quebrou')
   })
+
+  describe('Cache-Control das áreas privadas', () => {
+    const html = () =>
+      new Response('<p>oi</p>', { headers: { 'content-type': 'text/html' } })
+    const at = (path: string) => new Request(`http://localhost:3000${path}`)
+
+    it('HTML em /app e /app/... sai com no-store', () => {
+      for (const path of ['/app', '/app/', '/app/configuracoes']) {
+        expect(
+          withSecurityHeaders(html(), at(path)).headers.get('cache-control'),
+        ).toBe('no-store')
+      }
+    })
+
+    it('server functions saem com no-store', () => {
+      const res = withSecurityHeaders(
+        Response.json({ a: 1 }),
+        at('/_serverFn/abc'),
+      )
+      expect(res.headers.get('cache-control')).toBe('no-store')
+    })
+
+    it('páginas públicas e /application não mudam', () => {
+      for (const path of ['/', '/blog', '/application']) {
+        expect(
+          withSecurityHeaders(html(), at(path)).headers.get('cache-control'),
+        ).toBeNull()
+      }
+    })
+
+    it('HTML fora de /app e não-HTML em /app não mudam', () => {
+      const res = withSecurityHeaders(Response.json({}), at('/app/x'))
+      expect(res.headers.get('cache-control')).toBeNull()
+    })
+
+    it('não sobrescreve um Cache-Control que a resposta já trazia', () => {
+      const res = withSecurityHeaders(
+        new Response('x', {
+          headers: { 'content-type': 'text/html', 'cache-control': 'private' },
+        }),
+        at('/app'),
+      )
+      expect(res.headers.get('cache-control')).toBe('private')
+    })
+  })
 })

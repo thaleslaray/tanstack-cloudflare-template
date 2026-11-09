@@ -80,6 +80,19 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       ],
       links: [
         { rel: 'stylesheet', href: appCss },
+        // Fontes via <link> com preconnect, não @import no CSS: o navegador
+        // começa a conexão cedo e não trava a renderização esperando o Google.
+        // Pesos até 600 (regra 6 de src/CLAUDE.md); 700 só para o tema brutal.
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        {
+          rel: 'preconnect',
+          href: 'https://fonts.gstatic.com',
+          crossOrigin: 'anonymous',
+        },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap',
+        },
         { rel: 'canonical', href: canonical },
       ],
     }

@@ -1,5 +1,6 @@
+// Demo: existe só no `npm run dev`; em produção responde 404.
 import { env } from 'cloudflare:workers'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
@@ -7,13 +8,25 @@ import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
 import { isRateLimited } from '#/lib/rate-limit'
 
+// Limites mesmo em dev: nome simples, até 10 KB, no máximo 50 arquivos.
+const KEY_RE = /^[\w.-]{1,64}$/
+const MAX_CONTENT = 10_000
+const PREFIX = 'demo/'
+
 const listFiles = createServerFn({ method: 'GET' }).handler(async () => {
-  const { objects } = await env.BUCKET.list()
+  if (!import.meta.env.DEV) throw notFound()
+  const { objects } = await env.BUCKET.list({ prefix: PREFIX, limit: 50 })
   const items = await Promise.all(
-    objects.map(async (o) => {
-      const obj = await env.BUCKET.get(o.key)
-      return { key: o.key, size: o.size, content: (await obj?.text()) ?? '' }
-    }),
+    objects
+      .filter((o) => o.size <= MAX_CONTENT)
+      .map(async (o) => {
+        const obj = await env.BUCKET.get(o.key)
+        return {
+          key: o.key.slice(PREFIX.length),
+          size: o.size,
+          content: (await obj?.text()) ?? '',
+        }
+      }),
   )
   return items
 })
@@ -21,14 +34,26 @@ const listFiles = createServerFn({ method: 'GET' }).handler(async () => {
 const saveFile = createServerFn({ method: 'POST' })
   .validator((data: { key: string; content: string }) => data)
   .handler(async ({ data }) => {
+    if (!import.meta.env.DEV) throw notFound()
+    if (!KEY_RE.test(data.key)) {
+      throw new Error(
+        'Nome inválido: use até 64 letras, números, ponto, hífen ou sublinhado.',
+      )
+    }
+    if (data.content.length > MAX_CONTENT) {
+      throw new Error('O conteúdo pode ter no máximo 10 KB.')
+    }
     if (await isRateLimited('demo')) {
       throw new Error('Muitas requisições. Tente de novo em um minuto.')
     }
-    await env.BUCKET.put(data.key, data.content)
+    await env.BUCKET.put(`${PREFIX}${data.key}`, data.content)
     return { success: true }
   })
 
 export const Route = createFileRoute('/demo/r2')({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) throw notFound()
+  },
   component: DemoR2,
   loader: async () => await listFiles(),
 })

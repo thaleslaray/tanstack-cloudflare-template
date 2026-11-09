@@ -1,6 +1,8 @@
 # Dependabot: abre um PR por semana com as atualizações, agrupadas por família.
 # O CI (.github/workflows/ci.yml) roda typecheck, lint, testes, build e dry-run
 # em cada PR, então um bump que quebra fica vermelho antes de entrar.
+# Se o app foi criado pelo botão Deploy (Workers Builds), mesclar um PR daqui
+# PUBLICA o app (push na main). Só mescle com o CI verde.
 # A `compatibility_date` do wrangler.jsonc NÃO é dependência: sobe à mão, lendo o changelog.
 version: 2
 updates:

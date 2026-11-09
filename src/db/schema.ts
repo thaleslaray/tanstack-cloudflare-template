@@ -1,6 +1,9 @@
 import { sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
+// `created_at` fica em SEGUNDOS (`timestamp`), ao contrário das outras tabelas (ms).
+// Trocar para ms obriga o drizzle-kit a recriar a tabela e converteria dados
+// antigos errado; como `todos` é só exemplo, ficou assim.
 export const todos = sqliteTable('todos', {
   id: integer({ mode: 'number' }).primaryKey({
     autoIncrement: true,

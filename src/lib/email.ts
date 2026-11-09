@@ -1,10 +1,13 @@
 // Camada de e-mail (somente servidor). Escolhe o provedor a cada chamada:
 //   1. Resend (REST via fetch), se RESEND_API_KEY estiver preenchida;
 //   2. Cloudflare Email Service (binding EMAIL), se existir e EMAIL_FROM estiver preenchido;
-//   3. console (desenvolvimento): o e-mail aparece no terminal do `npm run dev`.
+//   3. console (SÓ em desenvolvimento): o e-mail aparece no terminal do `npm run dev`.
+//      Em produção sem provedor, `sendEmail` lança erro: um código de login
+//      impresso no log seria um código que qualquer pessoa com acesso ao log usa.
 import { env } from 'cloudflare:workers'
 
 import { appConfig } from '#/config/app'
+import { isLocalUrl } from '#/lib/auth-config'
 
 export type SendEmailParams = {
   to: string
@@ -23,6 +26,14 @@ export type SendEmailResult = {
 function optional(value: string | undefined): string | undefined {
   const trimmed = value?.trim()
   return trimmed ? trimmed : undefined
+}
+
+// Desenvolvimento local: URL do app em localhost/127.x ou, sem URL definida,
+// o `vite dev` (`import.meta.env.DEV`).
+function isLocalDev(): boolean {
+  const url = optional(env.BETTER_AUTH_URL)
+  if (url) return isLocalUrl(url)
+  return import.meta.env.DEV === true
 }
 
 export async function sendEmail({
@@ -86,6 +97,11 @@ export async function sendEmail({
     }
   }
 
+  if (!isLocalDev()) {
+    throw new Error(
+      'Nenhum provedor de e-mail configurado. Defina RESEND_API_KEY (ou o binding EMAIL + EMAIL_FROM) antes de publicar.',
+    )
+  }
   console.log(
     `[email] (nenhum provedor configurado) para: ${to} | assunto: ${subject}\n${text}`,
   )

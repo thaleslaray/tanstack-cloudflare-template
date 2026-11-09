@@ -4,8 +4,8 @@ import { devPort, previewPort } from './e2e/helpers'
 // Testes ponta a ponta contra o servidor de desenvolvimento real (`vite dev`:
 // workerd + D1 local). `npm run e2e` sobe o servidor sozinho. A saída vai para
 // e2e/.dev.log: é dali que o teste de login lê o código impresso no terminal.
-// Porta 3000 ocupada? `E2E_PORT=3001 npm run e2e` (e ponha
-// BETTER_AUTH_URL=http://localhost:3001 no .dev.vars). Veja e2e/README.md.
+// Porta 3000 ocupada? `E2E_PORT=3001 npm run e2e` (a URL do app vem da
+// requisição, então não precisa mexer no .dev.vars). Veja e2e/README.md.
 // O segundo servidor (preview, porta 4173 ou E2E_PREVIEW_PORT) é a saída de
 // produção: faz o build e serve com o public/_headers aplicado aos estáticos.
 const port = devPort

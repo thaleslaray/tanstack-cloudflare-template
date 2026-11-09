@@ -35,6 +35,19 @@ describe('isCrossSiteServerFnCall', () => {
     expect(call('/_serverFn/abc')).toBe(false)
   })
 
+  it('decodifica o caminho antes de comparar o prefixo', () => {
+    expect(call('/%5FserverFn/abc', { 'sec-fetch-site': 'cross-site' })).toBe(
+      true,
+    )
+    expect(call('/_server%46n/abc', { 'sec-fetch-site': 'cross-site' })).toBe(
+      true,
+    )
+  })
+
+  it('não quebra com percent-encoding inválido', () => {
+    expect(call('/%E0%A4%A', { 'sec-fetch-site': 'cross-site' })).toBe(false)
+  })
+
   it('ignora caminhos fora de /_serverFn/', () => {
     expect(call('/api/webhooks/x', { 'sec-fetch-site': 'cross-site' })).toBe(
       false,

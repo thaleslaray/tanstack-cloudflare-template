@@ -6,6 +6,8 @@ const footerLink =
   'text-sm text-muted-foreground no-underline transition-colors hover:text-foreground'
 
 export default function Footer() {
+  // Calculado no build/SSR (e congelado nas páginas pré-renderizadas): o ano
+  // só muda na próxima publicação, o que é aceitável para um rodapé.
   const year = new Date().getFullYear()
   return (
     <footer className="border-t border-border">
@@ -32,9 +34,11 @@ export default function Footer() {
               <a href="/blog" className={footerLink}>
                 Blog
               </a>
-              <a href="/demo/drizzle" className={footerLink}>
-                Demos
-              </a>
+              {import.meta.env.DEV && (
+                <a href="/demo/drizzle" className={footerLink}>
+                  Demos
+                </a>
+              )}
             </div>
             <div className="flex flex-col items-start gap-3">
               <span className="kicker">Legal</span>

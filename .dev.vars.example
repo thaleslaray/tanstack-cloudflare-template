@@ -1,12 +1,21 @@
 # Segredos LOCAIS. Copie para .dev.vars (não versionado): cp .dev.vars.example .dev.vars
 # Só BETTER_AUTH_SECRET é obrigatório. As outras chaves podem ficar vazias (vazio = desligado).
-# A URL do app fica em BETTER_AUTH_URL, no wrangler.jsonc ("vars"). Para rodar o dev em outra
-# porta, acrescente aqui BETTER_AUTH_URL=http://localhost:3001: o .dev.vars vence o "vars" no dev.
+# A URL do app NÃO precisa ser definida: com BETTER_AUTH_URL vazio, o app usa a URL da requisição.
 # Em produção, os mesmos nomes vão num .prod.vars e sobem com `npx wrangler secret bulk .prod.vars`.
 # Esta lista também gera os tipos do Env (`npm run cf-typegen`): chave nova entra aqui.
 
 # Assina os cookies de sessão. Gere com: openssl rand -base64 32
+# Mínimo de 32 caracteres: vazio ou curto faz o app recusar o login.
 BETTER_AUTH_SECRET=
+
+# URL do app (opcional). Deixe vazio: o app usa a URL da requisição. Preencha só para fixar
+# (ex.: http://localhost:3001, ou https://app.seudominio.com.br em produção). Em localhost o
+# e-mail sem provedor vai para o terminal; fora dele, sem provedor o envio falha de propósito.
+BETTER_AUTH_URL=
+
+# Login com senha (opcional). Vazio = desligado (só código por e-mail e login social).
+# `true` ou `1` liga: quem cria conta com senha confirma o e-mail por código antes de entrar.
+PASSWORD_LOGIN_ENABLED=
 
 # E-mail (opcional). Sem estas duas variáveis, o e-mail aparece no terminal do `npm run dev`.
 # Crie a chave em https://resend.com/api-keys
