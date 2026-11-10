@@ -62,7 +62,8 @@ configurado, ele aparece no terminal do `npm run dev`:
 O login com senha é opcional e vem desligado (`PASSWORD_LOGIN_ENABLED=true` no `.dev.vars` liga). As demos em `/demo/*` só existem no `npm run dev`.
 
 Com o Claude Code aberto na pasta, `/setup` faz tudo isso, `/google-oauth`
-liga o login com Google e `/deploy` publica.
+liga o login com Google, `/tela` cria uma tela nova no visual do app (peça
+"cria uma tela de clientes") e `/deploy` publica.
 
 ## O que vem na caixa
 
@@ -80,7 +81,7 @@ liga o login com Google e `/deploy` publica.
 | Arquivos | R2 (foto de perfil e demo em `/demo/r2`) |
 | Estado | Durable Object `Counter` (demo em `/demo/durable-object`) |
 | Conteúdo | MDX para blog, docs, termos e privacidade, pré-renderizados no build |
-| UI | Tailwind v4 + shadcn/ui, landing montada de `src/content/landing.ts` com 13 formatos de bloco (catálogo em `/blocos`), quatro temas em claro e escuro |
+| UI | Tailwind v4 + shadcn/ui, landing montada de `src/content/landing.ts` com 13 formatos de bloco (catálogo em `/blocos`), kit de peças de tela (bancada em `/estilo`), quatro temas em claro e escuro |
 | Proteções | Rate limit por IP, cabeçalhos de segurança, cron diário limpando sessões vencidas e apagando contas encerradas |
 | Qualidade | Biome, Vitest (com as regras do `AGENTS.md` como teste), Playwright (4 specs) |
 | Agentes | `AGENTS.md` (as regras; o `CLAUDE.md` aponta para ele), `src/CLAUDE.md` (visual) e skills em `.claude/skills/` |

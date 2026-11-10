@@ -109,7 +109,7 @@ export function AvatarUpload({
                 type="button"
                 disabled={sending}
                 onClick={() => void send()}
-                className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                variant="brand"
               >
                 {sending ? 'Enviando...' : 'Salvar foto'}
               </Button>

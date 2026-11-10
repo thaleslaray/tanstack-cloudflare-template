@@ -51,6 +51,14 @@ Para ver um exemplo de cada um, rode `npm run dev` e abra [/blocos](/blocos). Os
 
 Precisa de um formato que não existe? São três passos: o tipo em `types.ts`, um componente em `src/components/landing/blocks/` e um `case` em `render.tsx`. O typecheck avisa se faltar o `case`, e o teste `render.test.tsx` avisa se faltar o exemplo.
 
+## Criar uma tela
+
+As telas da área logada são montadas com peças prontas, que ficam em `src/components/app/` e `src/components/ui/`: cabeçalho da página, faixa de busca, tabela, lista vazia, campo de formulário, bolinha de estado, diálogo. Para ver todas no tema atual, rode `npm run dev` e abra [/estilo](/estilo). Lá também está a tela de lista de referência, funcionando: filtre, busque, crie um item.
+
+Uma tela nova é um arquivo em `src/routes/_app/app/` e uma linha em `mainNav` (`src/components/app-sidebar.tsx`), para ela aparecer no menu. Com o Claude Code, peça `/tela` e diga o que quer ("cria uma tela de clientes"): a skill escolhe as peças, liga os dados e confere o resultado no celular e no modo escuro.
+
+As regras de aparência (cor só por token, um botão da marca por tela, nada de sombra) estão em `src/CLAUDE.md`, e várias são conferidas pelo `npm run test`.
+
 ## Escrever artigos
 
 Para criar um post, adicione um arquivo em `content/blog/` com o frontmatter `title`, `description` e `date`. Para uma página de documentação, use `content/docs/` com `order`. O nome do arquivo vira o endereço: `content/blog/meu-post.mdx` vira `/blog/meu-post`. Se o frontmatter estiver errado, o build avisa na hora.

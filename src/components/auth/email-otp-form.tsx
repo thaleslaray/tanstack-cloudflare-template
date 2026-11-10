@@ -115,7 +115,8 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
           <Button
             type="submit"
             disabled={pending || code.length < 6}
-            className="h-11 w-full bg-brand text-brand-foreground hover:bg-brand-hover"
+            variant="brand"
+            className="h-11 w-full"
           >
             {pending ? 'Entrando...' : 'Entrar'}
           </Button>
@@ -158,7 +159,8 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
           <Button
             type="submit"
             disabled={pending || !email.trim()}
-            className="h-11 w-full bg-brand text-brand-foreground hover:bg-brand-hover"
+            variant="brand"
+            className="h-11 w-full"
           >
             {pending ? 'Enviando código...' : 'Continuar com e-mail'}
           </Button>

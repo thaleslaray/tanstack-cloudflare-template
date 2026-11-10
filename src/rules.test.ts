@@ -237,6 +237,27 @@ describe('regras do projeto (CLAUDE.md)', () => {
     ).toEqual([])
   })
 
+  it('botão da marca usa a variante: <Button variant="brand">, não classes à mão', () => {
+    // O hover da marca (`hover:bg-brand-hover`) escrito num componente é o
+    // sinal de um botão de marca montado à mão. Os três arquivos abaixo são
+    // os donos da receita: a variante em si e os dois estilos de link (<a>)
+    // da landing e das páginas de erro, que não são <Button>.
+    const ALLOWED = [
+      'components/ui/button.tsx',
+      'components/landing/section.tsx',
+      'components/error-pages.tsx',
+    ]
+    const offenders = matches(/\bhover:bg-brand-hover\b/g, (f) =>
+      f.path.endsWith('.tsx') && !ALLOWED.includes(f.path) ? f.code : '',
+    )
+    expect(
+      offenders,
+      'Botão da marca montado à mão. Use <Button variant="brand"> ' +
+        '(src/components/ui/button.tsx): um por tela, na ação principal. ' +
+        'Veja src/CLAUDE.md, regra 3.',
+    ).toEqual([])
+  })
+
   it('env de cloudflare:workers só é lido dentro de função', () => {
     const offenders = matches(/(?<![\w.$])env\s*\.\s*\w+|=\s*env\b/g, (f) =>
       importsWorkers(f.code) ? moduleScopeOnly(f.bare) : '',

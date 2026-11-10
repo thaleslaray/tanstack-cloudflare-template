@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { CloseAccount, DownloadMyData } from '#/components/account/account-data'
 import { AvatarUpload } from '#/components/account/avatar-upload'
+import { PageSection } from '#/components/app/page-section'
 import { PageHeader } from '#/components/page-header'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -43,29 +44,6 @@ function useProviderLabel() {
     .join(' + ')
 }
 
-// Bloco de conteúdo: título, linha fina, corpo. Sem cartão em volta.
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string
-  description?: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="grid gap-4 border-t py-6 md:grid-cols-[16rem_1fr] md:gap-10">
-      <div>
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      <div className="grid max-w-xl gap-6">{children}</div>
-    </section>
-  )
-}
-
 function SettingsPage() {
   const { session } = Route.useRouteContext()
   const queryClient = useQueryClient()
@@ -100,7 +78,7 @@ function SettingsPage() {
         description="Seu perfil, como você entra e o que fazer com os seus dados."
       />
 
-      <Section title="Perfil" description="Como você aparece no app.">
+      <PageSection title="Perfil" description="Como você aparece no app.">
         <AvatarUpload user={user} />
         <form onSubmit={saveName} className="grid gap-3">
           <div className="grid gap-2">
@@ -116,14 +94,15 @@ function SettingsPage() {
           <Button
             type="submit"
             disabled={saving || !name.trim() || name.trim() === user.name}
-            className="w-full bg-brand text-brand-foreground hover:bg-brand-hover sm:w-fit"
+            variant="brand"
+            className="w-full sm:w-fit"
           >
             {saving ? 'Salvando...' : 'Salvar nome'}
           </Button>
         </form>
-      </Section>
+      </PageSection>
 
-      <Section
+      <PageSection
         title="Acesso"
         description="O e-mail da conta e como você entra."
       >
@@ -139,15 +118,15 @@ function SettingsPage() {
             E-mail verificado: {user.emailVerified ? 'sim' : 'não'}
           </Badge>
         </div>
-      </Section>
+      </PageSection>
 
-      <Section
+      <PageSection
         title="Seus dados"
         description="Baixe uma cópia ou encerre a conta."
       >
         <DownloadMyData />
         <CloseAccount />
-      </Section>
+      </PageSection>
     </div>
   )
 }

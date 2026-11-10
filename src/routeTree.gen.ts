@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as BlocosRouteImport } from './routes/blocos'
 import { Route as ContaRouteImport } from './routes/conta'
+import { Route as EstiloRouteImport } from './routes/estilo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as TermosRouteImport } from './routes/termos'
@@ -47,6 +48,11 @@ const BlocosRoute = BlocosRouteImport.update({
 const ContaRoute = ContaRouteImport.update({
   id: '/conta',
   path: '/conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EstiloRoute = EstiloRouteImport.update({
+  id: '/estilo',
+  path: '/estilo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/blocos': typeof BlocosRoute
   '/conta': typeof ContaRoute
+  '/estilo': typeof EstiloRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/blocos': typeof BlocosRoute
   '/conta': typeof ContaRoute
+  '/estilo': typeof EstiloRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/blocos': typeof BlocosRoute
   '/conta': typeof ContaRoute
+  '/estilo': typeof EstiloRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/'
     | '/blocos'
     | '/conta'
+    | '/estilo'
     | '/login'
     | '/privacidade'
     | '/termos'
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
     | '/'
     | '/blocos'
     | '/conta'
+    | '/estilo'
     | '/login'
     | '/privacidade'
     | '/termos'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/blocos'
     | '/conta'
+    | '/estilo'
     | '/login'
     | '/privacidade'
     | '/termos'
@@ -267,6 +279,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   BlocosRoute: typeof BlocosRoute
   ContaRoute: typeof ContaRoute
+  EstiloRoute: typeof EstiloRoute
   LoginRoute: typeof LoginRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       path: '/conta'
       fullPath: '/conta'
       preLoaderRoute: typeof ContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/estilo': {
+      id: '/estilo'
+      path: '/estilo'
+      fullPath: '/estilo'
+      preLoaderRoute: typeof EstiloRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -456,6 +476,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   BlocosRoute: BlocosRoute,
   ContaRoute: ContaRoute,
+  EstiloRoute: EstiloRoute,
   LoginRoute: LoginRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,

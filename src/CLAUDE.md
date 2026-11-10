@@ -35,7 +35,7 @@ que algo mude de forma, nasce um token para a forma (`--radius-btn`,
 Dois eixos, separados: `data-theme` é o estilo, a classe `dark` é o modo, e
 todo tema deve as duas faces.
 
-## As cinco regras
+## As sete regras
 
 1. **Texto nunca tem cor.** Só `text-foreground`, `text-muted-foreground` e
    `text-brand-foreground` (este último só em cima de `bg-brand`). Cor de
@@ -71,6 +71,39 @@ todo tema deve as duas faces.
    **(teste)** `hover:-translate-y-*`, `hover:scale-*`, `transition-all` e
    `animate-bounce` falham.
 
+## Peças de tela (2026-11-10)
+
+Tela nova se MONTA, não se desenha. As peças já estão no visual certo:
+
+- **Primitivas** em `components/ui/` (shadcn): `Button`, `Input`, `Select`,
+  `Textarea`, `Checkbox`, `Switch`, `Tabs`, `Table`, `Dialog`, `Badge`,
+  `Skeleton` e as demais.
+- **Kit da área logada** em `components/app/`: `PageSection` (um assunto por
+  bloco, sem cartão), `Toolbar` e `TableFrame` (tela de lista), `EmptyState`
+  (lista vazia), `Field` (rótulo + controle + ajuda ou erro) e `StatusDot`
+  (estado com a cor na bolinha e o texto neutro). `page-header.tsx` tem
+  `PageHeader`, `StatStrip` e `StatCard`.
+- **A bancada `/estilo`** (`routes/estilo.tsx`) mostra todas, uma de cada, e a
+  **tela de lista de referência** (`components/app/exemplo-lista.tsx`) mostra
+  como elas se juntam. São os moldes: copie de lá.
+- **A skill `/tela`** (`.claude/skills/tela/SKILL.md`) é o passo a passo:
+  tipo de tela, peças, dados, estados, texto e conferência.
+
+Três decisões que as peças carregam:
+
+- **`<Button variant="brand">` é a ação principal, uma por tela.** A receita
+  (`bg-brand` + `text-brand-foreground` + `hover:bg-brand-hover`) mora na
+  variante. **(teste)** Escrevê-la à mão num componente falha.
+- **Ligado e marcado usam a marca.** `Checkbox` e `Switch` no estado ligado
+  são `bg-brand`: é o "estado selecionado" da regra 3. Item ativo de
+  navegação continua em tinta.
+- **O tamanho do botão não define o canto.** Os tamanhos `xs`, `sm` e `lg`
+  perderam o `rounded-md` que vem do shadcn: o canto é sempre
+  `--radius-btn`, senão um botão pequeno deixava de ser pílula.
+
+Peça nova entra pelo `npx shadcn@latest add`, é ajustada às regras (a lista
+do que consertar está na skill `/tela`) e ganha um exemplo em `/estilo`.
+
 ## O hero (2026-11-08, passe unslop)
 
 A primeira tela é dividida: texto à esquerda, alinhado à esquerda, e o
@@ -99,6 +132,11 @@ arquivo com a data e o motivo, e rode `npm run test`: as regras marcadas com
 (teste) vão acusar o que ficou fora da linha. Uma direção abandonada fica
 registrada aqui em uma linha, para ninguém refazer o caminho:
 
+- 2026-11-10: proposta de tokens de "polimento" no estilo dos geradores de
+  app (gradiente, brilho, `--shadow-elegant`, cartão de vidro, hover que
+  levanta, animação de entrada em toda seção). Recusada antes de entrar:
+  contraria as regras 4 e 7. O que deixa uma tela gerada com cara de pronta
+  aqui é montar com as peças acima, não enfeitar.
 - 2026-11-05 → 2026-11-08: bege `#f5f2ed` + rótulos laranja + sombra laranja
   no botão (do DESIGN.md). Substituída pela direção acima.
 - 2026-11-08 (noite): texto branco sobre o laranja (3,33:1) reprovava no
