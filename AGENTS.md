@@ -59,6 +59,12 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - Sem `eval`/MDX em runtime e sem filesystem real no Worker.
 - `compatibilityDate` sempre atual.
 
+### Antes de mexer na plataforma (Cloudflare)
+- Vai mexer em `wrangler.jsonc`, criar ou trocar um binding, ou usar D1, R2, Durable Object, fila, cron, Email Service, rate limit ou deploy de um jeito que este arquivo ainda não descreve? Consulte a fonte ANTES de escrever. A Cloudflare muda rápido e o que o modelo lembra costuma estar velho (nome de campo, limite, preço, forma da API).
+- Ordem: a skill `cloudflare-atlas`, se estiver instalada; senão as do plugin oficial da Cloudflare (`cloudflare` para escolher e ligar produtos, `workers-best-practices` para código de Worker, `wrangler` para a config e os comandos, `durable-objects`, `cloudflare-email-service`); sem nenhuma, a página da doc em Markdown: `curl -sL -H "Accept: text/markdown" https://developers.cloudflare.com/<caminho>/`.
+- O que as skills NÃO decidem são as regras deste projeto (as seções abaixo). Se a skill e este arquivo divergirem sobre como ESTE app faz algo, vale este arquivo; se divergirem sobre como a plataforma funciona, vale a fonte mais nova, e este arquivo deve ser corrigido.
+- Não precisa consultar para o que não toca a plataforma: tela, texto, estilo, rota, teste. Para isso valem `src/CLAUDE.md` e a skill `/tela`.
+
 ### Segredos e URL
 - Locais em `.dev.vars` (não versionado); a lista de chaves é `.dev.vars.example`, que também alimenta os tipos. Novo segredo? Adicione nos dois e rode `npm run cf-typegen`. Segredo nunca vai em `"vars"`.
 - Não usamos `"secrets": { "required": [...] }` no `wrangler.jsonc` de propósito: com ele o `wrangler deploy` exige TODOS os listados, e os opcionais (`RESEND_API_KEY`, `EMAIL_FROM`, `GOOGLE_*`, `GITHUB_*`) bloqueariam o deploy. O código trata string vazia como ausente.

@@ -111,6 +111,12 @@ Siga a ordem; cada passo tem um exemplo no projeto.
 11. **D1 não tem transação**: duas escritas que precisam andar juntas vão num
     `db.batch([...])`.
 
+A tela precisa de algo da plataforma que o projeto ainda não usa (um binding
+novo, fila, outro bucket, um campo do `wrangler.jsonc`)? Pare e siga "Antes
+de mexer na plataforma" no `AGENTS.md`: consulte a skill da Cloudflare ou a
+doc viva antes de escrever. Tabela, server function e tela no padrão acima
+não precisam disso.
+
 Na tela, troque o `useState` do exemplo de lista por `Route.useLoaderData()`
 e as funções locais pelas server functions. O resto do JSX fica igual.
 
