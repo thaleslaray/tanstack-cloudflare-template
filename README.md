@@ -4,7 +4,7 @@ Um app completo rodando inteiro em um único Cloudflare Worker: landing, login
 sem senha (código por e-mail), banco de dados, arquivos, e-mail, tarefas
 agendadas, blog e docs. Feito para você clonar, trocar o texto e publicar.
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/SEU_USUARIO/tanstack-cloudflare-template)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/thaleslaray/tanstack-cloudflare-template)
 
 > **O que o botão faz.** Clona o repositório para a sua conta do GitHub/GitLab,
 > cria o Worker, o banco D1 e o bucket R2 (o Durable Object vem junto) e publica.
