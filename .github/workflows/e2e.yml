@@ -40,7 +40,7 @@ jobs:
 
       # Falhou? O relatório, os traces e o log do servidor ficam 7 dias na
       # aba Actions para investigar.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
