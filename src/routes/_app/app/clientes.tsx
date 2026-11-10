@@ -250,10 +250,12 @@ function ClientesPage() {
                   SITUACOES[cliente.situacao as Situacao] ?? SITUACOES.inativo
                 return (
                   <TableRow key={cliente.id}>
-                    <TableCell className="px-4 font-medium">
+                    <TableCell className="w-full max-w-0 truncate px-4 font-medium md:w-auto md:max-w-none">
                       {cliente.nome}
-                      {/* No celular a coluna de e-mail some e ele vem aqui. */}
-                      <span className="block font-normal text-muted-foreground md:hidden">
+                      {/* No celular a coluna de e-mail some e ele vem aqui. A célula
+                        fica com a largura que sobra (`w-full max-w-0`) e corta o
+                        texto longo com reticências: a tabela não rola de lado. */}
+                      <span className="block truncate font-normal text-muted-foreground md:hidden">
                         {cliente.email}
                       </span>
                     </TableCell>

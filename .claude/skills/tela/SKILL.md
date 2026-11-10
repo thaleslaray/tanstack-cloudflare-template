@@ -134,7 +134,10 @@ Antes de dizer que terminou, a tela precisa ter resposta para:
 - **Apagar**: confirmação num `Dialog` dizendo o que some e se dá para desfazer.
 - **Celular**: tabela não pode precisar rolar de lado para alcançar uma ação.
   Colunas secundárias levam `hidden md:table-cell` e o dado que importa desce
-  para baixo do nome, num `<span className="block ... md:hidden">`.
+  para baixo do nome, num `<span className="block truncate ... md:hidden">`.
+  A célula do nome leva `w-full max-w-0 truncate md:w-auto md:max-w-none`:
+  fica com a largura que sobra e corta texto longo com reticências. Teste com
+  um nome e um e-mail COMPRIDOS, não só com o dado curto que você digitou.
 
 ## 5. Texto
 
