@@ -16,7 +16,10 @@ projeto é a que parece ter nascido junto com as outras.
 2. Leia os dois arquivos que servem de molde:
    - `src/routes/estilo.tsx`: todas as peças, uma de cada, com as classes certas;
    - `src/components/app/exemplo-lista.tsx`: a tela de lista completa (abas,
-     busca, tabela, vazio, diálogo de criar).
+     busca, tabela, vazio, diálogo de criar), com dados de mentira;
+   - `src/routes/_app/app/clientes.tsx` + `src/lib/clientes-fns.ts` +
+     `src/lib/clientes.ts`: a MESMA tela ligada ao banco, com apagar. É o
+     exemplo completo de tudo que a seção 3 pede.
 3. Se o pedido estiver vago ("uma tela de clientes"), decida o mínimo que
    resolve e diga o que assumiu: quais campos, o que a lista mostra, qual é a
    ação principal. Não pergunte o que dá para decidir.
@@ -56,6 +59,9 @@ Página pública que lê sessão ou banco NÃO entra em `PUBLIC_PATTERNS`.
 Botões: **um** `variant="brand"` por tela, na ação principal ("Salvar",
 "Novo cliente"). O resto é `outline` (secundário), `ghost` (discreto) ou
 `destructive` (apaga). Dentro de um diálogo, o `brand` é o do diálogo.
+Lista sem nenhum item: a `Toolbar` inteira some (não há o que filtrar) e o
+único `brand` é o do `EmptyState`. Para os dois botões abrirem o mesmo
+diálogo, ele fica fora da `Toolbar`, controlado por um estado `aberto`.
 
 Falta uma peça? `npx shadcn@latest add <nome>`, e depois conserte o que o
 gerador erra neste projeto:
@@ -69,19 +75,41 @@ gerador erra neste projeto:
 
 Siga a ordem; cada passo tem um exemplo no projeto.
 
-1. **Tabela**: em `src/db/schema.ts`, com `userId` quando o dado é de uma
-   pessoa. Depois `npm run db:generate` e `npm run db:migrate:local`.
-2. **Ler**: `createServerFn({ method: 'GET' })` num arquivo `src/lib/<area>-fns.ts`.
-   Confira a sessão dentro dela e filtre pelo `user.id` (modelo:
-   `src/lib/app-fns.ts`). A rota chama no `loader`.
-3. **Gravar**: `createServerFn({ method: 'POST' })` com `.validator(...)`.
-   Valide no servidor (tamanho, formato), confira a sessão de novo e, se o
-   endpoint for público, aplique `isRateLimited(...)`. Mensagem de erro em
-   pt-BR dizendo o que fazer.
-4. **Atualizar a tela**: depois de gravar, `router.invalidate()` e um
-   `toast.success('...')`. Erro vira `toast.error(...)` ou a linha de erro do `Field`.
-5. **D1 não tem transação**: duas escritas que precisam andar juntas vão num
-   `db.batch([...])`.
+1. **Tabela**: em `src/db/schema.ts`. Dado de uma pessoa leva `userId` com
+   `references(() => user.id, { onDelete: 'cascade' })` e um índice por
+   `userId`; `id` em texto, gerado com `crypto.randomUUID()`. Depois
+   `npm run db:generate` e `npm run db:migrate:local`.
+2. **Regras sem banco**: limites e a função que valida o formulário ficam em
+   `src/lib/<area>.ts`, sem bindings, para a tela e o servidor usarem a mesma
+   (modelo: `src/lib/clientes.ts`). O erro de validação diz de qual campo é.
+3. **Ler**: `createServerFn({ method: 'GET' })` em `src/lib/<area>-fns.ts`.
+   Confira a sessão dentro dela e filtre SEMPRE pelo `user.id` (modelo:
+   `src/lib/clientes-fns.ts`). A rota chama no `loader`.
+4. **Gravar e apagar**: `createServerFn({ method: 'POST' })` com
+   `.validator(...)`. Valide no servidor, confira a sessão de novo e ponha o
+   `userId` no `where` de todo update e delete: é o que impede mexer no dado
+   de outra pessoa. Mensagem de erro em pt-BR dizendo o que fazer.
+5. **Limite**: escrita de quem está logado NÃO usa `isRateLimited` (aquele
+   limite, 5 por minuto por IP, é para endpoint sem login e travaria o sexto
+   cadastro seguido). O que protege é a sessão e um teto por pessoa
+   (`CLIENTES_MAX`). Endpoint público de escrita, esse sim, usa `isRateLimited`.
+6. **Atualizar a tela**: depois de gravar, `await router.invalidate()` e um
+   `toast.success('...')`.
+7. **Erros**: cada campo tem o seu estado de erro e a mensagem aparece no
+   `Field` daquele campo. Erro que não é de campo (limite atingido, sessão
+   vencida, rede) vira `toast.error(...)`, nunca a linha de erro de um campo
+   qualquer.
+8. **Conta da pessoa**: dado novo de usuário entra no "baixar meus dados" com
+   `onAccountExport('<area>', ...)` em `src/lib/account-handlers.ts`. Com a
+   chave estrangeira em cascata, apagar a conta já leva as linhas junto; só
+   dado fora do D1 (arquivo no R2) precisa de `onBeforeAccountDelete`.
+9. **Painel**: área nova ganha um `StatCard` em `src/routes/_app/app/index.tsx`
+   (e o mesmo número em `src/components/landing/app-preview.tsx`, que espelha
+   o painel na landing).
+10. **Auditoria** (opcional): `audit({ action: '<area>.<verbo>', ... })` nas
+    escritas que alguém pode querer rastrear.
+11. **D1 não tem transação**: duas escritas que precisam andar juntas vão num
+    `db.batch([...])`.
 
 Na tela, troque o `useState` do exemplo de lista por `Route.useLoaderData()`
 e as funções locais pelas server functions. O resto do JSX fica igual.
@@ -98,6 +126,9 @@ Antes de dizer que terminou, a tela precisa ter resposta para:
   nunca só "Erro".
 - **Sucesso**: `toast.success` curto, no passado ("Cliente adicionado").
 - **Apagar**: confirmação num `Dialog` dizendo o que some e se dá para desfazer.
+- **Celular**: tabela não pode precisar rolar de lado para alcançar uma ação.
+  Colunas secundárias levam `hidden md:table-cell` e o dado que importa desce
+  para baixo do nome, num `<span className="block ... md:hidden">`.
 
 ## 5. Texto
 
@@ -126,10 +157,16 @@ Estas saídas são as que denunciam tela gerada. Várias quebram teste.
 ## 7. Confira antes de entregar
 
 ```bash
+npx tsr generate      # rota nova: atualiza src/routeTree.gen.ts (sem isso o typecheck falha)
 npm run check:fix
 npm run typecheck
 npm run test
+npm run e2e           # com o `npm run dev` desligado: ele usa a mesma porta
 ```
+
+Tela com dados ganha um teste em `e2e/login.spec.ts`, dentro do fluxo que já
+está logado (um login por teste estoura o limite de login): criar, ver na
+lista, apagar.
 
 Depois abra a tela no navegador (`npm run dev`) e olhe de verdade:
 

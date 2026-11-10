@@ -55,6 +55,8 @@ Precisa de um formato que não existe? São três passos: o tipo em `types.ts`, 
 
 As telas da área logada são montadas com peças prontas, que ficam em `src/components/app/` e `src/components/ui/`: cabeçalho da página, faixa de busca, tabela, lista vazia, campo de formulário, bolinha de estado, diálogo. Para ver todas no tema atual, rode `npm run dev` e abra [/estilo](/estilo). Lá também está a tela de lista de referência, funcionando: filtre, busque, crie um item.
 
+O template já traz uma tela feita assim, ligada ao banco: [Clientes](/app/clientes), em `src/routes/_app/app/clientes.tsx`. Use como exemplo ou apague (a rota, `src/lib/clientes*.ts`, a tabela em `src/db/schema.ts` e a linha em `mainNav`).
+
 Uma tela nova é um arquivo em `src/routes/_app/app/` e uma linha em `mainNav` (`src/components/app-sidebar.tsx`), para ela aparecer no menu. Com o Claude Code, peça `/tela` e diga o que quer ("cria uma tela de clientes"): a skill escolhe as peças, liga os dados e confere o resultado no celular e no modo escuro.
 
 As regras de aparência (cor só por token, um botão da marca por tela, nada de sombra) estão em `src/CLAUDE.md`, e várias são conferidas pelo `npm run test`.

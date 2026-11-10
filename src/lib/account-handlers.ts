@@ -8,7 +8,7 @@ import { desc, eq } from 'drizzle-orm'
 
 import { account, session, user } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
-import { auditLog } from '#/db/schema'
+import { auditLog, clientes } from '#/db/schema'
 import { onAccountExport, onBeforeAccountDelete } from '#/lib/account'
 import { avatarKey } from '#/lib/avatar'
 
@@ -87,4 +87,19 @@ onAccountExport('auditoria', async (ref) =>
     .where(eq(auditLog.actorId, ref.id))
     .orderBy(desc(auditLog.createdAt))
     .limit(500),
+)
+
+// Clientes cadastrados pela pessoa. Ficam só no D1 (somem em cascata ao apagar
+// a conta); aqui só entram no "baixar meus dados".
+onAccountExport('clientes', async (ref) =>
+  getDb(env.DB)
+    .select({
+      nome: clientes.nome,
+      email: clientes.email,
+      situacao: clientes.situacao,
+      createdAt: clientes.createdAt,
+    })
+    .from(clientes)
+    .where(eq(clientes.userId, ref.id))
+    .orderBy(desc(clientes.createdAt)),
 )

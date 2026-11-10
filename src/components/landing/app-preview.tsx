@@ -8,15 +8,15 @@
 // o app entrega outra.
 
 const stats = [
+  { label: 'Clientes', value: '12', cta: 'Ver clientes' },
   { label: 'Membro desde', value: '12/03/2026', cta: 'Ver configurações' },
   { label: 'Atividades registradas', value: '28', cta: 'Baixar meus dados' },
-  { label: 'Guias na documentação', value: '3', cta: 'Ler a documentação' },
 ]
 
 const steps = [
   { label: 'Escolha uma foto de perfil', done: true },
   { label: 'Confira seu nome', done: true },
-  { label: 'Ligue o login com Google', done: false },
+  { label: 'Adicione seu primeiro cliente', done: false },
 ]
 
 export function AppPreview({ className = '' }: { className?: string }) {
@@ -36,6 +36,9 @@ export function AppPreview({ className = '' }: { className?: string }) {
         <nav className="mt-4 flex flex-col gap-1">
           <span className="rounded-md border-l-2 border-foreground bg-background px-2 py-1.5 text-xs font-medium">
             Painel
+          </span>
+          <span className="border-l-2 border-transparent px-2 py-1.5 text-xs text-muted-foreground">
+            Clientes
           </span>
           <span className="border-l-2 border-transparent px-2 py-1.5 text-xs text-muted-foreground">
             Configurações

@@ -14,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '#/components/ui/dialog'
 import { Input } from '#/components/ui/input'
 import {
@@ -37,7 +36,19 @@ import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
 //     `getDb(env.DB)` (veja src/routes/demo/drizzle.tsx);
 //   - criar chama uma server function `method: 'POST'` e depois
 //     `router.invalidate()`;
+//   - a mesma tela ligada ao banco é src/routes/_app/app/clientes.tsx;
 //   - o passo a passo está na skill /tela (.claude/skills/tela/SKILL.md).
+//
+// Quatro decisões do molde que valem para toda lista:
+//   1. Um botão da marca por tela. Com a lista vazia, a faixa de filtros some
+//      (não há o que filtrar) e o botão da marca é o do estado vazio.
+//   2. O diálogo de criar fica fora da faixa, controlado por `aberto`, para
+//      os dois botões abrirem o mesmo.
+//   3. Cada campo tem o SEU erro. Erro que não é de campo (limite, rede) vira
+//      `toast.error`.
+//   4. No celular, as colunas secundárias somem (`hidden md:table-cell`) e o
+//      dado que importa desce para baixo do nome. A tabela não deve precisar
+//      rolar de lado para alcançar uma ação.
 
 type Situacao = 'ativo' | 'pendente' | 'inativo'
 
@@ -95,8 +106,10 @@ export function ExemploLista() {
   const [aberto, setAberto] = useState(false)
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
+  const [erroNome, setErroNome] = useState<string>()
   const [erroEmail, setErroEmail] = useState<string>()
 
+  const semClientes = clientes.length === 0
   const termo = busca.trim().toLowerCase()
   const visiveis = clientes.filter(
     (c) =>
@@ -106,12 +119,26 @@ export function ExemploLista() {
         c.email.toLowerCase().includes(termo)),
   )
 
+  function abrirDialogo(valor: boolean) {
+    setAberto(valor)
+    if (!valor) {
+      setNome('')
+      setEmail('')
+      setErroNome(undefined)
+      setErroEmail(undefined)
+    }
+  }
+
   function criar(event: React.FormEvent) {
     event.preventDefault()
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+    // Um erro por campo, cada um embaixo do seu.
+    const faltaNome = !nome.trim()
+    const emailRuim = !/^\S+@\S+\.\S+$/.test(email.trim())
+    if (faltaNome) setErroNome('Escreva o nome do cliente.')
+    if (emailRuim) {
       setErroEmail('Digite um e-mail válido, como nome@exemplo.com.br.')
-      return
     }
+    if (faltaNome || emailRuim) return
     setClientes((atual) => [
       {
         id: Date.now(),
@@ -122,113 +149,58 @@ export function ExemploLista() {
       },
       ...atual,
     ])
-    setAberto(false)
-    setNome('')
-    setEmail('')
-    setErroEmail(undefined)
+    abrirDialogo(false)
     toast.success('Cliente adicionado')
   }
 
   return (
     <div>
-      <Toolbar
-        actions={
-          <Dialog open={aberto} onOpenChange={setAberto}>
-            <DialogTrigger asChild>
-              <Button variant="brand">
-                <PlusIcon />
-                Novo cliente
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <form onSubmit={criar} className="grid gap-5">
-                <DialogHeader>
-                  <DialogTitle>Novo cliente</DialogTitle>
-                  <DialogDescription>
-                    Ele entra na lista como pendente.
-                  </DialogDescription>
-                </DialogHeader>
-                <Field id="cliente-nome" label="Nome">
-                  <Input
-                    id="cliente-nome"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    autoComplete="off"
-                    required
-                  />
-                </Field>
-                <Field
-                  id="cliente-email"
-                  label="E-mail"
-                  hint="Usado só para identificar o cliente na lista."
-                  error={erroEmail}
-                >
-                  <Input
-                    id="cliente-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value)
-                      setErroEmail(undefined)
-                    }}
-                    aria-invalid={erroEmail ? true : undefined}
-                    autoComplete="off"
-                    required
-                  />
-                </Field>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setAberto(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" variant="brand">
-                    Adicionar
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        }
-      >
-        <Tabs value={filtro} onValueChange={(v) => setFiltro(v as Filtro)}>
-          <TabsList>
-            <TabsTrigger value="todos">Todos</TabsTrigger>
-            <TabsTrigger value="ativo">Ativos</TabsTrigger>
-            <TabsTrigger value="pendente">Pendentes</TabsTrigger>
-            <TabsTrigger value="inativo">Inativos</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="relative w-full sm:w-64">
-          <SearchIcon
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome ou e-mail"
-            aria-label="Buscar clientes"
-            className="pl-9"
-          />
-        </div>
-      </Toolbar>
+      {semClientes ? null : (
+        <Toolbar
+          actions={
+            <Button variant="brand" onClick={() => abrirDialogo(true)}>
+              <PlusIcon />
+              Novo cliente
+            </Button>
+          }
+        >
+          <Tabs value={filtro} onValueChange={(v) => setFiltro(v as Filtro)}>
+            <TabsList>
+              <TabsTrigger value="todos">Todos</TabsTrigger>
+              <TabsTrigger value="ativo">Ativos</TabsTrigger>
+              <TabsTrigger value="pendente">Pendentes</TabsTrigger>
+              <TabsTrigger value="inativo">Inativos</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="relative w-full sm:w-64">
+            <SearchIcon
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome ou e-mail"
+              aria-label="Buscar clientes"
+              className="pl-9"
+            />
+          </div>
+        </Toolbar>
+      )}
 
       {visiveis.length === 0 ? (
         <EmptyState
           icon={UsersIcon}
           title="Nenhum cliente por aqui"
           description={
-            clientes.length === 0
+            semClientes
               ? 'Quando você adicionar o primeiro cliente, ele aparece nesta lista.'
               : 'Nenhum cliente combina com o filtro ou a busca.'
           }
           action={
-            clientes.length === 0 ? (
-              <Button variant="brand" onClick={() => setAberto(true)}>
+            semClientes ? (
+              <Button variant="brand" onClick={() => abrirDialogo(true)}>
                 <PlusIcon />
                 Novo cliente
               </Button>
@@ -251,9 +223,13 @@ export function ExemploLista() {
             <TableHeader>
               <TableRow>
                 <TableHead className="px-4">Nome</TableHead>
-                <TableHead className="px-4">E-mail</TableHead>
+                <TableHead className="hidden px-4 md:table-cell">
+                  E-mail
+                </TableHead>
                 <TableHead className="px-4">Situação</TableHead>
-                <TableHead className="px-4 text-right">Cliente desde</TableHead>
+                <TableHead className="hidden px-4 text-right md:table-cell">
+                  Cliente desde
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -261,8 +237,12 @@ export function ExemploLista() {
                 <TableRow key={cliente.id}>
                   <TableCell className="px-4 font-medium">
                     {cliente.nome}
+                    {/* No celular a coluna de e-mail some e ele vem aqui. */}
+                    <span className="block font-normal text-muted-foreground md:hidden">
+                      {cliente.email}
+                    </span>
                   </TableCell>
-                  <TableCell className="px-4 text-muted-foreground">
+                  <TableCell className="hidden px-4 text-muted-foreground md:table-cell">
                     {cliente.email}
                   </TableCell>
                   <TableCell className="px-4">
@@ -270,7 +250,7 @@ export function ExemploLista() {
                       {SITUACOES[cliente.situacao].rotulo}
                     </StatusDot>
                   </TableCell>
-                  <TableCell className="px-4 text-right text-muted-foreground tabular-nums">
+                  <TableCell className="hidden px-4 text-right text-muted-foreground tabular-nums md:table-cell">
                     {cliente.desde}
                   </TableCell>
                 </TableRow>
@@ -279,6 +259,63 @@ export function ExemploLista() {
           </Table>
         </TableFrame>
       )}
+
+      <Dialog open={aberto} onOpenChange={abrirDialogo}>
+        <DialogContent>
+          <form onSubmit={criar} noValidate className="grid gap-5">
+            <DialogHeader>
+              <DialogTitle>Novo cliente</DialogTitle>
+              <DialogDescription>
+                Ele entra na lista como pendente.
+              </DialogDescription>
+            </DialogHeader>
+            <Field id="cliente-nome" label="Nome" error={erroNome}>
+              <Input
+                id="cliente-nome"
+                value={nome}
+                onChange={(e) => {
+                  setNome(e.target.value)
+                  setErroNome(undefined)
+                }}
+                aria-invalid={erroNome ? true : undefined}
+                autoComplete="off"
+                required
+              />
+            </Field>
+            <Field
+              id="cliente-email"
+              label="E-mail"
+              hint="Usado só para identificar o cliente na lista."
+              error={erroEmail}
+            >
+              <Input
+                id="cliente-email"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setErroEmail(undefined)
+                }}
+                aria-invalid={erroEmail ? true : undefined}
+                autoComplete="off"
+                required
+              />
+            </Field>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => abrirDialogo(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" variant="brand">
+                Adicionar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

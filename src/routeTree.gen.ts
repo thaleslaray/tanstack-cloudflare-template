@@ -27,6 +27,7 @@ import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-qu
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as AppAppIndexRouteImport } from './routes/_app/app/index'
+import { Route as AppAppClientesRouteImport } from './routes/_app/app/clientes'
 import { Route as AppAppConfiguracoesRouteImport } from './routes/_app/app/configuracoes'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiAvatarUserIdRouteImport } from './routes/api/avatar.$userId'
@@ -120,6 +121,11 @@ const AppAppIndexRoute = AppAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAppClientesRoute = AppAppClientesRouteImport.update({
+  id: '/app/clientes',
+  path: '/app/clientes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAppConfiguracoesRoute = AppAppConfiguracoesRouteImport.update({
   id: '/app/configuracoes',
   path: '/app/configuracoes',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/docs/$slug': typeof DocsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/app/clientes': typeof AppAppClientesRoute
   '/app/configuracoes': typeof AppAppConfiguracoesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/docs/$slug': typeof DocsSlugRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
+  '/app/clientes': typeof AppAppClientesRoute
   '/app/configuracoes': typeof AppAppConfiguracoesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/docs/$slug': typeof DocsSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/_app/app/clientes': typeof AppAppClientesRoute
   '/_app/app/configuracoes': typeof AppAppConfiguracoesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$userId': typeof ApiAvatarUserIdRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/blog/'
     | '/docs/'
+    | '/app/clientes'
     | '/app/configuracoes'
     | '/api/auth/$'
     | '/api/avatar/$userId'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/blog'
     | '/docs'
+    | '/app/clientes'
     | '/app/configuracoes'
     | '/api/auth/$'
     | '/api/avatar/$userId'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/blog/'
     | '/docs/'
+    | '/_app/app/clientes'
     | '/_app/app/configuracoes'
     | '/api/auth/$'
     | '/api/avatar/$userId'
@@ -423,6 +435,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/app/clientes': {
+      id: '/_app/app/clientes'
+      path: '/app/clientes'
+      fullPath: '/app/clientes'
+      preLoaderRoute: typeof AppAppClientesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/app/configuracoes': {
       id: '/_app/app/configuracoes'
       path: '/app/configuracoes'
@@ -448,11 +467,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAppClientesRoute: typeof AppAppClientesRoute
   AppAppConfiguracoesRoute: typeof AppAppConfiguracoesRoute
   AppAppIndexRoute: typeof AppAppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAppClientesRoute: AppAppClientesRoute,
   AppAppConfiguracoesRoute: AppAppConfiguracoesRoute,
   AppAppIndexRoute: AppAppIndexRoute,
 }

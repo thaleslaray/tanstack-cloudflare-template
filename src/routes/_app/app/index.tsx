@@ -9,7 +9,6 @@ import { useEffect, useState } from 'react'
 
 import { PageHeader, StatCard, StatStrip } from '#/components/page-header'
 import { getDashboardStatsFn } from '#/lib/app-fns'
-import { docs } from '#/lib/content/collections'
 import { seo } from '#/lib/seo'
 
 // Painel: saudação, um número por área (cada um leva à sua área) e um
@@ -117,7 +116,7 @@ function SetupChecklist({ steps }: { steps: SetupStep[] }) {
 
 function DashboardPage() {
   const { session } = Route.useRouteContext()
-  const { activity } = Route.useLoaderData()
+  const { activity, clients } = Route.useLoaderData()
   const user = session.user
   const firstName = user.name.split(' ')[0] || user.name
   // Fuso fixo: o servidor (UTC) e o navegador formatam a mesma data, sem
@@ -138,6 +137,12 @@ function DashboardPage() {
 
       <StatStrip>
         <StatCard
+          label="Clientes"
+          value={clients}
+          to="/app/clientes"
+          cta="Ver clientes"
+        />
+        <StatCard
           label="Membro desde"
           value={since}
           to="/app/configuracoes"
@@ -148,12 +153,6 @@ function DashboardPage() {
           value={activity}
           to="/app/configuracoes"
           cta="Baixar meus dados"
-        />
-        <StatCard
-          label="Guias na documentação"
-          value={docs.length}
-          to="/docs"
-          cta="Ler a documentação"
         />
       </StatStrip>
 
@@ -170,6 +169,12 @@ function DashboardPage() {
             label: 'Confira seu nome',
             hint: 'Usamos a parte do e-mail antes do @ até você trocar.',
             to: '/app/configuracoes',
+          },
+          {
+            done: clients > 0,
+            label: 'Adicione seu primeiro cliente',
+            hint: 'Só você vê a sua lista de clientes.',
+            to: '/app/clientes',
           },
         ]}
       />

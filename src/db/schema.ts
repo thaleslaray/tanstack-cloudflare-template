@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
+import { user } from '#/db/auth-schema'
+
 // `created_at` fica em SEGUNDOS (`timestamp`), ao contrário das outras tabelas (ms).
 // Trocar para ms obriga o drizzle-kit a recriar a tabela e converteria dados
 // antigos errado; como `todos` é só exemplo, ficou assim.
@@ -40,4 +42,24 @@ export const auditLog = sqliteTable(
     index('audit_log_created_idx').on(table.createdAt),
     index('audit_log_action_idx').on(table.action),
   ],
+)
+
+// Clientes de cada pessoa logada. Cada linha é de UM usuário (`user_id`): toda
+// consulta filtra por ele. Apagar a conta apaga os clientes (cascata).
+export const clientes = sqliteTable(
+  'clientes',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    nome: text('nome').notNull(),
+    email: text('email').notNull(),
+    // 'ativo' | 'pendente' | 'inativo' (validado em src/lib/clientes.ts)
+    situacao: text('situacao').notNull().default('ativo'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+  },
+  (table) => [index('clientes_user_idx').on(table.userId, table.createdAt)],
 )

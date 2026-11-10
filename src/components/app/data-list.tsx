@@ -4,8 +4,8 @@ import type { ReactNode } from 'react'
 //
 // <Toolbar>: a faixa acima da lista. À esquerda, busca e filtros; à direita,
 // as ações (a principal com <Button variant="brand">). No celular vira uma
-// coluna: filtros em cima, ações embaixo, e um filtro largo demais (abas)
-// rola de lado dentro da própria faixa em vez de passar por baixo do botão.
+// coluna: filtros em cima, ações embaixo. Abas que não cabem em 375px de
+// largura ganham `className="max-w-full overflow-x-auto"` na <TabsList>.
 export function Toolbar({
   children,
   actions,
@@ -15,7 +15,7 @@ export function Toolbar({
 }) {
   return (
     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 [&>*]:max-w-full [&>*]:overflow-x-auto">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         {children}
       </div>
       {actions ? (

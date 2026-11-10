@@ -5,7 +5,7 @@ import { getRequest } from '@tanstack/react-start/server'
 import { count, eq } from 'drizzle-orm'
 
 import { getDb } from '#/db/index'
-import { auditLog } from '#/db/schema'
+import { auditLog, clientes } from '#/db/schema'
 import { getAuth } from '#/lib/auth'
 
 export const getDashboardStatsFn = createServerFn({ method: 'GET' }).handler(
@@ -15,10 +15,18 @@ export const getDashboardStatsFn = createServerFn({ method: 'GET' }).handler(
       headers: request.headers,
     })
     if (!current) throw new Error('Entre na sua conta primeiro.')
-    const [row] = await getDb(env.DB)
-      .select({ total: count() })
-      .from(auditLog)
-      .where(eq(auditLog.actorId, current.user.id))
-    return { activity: row?.total ?? 0 }
+    const db = getDb(env.DB)
+    // Duas leituras numa ida só ao D1.
+    const [[activity], [clients]] = await db.batch([
+      db
+        .select({ total: count() })
+        .from(auditLog)
+        .where(eq(auditLog.actorId, current.user.id)),
+      db
+        .select({ total: count() })
+        .from(clientes)
+        .where(eq(clientes.userId, current.user.id)),
+    ])
+    return { activity: activity?.total ?? 0, clients: clients?.total ?? 0 }
   },
 )

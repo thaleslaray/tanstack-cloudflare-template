@@ -88,8 +88,11 @@ Tela nova se MONTA, não se desenha. As peças já estão no visual certo:
   como elas se juntam. São os moldes: copie de lá.
 - **A skill `/tela`** (`.claude/skills/tela/SKILL.md`) é o passo a passo:
   tipo de tela, peças, dados, estados, texto e conferência.
+- **`/app/clientes`** (`routes/_app/app/clientes.tsx`) é a lista de referência
+  ligada ao banco. Foi criada por um agente só com a skill e o pedido "cria
+  uma tela de clientes"; o que ele errou virou regra na skill.
 
-Três decisões que as peças carregam:
+Cinco decisões que as peças carregam:
 
 - **`<Button variant="brand">` é a ação principal, uma por tela.** A receita
   (`bg-brand` + `text-brand-foreground` + `hover:bg-brand-hover`) mora na
@@ -97,6 +100,12 @@ Três decisões que as peças carregam:
 - **Ligado e marcado usam a marca.** `Checkbox` e `Switch` no estado ligado
   são `bg-brand`: é o "estado selecionado" da regra 3. Item ativo de
   navegação continua em tinta.
+- **Lista vazia tem um botão só.** Sem itens, a faixa de filtros some e o
+  botão da marca é o do `EmptyState`. Dois botões da marca na mesma tela é o
+  erro que o primeiro teste da skill produziu.
+- **No celular a ação fica à vista.** Colunas secundárias somem
+  (`hidden md:table-cell`) e o dado desce para baixo do nome; tabela não rola
+  de lado para alcançar o botão de apagar.
 - **O tamanho do botão não define o canto.** Os tamanhos `xs`, `sm` e `lg`
   perderam o `rounded-md` que vem do shadcn: o canto é sempre
   `--radius-btn`, senão um botão pequeno deixava de ser pílula.

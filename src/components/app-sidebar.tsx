@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { LayoutDashboardIcon, SettingsIcon } from 'lucide-react'
+import { LayoutDashboardIcon, SettingsIcon, UsersIcon } from 'lucide-react'
 
 import { Logo } from '#/components/logo'
 import { appConfig } from '#/config/app'
@@ -9,6 +9,7 @@ import { appConfig } from '#/config/app'
 // (src/routes/_app.tsx). Página nova em src/routes/_app/? Acrescente uma linha.
 export const mainNav = [
   { to: '/app', label: 'Painel', icon: LayoutDashboardIcon, exact: true },
+  { to: '/app/clientes', label: 'Clientes', icon: UsersIcon, exact: false },
   {
     to: '/app/configuracoes',
     label: 'Configurações',
