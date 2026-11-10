@@ -40,6 +40,10 @@ jobs:
       - run: npm run check
       # Inclui src/rules.test.ts, as regras do AGENTS.md em forma de teste.
       - run: npm run test
+      # Sobe o servidor de dev de verdade (vite dev + workerd), abandona o
+      # primeiro pedido de algumas páginas e confere que ele continua
+      # respondendo. Trava o defeito do React.lazy no servidor (AGENTS.md).
+      - run: npm run test:cold
       - run: npm run build
 
       # Valida o pacote e os bindings sem publicar nada (não precisa de conta).

@@ -270,6 +270,38 @@ describe('regras do projeto (CLAUDE.md)', () => {
     ).toEqual([])
   })
 
+  it('componente React.lazy só é renderizado dentro de <ClientOnly>', () => {
+    // No Worker, o import() de um lazy do escopo do módulo pertence ao
+    // primeiro pedido que o renderiza. Se esse pedido termina antes de o
+    // módulo carregar, todos os seguintes esperam para sempre (o `npm run
+    // dev` parava de responder). O comportamento real é conferido por
+    // `npm run test:cold` (scripts/cold-start-check.ts).
+    const offenders = files.flatMap((f) => {
+      const names = [...f.code.matchAll(/(?<![\w.$])lazy\s*\(/g)].flatMap(
+        (m) => {
+          const before = f.code.slice(0, m.index)
+          const decl = [...before.matchAll(/\bconst\s+(\w+)\s*=/g)].at(-1)
+          return decl ? [decl[1]] : []
+        },
+      )
+      const outside = f.code.replace(
+        /<ClientOnly\b[\s\S]*?<\/ClientOnly>/g,
+        (span) => span.replace(/[^\n]/g, ' '),
+      )
+      return names.flatMap((name) =>
+        [...outside.matchAll(new RegExp(`<${name}\\b`, 'g'))].map(
+          (m) => `${f.path}:${lineOf(outside, m.index ?? 0)}  <${name}`,
+        ),
+      )
+    })
+    expect(
+      offenders,
+      'Componente criado com lazy() renderizado no servidor. Envolva em ' +
+        "<ClientOnly> (de '@tanstack/react-router'), como em " +
+        'src/routes/__root.tsx. Veja "React.lazy só no cliente" no AGENTS.md.',
+    ).toEqual([])
+  })
+
   it('cloudflare:workers não entra em arquivo que vai para o navegador', () => {
     // Rotas e componentes vão para o bundle do client. Só podem importar
     // cloudflare:workers se o uso estiver em createServerFn ou num handler

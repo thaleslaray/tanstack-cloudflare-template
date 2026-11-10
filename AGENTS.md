@@ -22,13 +22,14 @@ Entry do Worker em `src/server.ts`; config em `wrangler.jsonc`.
 - `npm run check` / `check:fix` — Biome
 - `npm run test` — Vitest (unidades, ambiente node, `cloudflare:workers` substituído por `src/test/cloudflare-workers.ts`)
 - `npm run e2e` — Playwright (4 specs, 21 testes); sobe o `vite dev` sozinho e grava o log em `e2e/.dev.log` (é de lá que o teste de login lê o código), e também o `npm run preview` na porta 4173 (`E2E_PREVIEW_PORT`), para checar os cabeçalhos do `public/_headers` nos estáticos. Porta ocupada: `E2E_PORT=3001 npm run e2e` (+ `BETTER_AUTH_URL` no `.dev.vars`)
+- `npm run test:cold` — `scripts/cold-start-check.ts`: sobe um `vite dev` próprio na porta 3907 (`COLD_PORT`), abandona o primeiro pedido de quatro páginas e confere que todas continuam respondendo (uns 15 s). Roda no CI.
 - `npm run db:generate` — migração a partir de `src/db/schema.ts` e `src/db/auth-schema.ts`
 - `npm run db:migrate:local` / `db:migrate:remote`
 - `npx wrangler deploy --dry-run` (depois de `npm run build`) — valida sem publicar; `npm run deploy -- --secrets-file .prod.vars` publica (o `predeploy` aplica as migrações remotas antes)
 - Cron local: `curl "http://localhost:3000/cdn-cgi/local/scheduled?cron=0+3+*+*+*"`
 - Local Explorer (D1, R2, DO, logs): http://localhost:3000/cdn-cgi/local/explorer
 - Skills: `/setup`, `/deploy`, `/google-oauth`, `/tela` (em `.claude/skills/`). Pedido de tela nova ou de "deixar bonito"? Siga a `/tela`.
-- CI (GitHub Actions, sem deploy): `.github/workflows/ci.yml` em push na `main` e PR (`npm ci`, `.dev.vars` com segredo aleatório, typecheck, check, test, build, `wrangler deploy --dry-run`, e falha se `npm run db:generate` mudar `drizzle/`); `e2e.yml` à mão e toda segunda 09:00 UTC.
+- CI (GitHub Actions, sem deploy): `.github/workflows/ci.yml` em push na `main` e PR (`npm ci`, `.dev.vars` com segredo aleatório, typecheck, check, test, `test:cold`, build, `wrangler deploy --dry-run`, e falha se `npm run db:generate` mudar `drizzle/`); `e2e.yml` à mão e toda segunda 09:00 UTC.
 
 ## Mapa
 - `src/routes/` — rotas por arquivo: `/` (landing), `/login`, `_app.tsx` (layout protegido da área logada) com `_app/app/index.tsx` (`/app`, painel), `_app/app/clientes.tsx` (`/app/clientes`, a tela de lista de exemplo ligada ao D1) e `_app/app/configuracoes.tsx` (`/app/configuracoes`), `/conta` (só redireciona 301 para `/app/configuracoes`), `/blog`, `/docs`, `/termos`, `/privacidade`, `demo/*`, `api/auth/$`, `api/avatar` (POST, troca a foto) e `api/avatar/$userId` (GET, serve a foto), `/blocos` (catálogo dos blocos da landing), `/estilo` (bancada das peças de tela).
@@ -54,6 +55,7 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - No `vite.config.ts`: plugins MDX (`enforce: 'pre'`) e `mdxMeta()` primeiro, depois `cloudflare({ viteEnvironment: { name: 'ssr' } })` ANTES de `tanstackStart()`. Não reordenar.
 - (teste) Bindings só via `import { env } from "cloudflare:workers"` em código de servidor (server functions, handlers, `src/lib/*` de servidor); ler `env` dentro de função, nunca em escopo de módulo, nunca em código que vá ao client. Sem `process.env` em `src/`.
 - `getAuth(env, request)` e `getDb(env.DB)` são factories por request. Sem singletons. Passe a `request` sempre que tiver uma (handler, `getRequest()`): sem `BETTER_AUTH_URL`, a URL do app vem da origem dela; o Better Auth só deduz sozinho dentro do `handler`, não em `api.getSession`. `tanstackStartCookies()` é sempre o último plugin do Better Auth.
+- (teste) **React.lazy só no cliente.** Componente criado com `lazy(() => import(...))` é renderizado dentro de `<ClientOnly>` (de `@tanstack/react-router`), como o `Toaster` e o `Devtools` em `src/routes/__root.tsx`. Motivo: no workerd o `import()` pertence ao pedido que o disparou; com o `lazy` no escopo do módulo, se o primeiro pedido termina antes de o módulo carregar (um `HEAD /`, uma aba fechada), a promessa fica presa ao pedido morto e nenhuma página responde mais até reiniciar o servidor (no log, 2 min depois: `SSR stream transform exceeded maximum lifetime`). O mesmo vale para qualquer promessa guardada em variável de módulo e esperada por outro pedido: não faça. `src/rules.test.ts` confere pelo texto e `npm run test:cold` confere no servidor de verdade.
 - D1 é SQLite: sem transação aninhada; use `db.batch([...])` ou uma instrução condicional.
 - Aguardar (`await`) toda promise; no `scheduled`, `ctx.waitUntil`.
 - Sem `eval`/MDX em runtime e sem filesystem real no Worker.
@@ -152,7 +154,8 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - **i18n: só pt-BR.** Paraglide foi avaliado (referência ShipKit Lite) e deixado de fora: exige middleware no entry, reescrita de URL, thunks em toda string e dois globs por idioma, o que complica demais o template para quem está aprendendo. Textos ficam direto nos componentes e em `content/`. Se precisar de outro idioma, comece por `src/content/landing.ts` e `content/`.
 - **Vitest puro, com stub de `cloudflare:workers`** (`src/test/cloudflare-workers.ts`); o comportamento real fica para o Playwright contra o `vite dev`. Com Wrangler de volta, `@cloudflare/vitest-pool-workers@0.23.0` passou a ser possível (testes dentro do workerd, com D1/R2/DO de verdade): é o próximo passo, fora do escopo da volta para v1.
 - **Wrangler + plugin v1 em vez de `cf` + v2 (2026-11-07):** os dois seguem em beta e o template vai para leigos. Detalhes em `HANDOFF.md` §10.
-- **Devtools do TanStack** só em dev (`src/components/devtools.tsx`, carregado atrás de `import.meta.env.DEV`).
+- **Devtools do TanStack** só em dev (`src/components/devtools.tsx`, carregado atrás de `import.meta.env.DEV`) e só no navegador (`<ClientOnly>`).
+- **O `npm run dev` travava com o primeiro pedido abandonado (2026-11-10).** Causa: o `lazy()` do Devtools era renderizado no servidor (veja "React.lazy só no cliente" nas Regras). Aparecia com qualquer ferramenta que confere o servidor com `HEAD /` usando User-Agent de navegador (o painel de preview do Claude faz isso a cada 2 s) ou com uma aba fechada no meio da primeira carga. Com User-Agent de robô (`curl`) não aparecia, porque aí o TanStack espera a página inteira antes de responder. Produção nunca foi afetada: lá o `Devtools` é `() => null`.
 - `env.COUNTER` já vem tipado como `DurableObjectNamespace<Counter>` pelo `wrangler types`: sem cast.
 
 <!-- intent-skills:start -->

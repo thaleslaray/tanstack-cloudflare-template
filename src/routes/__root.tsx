@@ -1,12 +1,13 @@
 import type { QueryClient } from '@tanstack/react-query'
 import {
+  ClientOnly,
   createRootRouteWithContext,
   HeadContent,
   Scripts,
   useRouterState,
 } from '@tanstack/react-router'
 import { ThemeProvider } from 'next-themes'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense } from 'react'
 import { ErrorPage, NotFoundPage } from '#/components/error-pages'
 import Footer from '#/components/Footer'
 import Header from '#/components/Header'
@@ -26,6 +27,13 @@ interface MyRouterContext {
   queryClient: QueryClient
 }
 
+// REGRA: todo `lazy()` deste arquivo é renderizado dentro de <ClientOnly>,
+// ou seja, só no navegador. No servidor (workerd) um `import()` pertence ao
+// pedido que o disparou; se esse pedido termina antes de o módulo carregar
+// (um HEAD, alguém que fecha a aba), a promessa fica presa a um pedido morto
+// e, como o `lazy` é do módulo, nenhuma página responde mais até reiniciar.
+// Foi o que travava o `npm run dev` (2026-11-10). `npm run test:cold` confere.
+
 // Devtools só em desenvolvimento: o import dinâmico fica atrás de uma
 // constante de build, então a produção descarta o chunk inteiro.
 const Devtools = import.meta.env.DEV
@@ -37,16 +45,6 @@ const Devtools = import.meta.env.DEV
 const Toaster = lazy(() =>
   import('#/components/ui/sonner').then((mod) => ({ default: mod.Toaster })),
 )
-
-function LazyToaster() {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  return mounted ? (
-    <Suspense fallback={null}>
-      <Toaster />
-    </Suspense>
-  ) : null
-}
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   // Padrões de SEO do site inteiro. Cada página sobrescreve título,
@@ -140,10 +138,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </ThemeStyleProvider>
-          <LazyToaster />
-          <Suspense fallback={null}>
-            <Devtools />
-          </Suspense>
+          <ClientOnly>
+            <Suspense fallback={null}>
+              <Toaster />
+              <Devtools />
+            </Suspense>
+          </ClientOnly>
         </ThemeProvider>
         <Scripts />
       </body>

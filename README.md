@@ -99,6 +99,7 @@ liga o login com Google, `/tela` cria uma tela nova no visual do app (peça
 | `npm run typecheck` | `cf-typegen` e depois o `tsc` |
 | `npm run check` | Biome (lint + formatação); `check:fix` corrige |
 | `npm run test` | Vitest (unidades) |
+| `npm run test:cold` | Sobe um servidor de dev à parte e confere que ele continua respondendo depois de um primeiro pedido abandonado |
 | `npm run e2e` | Playwright contra o servidor de dev (ele sobe o servidor sozinho) |
 | `npm run db:generate` | gera a migração a partir de `src/db/*.ts` |
 | `npm run db:migrate:local` / `:remote` | aplica as migrações no D1 local / remoto |
