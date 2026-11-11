@@ -19,3 +19,7 @@ e2e/.auth
 .prod.vars
 # Saída do cf/v2 beta (branch cf-v2-beta); não é mais gerada em main
 .cloudflare/
+
+# Teste de carga (k6): sessões e resultados
+load/.sessoes.json
+load/resultado*.json

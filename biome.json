@@ -7,6 +7,7 @@
       "src/**",
       "e2e/**",
       "scripts/**",
+      "load/**",
       "vite.config.ts",
       "vitest.config.ts",
       "playwright.config.ts",
@@ -16,6 +17,8 @@
       "!src/styles.css",
       "!e2e/.auth",
       "!e2e/.dev.log",
+      "!load/.sessoes.json",
+      "!load/resultado*.json",
       "!.wrangler",
       "!dist",
       "!drizzle"
