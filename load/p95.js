@@ -38,6 +38,8 @@ function lerSessoes() {
 }
 const sessoes = lerSessoes()
 
+const SEM_RAJADA = __ENV.SEM_RAJADA === '1'
+
 function cookieDoVU() {
   return sessoes[(__VU - 1) % sessoes.length].cookie
 }
@@ -45,12 +47,14 @@ function cookieDoVU() {
 export const options = {
   // O `vite dev` escuta só em ::1; o k6 tentaria 127.0.0.1 e levaria "connection refused".
   ...(isLocal() ? { dns: { policy: 'preferIPv6' } } : {}),
+  // SEM_RAJADA=1 tira a rajada no login: contra um app publicado ela mandaria
+  // e-mails de verdade pelo provedor e gastaria a cota de envio.
   scenarios: {
     estatico: cenario('estatico', 'estatico'),
     ssr_publico: cenario('ssr_publico', 'ssrPublico'),
     ssr_logado: cenario('ssr_logado', 'ssrLogado'),
     escrita_logada: cenario('escrita_logada', 'escritaLogada'),
-    rajada_login: cenarioRajada('rajadaLogin'),
+    ...(SEM_RAJADA ? {} : { rajada_login: cenarioRajada('rajadaLogin') }),
   },
   thresholds: {
     'http_req_duration{cenario:estatico}': ['p(95)<100'],
@@ -60,7 +64,7 @@ export const options = {
     // Falha = qualquer status fora do esperado de cada requisição (o 429 da
     // rajada é esperado e não entra na conta).
     http_req_failed: ['rate<0.01'],
-    'checks{cenario:rajada_login}': ['rate==1'],
+    ...(SEM_RAJADA ? {} : { 'checks{cenario:rajada_login}': ['rate==1'] }),
   },
   // O resumo mostra p95 por cenário.
   summaryTrendStats: ['avg', 'med', 'p(90)', 'p(95)', 'max'],

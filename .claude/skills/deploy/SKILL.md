@@ -107,8 +107,36 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
    nada a fazer. A Cloudflare leva até 15 min, e precisa de tráfego real, para
    mover o Worker para perto do banco; o header `cf-placement` mostra
    `remote-XXX` quando moveu.
-7. Quer medir? `load/README.md` explica o teste de carga (k6) e guarda os
-   números de referência do template.
+
+## 7. Passo final: medir a performance
+
+Rode depois que o app estiver no ar, com a réplica ligada e uns 15 min depois
+do deploy (tempo do Smart Placement). Use o k6 (`brew install k6` no Mac).
+
+1. Entre no app pelo navegador. Nas ferramentas do navegador (Application →
+   Cookies), copie o valor do cookie `__Secure-better-auth.session_token`.
+   É a SUA sessão: não compartilhe e não versione.
+2. Rode a escada sem a rajada no login (`SEM_RAJADA=1`: contra um app de
+   verdade ela mandaria e-mails reais pelo Resend):
+
+   ```bash
+   SEM_RAJADA=1 PROFILE=escada BASE_URL=https://<seu-app> \
+   SESSOES_JSON='[{"email":"voce@seudominio.com","cookie":"__Secure-better-auth.session_token=<valor>"}]' \
+   npm run load
+   ```
+
+   Leva uns 8 min e faz perto de 10 mil pedidos (cerca de 10% da cota
+   diária do plano Free de Workers). Cada rodada cria e apaga um cliente de
+   teste na sua conta.
+3. O resumo mostra o p95 de cada cenário contra a meta: estático < 100 ms,
+   SSR público < 300 ms, SSR logado < 500 ms, escrita < 600 ms, e erro < 1%.
+4. O CPU por pedido não sai no k6: veja em Cloudflare → Workers → o Worker →
+   Observability (campo `cpuTime`, p99 abaixo de 10 ms no plano Free).
+5. Compare com os números de referência em `load/README.md`. SSR logado bem
+   acima de 500 ms? Confira: réplica ligada (`npx wrangler d1 info`),
+   `cf-placement: remote-XXX` na resposta, e quantas consultas a página faz
+   (rastreio `x-d1-trace: 1` no `npm run dev`, veja o AGENTS.md).
+6. Anote a data e a tabela em `load/README.md`, para comparar no próximo deploy.
 
 Botão Deploy to Cloudflare (Workers Builds): publica a cada push na `main`.
 Build command `npm run build`; deploy command

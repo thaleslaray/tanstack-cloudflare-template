@@ -98,6 +98,22 @@ rodar. Dois caminhos:
 Só rode contra um ambiente seu e de teste, nunca contra produção com usuários
 de verdade: o teste cria e apaga clientes e dispara tentativas de login.
 
+## Medir um app publicado (passo final do deploy)
+
+Contra o app de verdade, use a SUA sessão (cookie
+`__Secure-better-auth.session_token`, copiado das ferramentas do navegador) e
+tire a rajada no login com `SEM_RAJADA=1`, que senão manda e-mails reais:
+
+```bash
+SEM_RAJADA=1 PROFILE=escada BASE_URL=https://<seu-app> \
+SESSOES_JSON='[{"email":"voce@seudominio.com","cookie":"__Secure-better-auth.session_token=<valor>"}]' \
+npm run load
+```
+
+Use a escada, não o smoke: o smoke tem poucos pedidos e pega o Worker frio, e
+o p95 dele oscila muito. O passo a passo completo está na skill `/deploy`
+(seção 7).
+
 ## Como a escrita funciona
 
 O navegador chama `createClienteFn` (`src/lib/clientes-fns.ts`) com um POST em
