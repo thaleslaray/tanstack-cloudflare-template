@@ -88,12 +88,16 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - Encerrar conta exige e-mail verificado e sessão com menos de 1 h.
 - Job `auditoria.retencao` apaga a auditoria com mais de 180 dias.
 - Respostas de `/app*` levam `Cache-Control: no-store`.
+- **Cache da sessão em cookie** (`session.cookieCache`, 60 s, `strategy: 'compact'`, cookie `better-auth.session_data`): o `getSession` não vai ao D1 a cada página. Trade-off: revogar sessão ou encerrar conta só vale nos OUTROS aparelhos depois de até 60 s. Ação sensível lê o banco: `getSession({ headers, query: { disableCookieCache: true } })` (hoje em `requireSession` de `account-fns.ts` e em `api/avatar.ts`; ação sensível nova faz igual). Quem muda dados da sessão (ex.: `user.image`) direto no banco, sem passar pelo Better Auth, precisa devolver o cookie novo: `api/avatar.ts` relê com `disableCookieCache` + `returnHeaders` e copia os `Set-Cookie` (sem isso a foto velha ficava até 60 s). O guard `ACCOUNT_CLOSED` continua barrando login novo. Sem `refreshCache` (é para quem não tem banco).
 - Login principal é o plugin `emailOTP` (6 dígitos, `storeOTP: 'hashed'`, 3 tentativas, 10 min). Sem provedor de e-mail, no localhost o código sai no log (fora dele, o envio falha): `[auth] código de login para <email>: <código>` (o e2e depende dessa linha; não mude o formato).
 - Google e GitHub entram só quando o PAR de variáveis existe (`googleEnabled`/`githubEnabled`). O client lê `getAuthProvidersFn` para decidir quais botões mostrar.
 - Rotas protegidas: `beforeLoad` com `ensureQueryData(sessionQuery)` e `redirect({ to: '/login', search: { redirect } })`; destino de volta passa por `safeRedirect` (padrão: `/app`). Página logada nova vai em `src/routes/_app/` e herda o guard do `_app.tsx`.
 - Mudou plugin ou campo do Better Auth? Ajuste `src/db/auth-schema.ts` e rode `db:generate`. O emailOTP usa a tabela `verification` existente.
 
 ### D1 e UUID
+- **Smart Placement ligado** (`"placement": { "mode": "smart" }` no `wrangler.jsonc`): o D1 fica numa região só; com o placement o Worker roda perto do banco e só a resposta final viaja até o visitante. Leva até 15 min depois do deploy para valer; o cabeçalho `cf-placement` (`remote-XXX`/`local-XXX`) mostra onde rodou.
+- **`getDb` usa a sessão D1 do pedido** (Sessions API). `src/server.ts` cria `env.DB.withSession(bookmark ?? 'first-unconstrained')` por pedido e roda o handler dentro de um `AsyncLocalStorage` (`src/db/d1-session.ts`); `getDb(env.DB)` pega essa sessão, e sem pedido (cron/scheduled, testes) usa o D1 direto, no primário. Depois da resposta, o bookmark vai no cookie `d1-bookmark` (HttpOnly, SameSite=Lax, 1 h), e o pedido seguinte parte dele: quem acabou de escrever lê a própria escrita. O cookie vem do cliente, então só vale se bater com o formato (`isValidBookmark`). NUNCA guarde a sessão em variável de módulo.
+- **Réplica de leitura é um passo manual de conta**, fora do código: painel da Cloudflare, D1, o banco, **Settings > Enable Read Replication** (ou pela API). Sem ligar nada quebra: `withSession` sem réplica manda tudo ao primário. Com ligada, as leituras vão à réplica mais perto.
 - `d1_databases` e `r2_buckets` ficam SEM `database_id`/`bucket_name` de propósito: o Wrangler (e o botão Deploy) criam os recursos no primeiro deploy (provisionamento automático, docs da Cloudflare). Já tem banco? Acrescente `database_id`. Os scripts `db:migrate:*` usam o nome do binding (`DB`). No primeiro deploy manual, rode `npm run build && npx wrangler deploy` uma vez (cria o banco); depois `npm run deploy` (o `predeploy` migra antes de publicar). No botão Deploy (Workers Builds) o comando de deploy é `npx wrangler deploy && npx wrangler d1 migrations apply DB --remote` (migra depois porque o banco só existe depois do primeiro deploy).
 - O estado local (D1, R2, DO) fica em `.wrangler/state/` (gitignorado e fora do watch do Vite).
 
@@ -149,8 +153,23 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 ### Endpoints locais (dev)
 - Cron: `curl "http://localhost:3000/cdn-cgi/local/scheduled?cron=0+3+*+*+*"`.
 - Local Explorer (D1, R2, DO, logs e traces): http://localhost:3000/cdn-cgi/local/explorer (plugin v1 ≥ 1.50.0).
+- **Rastreio das idas ao D1 (só dev):** mande o header `x-d1-trace: 1` e o terminal do `npm run dev` imprime uma linha `[d1] <pedido> +<início>ms (<duração>ms) <consulta>` por ida e, no fim, `RESUMO: N ida(s) ao D1, M em fila` (M = a fila mais longa; é o que custa uma viagem de rede cada). Ex.: `curl -H 'x-d1-trace: 1' -H 'Cookie: <cookies de sessão>' http://localhost:3000/app` (use um `User-Agent` de curl). Para medir sem o cache da sessão, mande só o cookie `better-auth.session_token`; com ele, mande também `better-auth.session_data`. Código em `src/db/d1-trace.ts`, ligado em `src/server.ts` atrás de `import.meta.env.DEV` (some do build de produção). Só vê o pedido que recebeu o header: server functions chamadas pelo navegador não o levam.
 
 ### Decisões registradas
+- **Teste de carga em staging (2026-11-11): o gargalo era a distância até o D1.** Worker no Rio, D1 primário na costa leste dos EUA (ENAM). 9.735 pedidos, 0% de erro. Causa: cada página logada faz várias consultas seguidas ao D1 e cada uma atravessa o continente.
+
+  | Cenário | p95 |
+  | --- | --- |
+  | Estático (pré-renderizado) | 32 ms |
+  | SSR público (`/login`) | 70 ms |
+  | SSR logado (`/app`, `/app/clientes`) | 1.064 ms |
+  | Escrita logada | 915 ms |
+
+  Três correções: (1) Smart Placement (`wrangler.jsonc`); (2) cache da sessão em cookie por 60 s, com `disableCookieCache` nas ações sensíveis; (3) Sessions API do D1 por pedido + cookie `d1-bookmark`, pronta para a réplica de leitura (que se liga à mão no painel).
+
+  Medido de novo no mesmo dia (tabela completa em `load/README.md`): com o Worker ao lado do banco, SSR logado caiu para 546 ms de p95 (mediana 294) e a escrita para 448 ms. O `mode: "smart"` não moveu o Worker no staging (`cf-placement: local-GIG`), porque o tráfego do teste saía todo do Rio; o ganho foi medido com `placement.region: "aws:us-east-1"` só no staging, e nessa configuração a página pública piorou de 70 para 235 ms, porque até ela ia aos EUA. Por isso o template fica com `smart`, que decide por tráfego real. Rodada 3, com Read Replication ligada (`read_replication.mode: auto`, via API da Cloudflare; o Wrangler não tem comando para isso) e as páginas logadas em 2 idas em fila ao D1 em vez de 5: SSR logado 385 ms de p95 (mediana 221) e escrita 419 ms. Todas as metas passaram.
+
+  Idas em fila ao D1 por página, medidas com o rastreio acima (`/app` e `/app/clientes`, sem cache da sessão / com o cookie de cache): **antes 5 / 1, depois 2 / 1**. Antes, o guard e o loader liam a sessão cada um (2 consultas, `session` e `user`, em fila, duas vezes) e depois a consulta da página. Agora: a sessão é lida uma vez por pedido (`src/lib/request-session.ts`) e num JOIN só (`advanced.database.joins` + `sessionRelations` em `src/db/auth-schema.ts`), então sobram a sessão e a consulta da página. Com o cache do cookie válido, só a consulta da página. Não dá para tirar a última sem passar o `userId` pelo cliente (inseguro) ou fundir a sessão e a página numa consulta só.
 - **i18n: só pt-BR.** Paraglide foi avaliado (referência ShipKit Lite) e deixado de fora: exige middleware no entry, reescrita de URL, thunks em toda string e dois globs por idioma, o que complica demais o template para quem está aprendendo. Textos ficam direto nos componentes e em `content/`. Se precisar de outro idioma, comece por `src/content/landing.ts` e `content/`.
 - **Vitest puro, com stub de `cloudflare:workers`** (`src/test/cloudflare-workers.ts`); o comportamento real fica para o Playwright contra o `vite dev`. Com Wrangler de volta, `@cloudflare/vitest-pool-workers@0.23.0` passou a ser possível (testes dentro do workerd, com D1/R2/DO de verdade): é o próximo passo, fora do escopo da volta para v1.
 - **Wrangler + plugin v1 em vez de `cf` + v2 (2026-11-07):** os dois seguem em beta e o template vai para leigos. Detalhes em `HANDOFF.md` §10.

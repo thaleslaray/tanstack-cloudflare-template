@@ -138,3 +138,74 @@ de consulta de logs/métricas), no campo `cpuTime` dos eventos de invocação.
 Rode a escada e, no mesmo intervalo de tempo, leia lá o `cpuTime` p99 do
 Worker. O plano gratuito limita a CPU por requisição (10 ms), então esse número
 é o que mais importa para quem está nele.
+
+## Resultados
+
+### Rodada de 2026-11-11, staging, ANTES das correções
+
+Worker no Rio, D1 primário em ENAM (costa leste dos EUA), perfil `escada`:
+9.735 pedidos, 0% de erro.
+
+| Cenário          | p95 medido | Meta     |
+| ---------------- | ---------- | -------- |
+| `estatico`       | 32 ms      | < 100 ms |
+| `ssr_publico`    | 70 ms      | < 300 ms |
+| `ssr_logado`     | 1.064 ms   | < 500 ms |
+| `escrita_logada` | 915 ms     | < 600 ms |
+
+Causa: várias consultas seguidas ao D1 por página, cada uma atravessando o
+continente. Correções aplicadas depois: Smart Placement, cache da sessão em
+cookie (60 s) e Sessions API do D1 por pedido (veja "Decisões registradas" no
+`AGENTS.md`).
+
+### Rodada DEPOIS das correções (2026-11-11)
+
+Mesmo staging (conta Teste, Worker pedido no Rio, D1 em `ENAM`), mesma escada
+(9.734 pedidos, 7 min 40 s, 0% de erro HTTP). Read replication DESLIGADA.
+Cache da sessão (60 s) e Sessions API do D1 ligados.
+
+O Smart Placement (`mode: "smart"`) ficou em `cf-placement: local-GIG` depois
+de 15 min de aquecimento: todo o tráfego do teste sai do Rio, e o modo
+automático só decide com tráfego de vários lugares. Para medir o ganho de rodar
+perto do banco, esta rodada usou a dica explícita `placement.region:
+"aws:us-east-1"` SÓ no staging (`cf-placement: remote-IAD`). O template segue
+com `mode: "smart"`: cada aluno terá o banco numa região diferente.
+
+| Cenário          | p95 antes | p95 depois | Mediana depois | Meta     |
+| ---------------- | --------- | ---------- | -------------- | -------- |
+| `estatico`       | 32 ms     | 31 ms      | 17 ms          | < 100 ms |
+| `ssr_publico`    | 70 ms     | 235 ms     | 161 ms         | < 300 ms |
+| `ssr_logado`     | 1.064 ms  | 546 ms     | 294 ms         | < 500 ms |
+| `escrita_logada` | 915 ms    | 448 ms     | 268 ms         | < 600 ms |
+
+Leitura:
+
+- Página logada e escrita caíram pela metade: as consultas ao D1 agora são
+  locais, só a resposta viaja Rio-EUA uma vez.
+- A página pública piorou (70 para 235 ms): com a dica de região, até a página
+  que não consulta o banco vai aos EUA. O modo `smart` evita isso em produção,
+  porque decide por rota de tráfego real; a dica fixa não.
+- `ssr_logado` ainda passa da meta no p95 (546 ms). Próximos passos: ligar a
+  Read Replication (réplica perto do usuário) e conferir quantas consultas uma
+  página logada faz em sequência.
+- A rajada no login falha de propósito no staging: sem provedor de e-mail, o
+  envio do código dá erro; o 429 continua aparecendo no 6º pedido.
+
+### Rodada 3: réplica de leitura + menos consultas por página (2026-11-11)
+
+Mesmo staging e mesma escada, com `placement.region: "aws:us-east-1"` (igual à
+rodada 2, para comparar igual com igual), Read Replication LIGADA no D1
+(`read_replication.mode: auto`) e as páginas logadas fazendo 2 idas em fila ao
+banco em vez de 5 (sessão e usuário num JOIN, sessão lida uma vez por pedido).
+0% de erro HTTP.
+
+| Cenário          | Antes    | Rodada 2 | Rodada 3 | Mediana 3 | Meta     |
+| ---------------- | -------- | -------- | -------- | --------- | -------- |
+| `estatico`       | 32 ms    | 31 ms    | 33 ms    | 17 ms     | < 100 ms |
+| `ssr_publico`    | 70 ms    | 235 ms   | 229 ms   | 161 ms    | < 300 ms |
+| `ssr_logado`     | 1.064 ms | 546 ms   | 385 ms   | 221 ms    | < 500 ms |
+| `escrita_logada` | 915 ms   | 448 ms   | 419 ms   | 247 ms    | < 600 ms |
+
+Todas as metas de p95 passam. O `ssr_publico` maior que na primeira rodada é
+efeito da região forçada no staging (até a página sem banco vai aos EUA); em
+produção o template usa `mode: "smart"`.

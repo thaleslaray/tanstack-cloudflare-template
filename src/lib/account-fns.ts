@@ -25,7 +25,12 @@ const FRESH_SESSION_MS = 60 * 60 * 1000
 async function requireSession() {
   const request = getRequest()
   const headers = request.headers
-  const current = await getAuth(env, request).api.getSession({ headers })
+  // `disableCookieCache`: ação sensível, confere no banco (o cache da sessão em
+  // cookie pode estar até 60 s atrasado, ex.: sessão já revogada).
+  const current = await getAuth(env, request).api.getSession({
+    headers,
+    query: { disableCookieCache: true },
+  })
   if (!current) throw new Error('Entre na sua conta primeiro.')
   return { current, headers }
 }

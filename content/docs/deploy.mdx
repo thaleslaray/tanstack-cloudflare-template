@@ -60,6 +60,10 @@ npm run deploy
 
 O `predeploy` aplica as migrações no banco remoto **antes** do build e da publicação, então a tabela nova já existe quando o código novo sobe. Os segredos ficam guardados no Worker; use `-- --secrets-file .prod.vars` só quando mudar algum. Prefere subir segredos à parte? `npx wrangler secret bulk .prod.vars`, ou `npx wrangler secret put NOME` (um por vez).
 
+## Banco rápido, em qualquer lugar do mundo
+
+O banco D1 fica numa região só, e cada consulta de um Worker distante atravessa o caminho até ela. O template já liga o **Smart Placement** (o Worker roda perto do banco) e usa a **Sessions API** do D1. Para leituras ainda mais rápidas, ligue a **Read Replication** no painel da Cloudflare: **D1, o seu banco, Settings, Enable Read Replication**. É opcional: sem ligar, tudo continua funcionando, só vai ao banco principal.
+
 ## O botão Deploy to Cloudflare
 
 O `README.md` tem um botão **Deploy to Cloudflare**. Segundo a documentação da Cloudflare, ele clona o repositório para a sua conta do GitHub/GitLab, deixa você escolher os nomes na tela de configuração, e compila e publica com o **Workers Builds**, criando e ligando os recursos (aqui: o Worker, o banco D1, o bucket R2 e o Durable Object).

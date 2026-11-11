@@ -13,16 +13,13 @@ import { and, count, desc, eq } from 'drizzle-orm'
 import { getDb } from '#/db/index'
 import { clientes } from '#/db/schema'
 import { audit, requestMeta } from '#/lib/audit'
-import { getAuth } from '#/lib/auth'
 import { CLIENTES_MAX, validarCliente } from '#/lib/clientes'
+import { getRequestSession } from '#/lib/request-session'
 
 async function requireUser() {
-  const request = getRequest()
-  const current = await getAuth(env, request).api.getSession({
-    headers: request.headers,
-  })
+  const current = await getRequestSession()
   if (!current) throw new Error('Entre na sua conta primeiro.')
-  return { user: current.user, headers: request.headers }
+  return { user: current.user, headers: getRequest().headers }
 }
 
 export const listClientesFn = createServerFn({ method: 'GET' }).handler(

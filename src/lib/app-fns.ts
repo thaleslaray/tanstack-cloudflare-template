@@ -1,19 +1,15 @@
 // Dados do painel (/app). Somente o necessário para os números da StatStrip.
 import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
-import { getRequest } from '@tanstack/react-start/server'
 import { count, eq } from 'drizzle-orm'
 
 import { getDb } from '#/db/index'
 import { auditLog, clientes } from '#/db/schema'
-import { getAuth } from '#/lib/auth'
+import { getRequestSession } from '#/lib/request-session'
 
 export const getDashboardStatsFn = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const request = getRequest()
-    const current = await getAuth(env, request).api.getSession({
-      headers: request.headers,
-    })
+    const current = await getRequestSession()
     if (!current) throw new Error('Entre na sua conta primeiro.')
     const db = getDb(env.DB)
     // Duas leituras numa ida só ao D1.

@@ -14,6 +14,13 @@
   },
   // Sobe os source maps no deploy: erros em produção apontam para o código-fonte.
   "upload_source_maps": true,
+  // Smart Placement: o D1 fica numa região só (a primária). Sem isso o Worker roda
+  // perto do visitante e cada consulta ao banco atravessa o continente (uma página
+  // com várias consultas leva mais de 1 s). Com `smart`, a Cloudflare analisa o
+  // tráfego e, se compensar, roda o Worker perto do banco: só a resposta final
+  // viaja até o visitante. A análise leva até 15 min depois do deploy para valer.
+  // O cabeçalho de resposta `cf-placement` mostra onde rodou (remote-XXX/local-XXX).
+  "placement": { "mode": "smart" },
   // Arquivos estáticos (o plugin do Vite preenche a pasta sozinho).
   // Páginas pré-renderizadas saem como `/blog/index.html`; sem barra final na URL.
   "assets": {

@@ -33,8 +33,10 @@ export const Route = createFileRoute('/api/avatar')({
         if (isCrossSiteRequest(request)) {
           return text('Requisição cross-site recusada.', 403)
         }
+        // `disableCookieCache`: escrita em nome do usuário, lê a sessão no banco.
         const session = await getAuth(env, request).api.getSession({
           headers: request.headers,
+          query: { disableCookieCache: true },
         })
         if (!session) return text('Entre na sua conta primeiro.', 401)
         // Depois da sessão: um anônimo não consegue gastar a cota de alguém.
@@ -86,7 +88,18 @@ export const Route = createFileRoute('/api/avatar')({
           },
           { waitUntil },
         )
-        return Response.json({ image })
+        // A foto mudou direto no banco (não pelo Better Auth): o cookie de cache
+        // da sessão ainda tem a foto velha. Relê do banco e devolve o cookie novo.
+        const refreshed = await getAuth(env, request).api.getSession({
+          headers: request.headers,
+          query: { disableCookieCache: true },
+          returnHeaders: true,
+        })
+        const res = Response.json({ image })
+        for (const cookie of refreshed.headers.getSetCookie()) {
+          res.headers.append('Set-Cookie', cookie)
+        }
+        return res
       },
     },
   },

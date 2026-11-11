@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const user = sqliteTable(
@@ -52,6 +52,13 @@ export const session = sqliteTable(
     index('session_expiresAt_idx').on(table.expiresAt),
   ],
 )
+
+// Relação que o Better Auth usa para buscar sessão + usuário num JOIN só
+// (`experimental.joins` em src/lib/auth.ts): uma ida ao D1 em vez de duas.
+// O drizzle-kit ignora `relations`: não muda o SQL nem gera migração.
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, { fields: [session.userId], references: [user.id] }),
+}))
 
 export const account = sqliteTable(
   'account',

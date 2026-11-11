@@ -53,6 +53,9 @@ export function getAuth(env: Env, request?: Request) {
     // handler de src/routes/api/auth/$.ts (src/lib/auth-rate-limit.ts), por IP
     // (prefixo /64 no IPv6) e por e-mail, com o binding PUBLIC_RATE_LIMIT.
     rateLimit: { enabled: false },
+    // `getSession` busca sessão e usuário num JOIN só (relação em
+    // src/db/auth-schema.ts): com o cache do cookie vencido, são 1 ida ao D1
+    // em vez de 2 em fila.
     emailAndPassword: {
       // Senha é opcional (PASSWORD_LOGIN_ENABLED). Quando liga, o e-mail precisa
       // ser confirmado por código antes de existir sessão: sem isso, alguém
@@ -73,6 +76,15 @@ export function getAuth(env: Env, request?: Request) {
       updateAge: ONE_DAY,
       // Sessão "recente" = menos de 1 hora (usada em encerrar conta).
       freshAge: 60 * 60,
+      // Cache da sessão num cookie assinado (`better-auth.session_data`): o
+      // getSession deixa de ir ao D1 (e ao primário, do outro lado do
+      // continente) a cada página. Custo: revogar uma sessão ou encerrar a conta
+      // só vale nos OUTROS aparelhos depois de até 60 s. Por isso as ações
+      // sensíveis (encerrar conta, baixar dados, trocar a foto) pedem
+      // `disableCookieCache` e leem o banco; e login novo continua barrado
+      // pelo guard ACCOUNT_CLOSED abaixo. Sem `refreshCache`: ele é para quem
+      // não tem banco.
+      cookieCache: { enabled: true, maxAge: 60, strategy: 'compact' },
     },
     user: {
       // `input: false`: o navegador não consegue mexer nestes campos pelo
@@ -145,6 +157,7 @@ export function getAuth(env: Env, request?: Request) {
       },
     },
     advanced: {
+      database: { joins: true },
       ipAddress: { ipAddressHeaders: ['cf-connecting-ip', 'x-forwarded-for'] },
       // Tarefas "em segundo plano" (enviar o e-mail do código) seguem depois da
       // resposta, no `waitUntil` do Worker, sem atrasar nem revelar se o e-mail existe.
