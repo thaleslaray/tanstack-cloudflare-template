@@ -128,6 +128,10 @@ banco D1 e o bucket R2 no primeiro deploy (provisionamento automático).
 4. Primeiro deploy: `npm run build && npx wrangler deploy --secrets-file .prod.vars`
    (cria banco e bucket), depois `npm run db:migrate:remote`.
 5. Deploys seguintes: `npm run deploy` (o `predeploy` aplica as migrações antes de publicar).
+6. Uma vez por app, ligue a réplica de leitura do D1: painel → D1 → o banco →
+   Settings → Enable Read Replication (o passo pela API está na skill `/deploy`).
+   O resto da performance já vem no código: Smart Placement, cache da sessão e
+   menos consultas por página (por que e números em `load/README.md`).
 
 `BETTER_AUTH_URL` é opcional: a URL vem da requisição.
 

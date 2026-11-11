@@ -88,6 +88,27 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
 2. `src/config/app.ts`: confirme que `url` é a URL pública (links em e-mails e SEO).
 3. Resend: verifique o domínio de envio e ajuste `EMAIL_FROM`.
 4. Domínio próprio: Cloudflare → Workers → o Worker → Domains & Routes.
+5. Réplica de leitura do D1 (deixa as páginas logadas mais rápidas longe do
+   banco; sem custo extra). O código já usa a Sessions API; falta ligar no banco,
+   uma vez por app. Pelo painel: D1 → o banco → Settings → Enable Read
+   Replication. Ou pela API (o Wrangler não tem comando para isso), com um token
+   que tenha `D1:Edit`:
+
+   ```bash
+   npx wrangler d1 info <nome-do-banco>   # mostra o id e "read_replication.mode"
+   curl -X PUT "https://api.cloudflare.com/client/v4/accounts/<account_id>/d1/database/<database_id>" \
+     -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+     -d '{"read_replication": {"mode": "auto"}}'
+   ```
+
+   Confira com `npx wrangler d1 info <nome-do-banco>`: `read_replication.mode`
+   deve aparecer `auto`.
+6. Smart Placement já vem ligado no `wrangler.jsonc` (`placement.mode: smart`):
+   nada a fazer. A Cloudflare leva até 15 min, e precisa de tráfego real, para
+   mover o Worker para perto do banco; o header `cf-placement` mostra
+   `remote-XXX` quando moveu.
+7. Quer medir? `load/README.md` explica o teste de carga (k6) e guarda os
+   números de referência do template.
 
 Botão Deploy to Cloudflare (Workers Builds): publica a cada push na `main`.
 Build command `npm run build`; deploy command
