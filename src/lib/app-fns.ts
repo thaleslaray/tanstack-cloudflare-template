@@ -1,10 +1,13 @@
-// Dados do painel (/app). Somente o necessário para os números da StatStrip.
+// Dados do painel (/app): os números da StatStrip e se o checklist de primeiro
+// uso foi dispensado (cookie lido aqui, para o HTML já sair certo).
 import { env } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { count, eq } from 'drizzle-orm'
 
 import { getDb } from '#/db/index'
 import { auditLog, clientes } from '#/db/schema'
+import { checklistDismissedFromCookie } from '#/lib/checklist'
 import { getRequestSession } from '#/lib/request-session'
 
 export const getDashboardStatsFn = createServerFn({ method: 'GET' }).handler(
@@ -23,6 +26,12 @@ export const getDashboardStatsFn = createServerFn({ method: 'GET' }).handler(
         .from(clientes)
         .where(eq(clientes.userId, current.user.id)),
     ])
-    return { activity: activity?.total ?? 0, clients: clients?.total ?? 0 }
+    return {
+      activity: activity?.total ?? 0,
+      clients: clients?.total ?? 0,
+      checklistDismissed: checklistDismissedFromCookie(
+        getRequest().headers.get('cookie'),
+      ),
+    }
   },
 )

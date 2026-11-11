@@ -32,7 +32,25 @@ test('entra com o código enviado por e-mail e chega em /app', async () => {
   await expect(page).toHaveURL(/\/app$/)
   await expect(page.getByRole('heading', { name: /^Olá,/ })).toBeVisible()
   await expect(page.getByText(email).first()).toBeVisible()
+  // O checklist já vem no HTML do servidor (a marca é um cookie lido lá).
   await expect(page.getByText('Primeiros passos')).toBeVisible()
+
+  // Dispensar grava o cookie; depois de recarregar, o HTML já sai sem ele.
+  const dispensar = page.getByRole('button', {
+    name: 'Dispensar primeiros passos',
+  })
+  await waitForHydration(dispensar)
+  await dispensar.click()
+  await expect(page.getByText('Primeiros passos')).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: /^Olá,/ })).toBeVisible()
+  await expect(page.getByText('Primeiros passos')).toHaveCount(0)
+  // Sem esperar a hidratação, o próximo clique viraria navegação de documento.
+  await waitForHydration(
+    page
+      .getByRole('navigation', { name: 'Área logada' })
+      .getByRole('link', { name: 'Clientes' }),
+  )
 })
 
 test('clientes: lista vazia, cria um cliente e ele aparece na tabela', async () => {

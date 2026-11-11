@@ -1,5 +1,4 @@
 import type { MDXContent } from 'mdx/types'
-import type { z } from 'zod'
 import type { Heading } from './remark-headings'
 
 // Os arquivos MDX viram módulos ES no build (@mdx-js/rollup, ver vite.config.ts).
@@ -13,7 +12,7 @@ import type { Heading } from './remark-headings'
 //
 // O primeiro traz só o frontmatter (mdx-meta-plugin.ts), barato o bastante para
 // carregar em toda página. O segundo é o corpo, um chunk preguiçoso por arquivo.
-// O zod valida o frontmatter ao importar: frontmatter errado quebra o build, não
+// Uma função de validação (collections.ts) confere o frontmatter ao importar: frontmatter errado quebra o build, não
 // o visitante.
 
 export interface MdxModule {
@@ -68,7 +67,7 @@ function once(importer: () => Promise<MdxModule>): () => Promise<MdxModule> {
 export function collect<T>(
   meta: Record<string, unknown>,
   bodies: Record<string, () => Promise<MdxModule>>,
-  schema: z.ZodType<T>,
+  schema: (frontmatter: unknown) => T,
 ): Array<MdxEntry<T>> {
   return Object.entries(meta).map(([key, frontmatter]) => {
     const path = key.replace(/\?meta$/, '')
@@ -79,12 +78,13 @@ export function collect<T>(
         .split('/')
         .pop()
         ?.replace(/\.mdx$/, '') ?? path
-    const parsed = schema.safeParse(frontmatter)
-    if (!parsed.success) {
-      throw new Error(
-        `Frontmatter inválido em ${path}: ${parsed.error.message}`,
-      )
+    let parsed: T
+    try {
+      parsed = schema(frontmatter)
+    } catch (erro) {
+      const motivo = erro instanceof Error ? erro.message : String(erro)
+      throw new Error(`Frontmatter inválido em ${path}: ${motivo}`)
     }
-    return { ...parsed.data, slug, load: once(importer) }
+    return { ...parsed, slug, load: once(importer) }
   })
 }

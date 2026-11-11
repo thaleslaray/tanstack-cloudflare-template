@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 
 import { PageHeader, StatCard, StatStrip } from '#/components/page-header'
 import { getDashboardStatsFn } from '#/lib/app-fns'
+import { writeChecklistDismissedCookie } from '#/lib/checklist'
 import { seo } from '#/lib/seo'
 
 // Painel: saudação, um número por área (cada um leva à sua área) e um
@@ -20,6 +21,9 @@ export const Route = createFileRoute('/_app/app/')({
   component: DashboardPage,
 })
 
+// Onde a marca morava antes de virar cookie (src/lib/checklist.ts).
+const LEGACY_STORAGE_KEY = 'app-checklist-dispensado'
+
 type SetupStep = {
   done: boolean
   label: string
@@ -27,30 +31,40 @@ type SetupStep = {
   to: LinkProps['to']
 }
 
-const SETUP_DISMISSED = 'app-checklist-dispensado'
+// Se foi dispensado vem do cookie `app-checklist-dispensado`, lido pelo
+// servidor (`getDashboardStatsFn`): o HTML já sai com ou sem o checklist, sem
+// esperar a hidratação (ele é o maior elemento da tela, então conta no LCP).
+function SetupChecklist({
+  steps,
+  initiallyDismissed,
+}: {
+  steps: SetupStep[]
+  initiallyDismissed: boolean
+}) {
+  const [dismissed, setDismissed] = useState(initiallyDismissed)
 
-// Só aparece depois de montar: se foi dispensado mora no localStorage deste
-// navegador, e um render do servidor que o mostrasse piscaria para quem fechou.
-function SetupChecklist({ steps }: { steps: SetupStep[] }) {
-  const [dismissed, setDismissed] = useState<boolean | null>(null)
+  // Migração (pode sair depois de uns meses): quem dispensou quando a marca
+  // ficava no localStorage não tem o cookie ainda. Uma vez, grava o cookie,
+  // apaga a chave antiga e esconde.
   useEffect(() => {
+    if (initiallyDismissed) return
     try {
-      setDismissed(localStorage.getItem(SETUP_DISMISSED) === '1')
+      if (localStorage.getItem(LEGACY_STORAGE_KEY) === '1') {
+        writeChecklistDismissedCookie()
+        localStorage.removeItem(LEGACY_STORAGE_KEY)
+        setDismissed(true)
+      }
     } catch {
-      setDismissed(false)
+      // Sem localStorage (aba anônima restrita): nada a migrar.
     }
-  }, [])
+  }, [initiallyDismissed])
 
   const done = steps.filter((step) => step.done).length
-  if (dismissed !== false || done === steps.length) return null
+  if (dismissed || done === steps.length) return null
 
   function dismiss() {
     setDismissed(true)
-    try {
-      localStorage.setItem(SETUP_DISMISSED, '1')
-    } catch {
-      // Navegador sem localStorage (aba anônima restrita): some só nesta visita.
-    }
+    writeChecklistDismissedCookie()
   }
 
   return (
@@ -116,7 +130,7 @@ function SetupChecklist({ steps }: { steps: SetupStep[] }) {
 
 function DashboardPage() {
   const { session } = Route.useRouteContext()
-  const { activity, clients } = Route.useLoaderData()
+  const { activity, clients, checklistDismissed } = Route.useLoaderData()
   const user = session.user
   const firstName = user.name.split(' ')[0] || user.name
   // Fuso fixo: o servidor (UTC) e o navegador formatam a mesma data, sem
@@ -157,6 +171,7 @@ function DashboardPage() {
       </StatStrip>
 
       <SetupChecklist
+        initiallyDismissed={checklistDismissed}
         steps={[
           {
             done: Boolean(user.image),

@@ -1,25 +1,64 @@
-import { z } from 'zod'
 import { collect, type MdxModule } from './mdx'
 
-const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'use AAAA-MM-DD')
+// Validação do frontmatter sem biblioteca: o zod inteiro (uns 60 KB) entrava
+// no JavaScript principal porque o `loader` das rotas de conteúdo mora nele.
+// Cada função confere um campo e devolve o valor; erro vira `throw`, e o
+// `collect` (mdx.ts) o transforma em "Frontmatter inválido em <arquivo>".
+// O build (prerender) importa estes módulos: frontmatter errado quebra o
+// build, não o visitante.
+type Fields = Record<string, unknown>
 
-const postSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  date: data,
-})
+function texto(f: Fields, campo: string): string {
+  const v = f[campo]
+  if (typeof v !== 'string') throw new Error(`"${campo}" precisa ser texto`)
+  return v
+}
 
-const docSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  /** Posição na barra lateral e na ordem de leitura. */
-  order: z.number().default(0),
-})
+function data(f: Fields, campo: string): string {
+  const v = texto(f, campo)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    throw new Error(`"${campo}": use AAAA-MM-DD`)
+  }
+  return v
+}
 
-const legalSchema = z.object({
-  title: z.string(),
-  updated: data,
-})
+function numero(f: Fields, campo: string, padrao: number): number {
+  const v = f[campo]
+  if (v === undefined) return padrao
+  if (typeof v !== 'number') throw new Error(`"${campo}" precisa ser número`)
+  return v
+}
+
+function campos(raw: unknown): Fields {
+  if (typeof raw !== 'object' || raw === null) {
+    throw new Error('frontmatter precisa ser um objeto')
+  }
+  return raw as Fields
+}
+
+const postSchema = (raw: unknown) => {
+  const f = campos(raw)
+  return {
+    title: texto(f, 'title'),
+    description: texto(f, 'description'),
+    date: data(f, 'date'),
+  }
+}
+
+const docSchema = (raw: unknown) => {
+  const f = campos(raw)
+  return {
+    title: texto(f, 'title'),
+    description: texto(f, 'description'),
+    /** Posição na barra lateral e na ordem de leitura. */
+    order: numero(f, 'order', 0),
+  }
+}
+
+const legalSchema = (raw: unknown) => {
+  const f = campos(raw)
+  return { title: texto(f, 'title'), updated: data(f, 'updated') }
+}
 
 export const posts = collect(
   import.meta.glob('/content/blog/*.mdx', {

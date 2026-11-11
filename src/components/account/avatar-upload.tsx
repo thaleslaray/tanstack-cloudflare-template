@@ -6,7 +6,6 @@ import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import { Label } from '#/components/ui/label'
-import { authClient } from '#/lib/auth-client'
 import { AVATAR_ACCEPT, checkAvatarFile } from '#/lib/avatar'
 
 export function initials(name: string, email: string) {
@@ -80,7 +79,6 @@ export function AvatarUpload({
     cancel()
     // Atualiza a sessão nesta página e no avatar do cabeçalho.
     await queryClient.invalidateQueries({ queryKey: ['session'] })
-    authClient.$store.notify('$sessionSignal')
     toast.success('Foto atualizada')
   }
 

@@ -67,7 +67,6 @@ function SettingsPage() {
       return
     }
     await queryClient.invalidateQueries({ queryKey: ['session'] })
-    authClient.$store.notify('$sessionSignal')
     toast.success('Nome atualizado')
   }
 
