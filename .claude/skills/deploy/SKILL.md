@@ -5,9 +5,10 @@ description: Publica o app na Cloudflare Workers com o Wrangler — login, deixa
 
 # Publicar na Cloudflare Workers
 
-O agente roda cada comando e edita cada arquivo; o usuário só confirma o
-que envolve a conta dele (login no navegador) e informa os valores de
-produção. A configuração vive em `wrangler.jsonc` e o deploy é com o
+O agente roda cada comando e edita cada arquivo; o usuário faz o login no
+navegador, informa os valores de produção e diz "pode publicar" antes de cada
+passo que mexe na conta: o `wrangler deploy`, as migrações `--remote`, os
+segredos e o teste de carga. Mostre o comando e espere o sim. A configuração vive em `wrangler.jsonc` e o deploy é com o
 Wrangler. Não use o `cf` aqui (ele está em beta; veja o `AGENTS.md`).
 
 ## 0. Antes de começar
@@ -36,18 +37,7 @@ Troque `url` em `src/config/app.ts` pela URL pública ANTES do build
 `BETTER_AUTH_URL` é opcional (a URL vem da requisição). Só defina como
 segredo se o usuário quiser fixar uma URL.
 
-## 3. Primeiro deploy
-
-Veja os segredos no passo 4 (crie o `.prod.vars` antes). Depois:
-
-```bash
-npm run build
-npx wrangler deploy --dry-run
-npx wrangler deploy --secrets-file .prod.vars   # cria banco e bucket e publica
-npm run db:migrate:remote                       # só depois do primeiro deploy
-```
-
-## 4. Segredos de produção (crie ANTES do primeiro deploy)
+## 3. Segredos de produção (crie ANTES do primeiro deploy)
 
 Crie um arquivo `.prod.vars` (já está no `.gitignore`; nunca o versione)
 com os mesmos nomes do `.dev.vars.example`:
@@ -67,6 +57,17 @@ Nunca reaproveite o segredo do dev (mínimo de 32 caracteres). Sem provedor de
 e-mail em produção o login recusa enviar o código: configure o
 Resend (ou o Email Service da Cloudflare, veja `src/lib/email.ts`) ou um
 provedor social.
+
+## 4. Primeiro deploy
+
+Os segredos do passo 3 já têm de estar no `.prod.vars`. Depois:
+
+```bash
+npm run build
+npx wrangler deploy --dry-run
+npx wrangler deploy --secrets-file .prod.vars   # cria banco e bucket e publica
+npm run db:migrate:remote                       # só depois do primeiro deploy
+```
 
 ## 5. Deploys seguintes
 
@@ -92,12 +93,13 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
    banco; sem custo extra). O código já usa a Sessions API; falta ligar no banco,
    uma vez por app. Pelo painel: D1 → o banco → Settings → Enable Read
    Replication. Ou pela API (o Wrangler não tem comando para isso), com um token
-   que tenha `D1:Edit`:
+   que tenha `D1:Edit`. Peça para o usuário rodar `export CLOUDFLARE_API_TOKEN=...`
+   no terminal dele; não cole o token no chat.
 
    ```bash
    npx wrangler d1 info <nome-do-banco>   # mostra o id e "read_replication.mode"
    curl -X PUT "https://api.cloudflare.com/client/v4/accounts/<account_id>/d1/database/<database_id>" \
-     -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+     -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
      -d '{"read_replication": {"mode": "auto"}}'
    ```
 

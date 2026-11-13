@@ -35,14 +35,12 @@ export const SITEMAP_STATIC_PATHS = ['/', '/blog'] as const
 
 // Caminhos que os buscadores não devem visitar (robots.txt). São as áreas com
 // sessão ou sem conteúdo: o oposto da lista de cima. `/app` é a área logada
-// (e `/app/...`); `/conta` é o endereço antigo, que só redireciona para lá;
-// `/blocos` é o catálogo de blocos da landing e `/estilo` a bancada das peças
+// (e `/app/...`); `/blocos` é o catálogo de blocos da landing e `/estilo` a bancada das peças
 // de tela: bancadas sem conteúdo próprio.
 export const ROBOTS_DISALLOW = [
   '/api/',
   '/app',
   '/blocos',
-  '/conta',
   '/estilo',
   '/demo/', // as demos só existem no `npm run dev`; em produção dão 404
 ] as const

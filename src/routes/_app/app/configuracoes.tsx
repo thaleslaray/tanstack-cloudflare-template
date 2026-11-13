@@ -15,7 +15,7 @@ import { authClient } from '#/lib/auth-client'
 import { sessionQuery } from '#/lib/auth-queries'
 import { seo } from '#/lib/seo'
 
-// Configurações da conta (era /conta, que agora redireciona para cá).
+// Configurações da conta.
 export const Route = createFileRoute('/_app/app/configuracoes')({
   head: () => ({ meta: seo({ title: 'Configurações', noindex: true }) }),
   component: SettingsPage,

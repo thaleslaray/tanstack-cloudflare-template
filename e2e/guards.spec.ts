@@ -11,14 +11,6 @@ test('/app anônimo vai para /login com o redirect de volta', async ({
   await expect(page.getByPlaceholder('voce@exemplo.com')).toBeVisible()
 })
 
-test('/conta (endereço antigo) redireciona 301 para /app/configuracoes', async ({
-  request,
-}) => {
-  const res = await request.get('/conta', { maxRedirects: 0 })
-  expect(res.status()).toBe(301)
-  expect(res.headers().location).toMatch(/\/app\/configuracoes$/)
-})
-
 test('depois do login, volta para a página que pediu', async ({ page }) => {
   // A query `?de=e2e` prova que o destino veio do `redirect`: sem ele o
   // login cairia no padrão, `/app` puro.

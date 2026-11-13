@@ -1,115 +1,242 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useReducer } from 'react'
 
+import { useCooldown } from '#/components/auth/use-cooldown'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { authClient } from '#/lib/auth-client'
+import { authFailureMessage, toAuthFailure } from '#/lib/auth-failure'
 
 // Alternativa discreta ao código: e-mail + senha, entrar ou criar conta.
 // Conta nova (ou e-mail ainda não confirmado) passa por uma segunda etapa:
 // o código de verificação que chega por e-mail. Só depois dele existe sessão.
-function describeVerifyError(code: string | undefined) {
-  switch (code) {
-    case 'OTP_EXPIRED':
-      return 'Este código expirou. Peça um novo.'
-    case 'INVALID_OTP':
-      return 'Código incorreto. Confira e tente de novo.'
-    case 'TOO_MANY_ATTEMPTS':
-      return 'Muitas tentativas erradas. Peça um novo código.'
-    default:
-      return 'Não deu certo. Tente de novo em instantes.'
+//
+// O passo é UM valor (`PwStep`), nunca uma combinação de booleanos:
+//
+//   form --enviar--> submitting --ok--> (recarrega a página)
+//     ^                   |  e-mail por confirmar
+//     |                   v
+//     +---"Voltar"--- verify --confirmar--> verifying --ok--> (recarrega)
+//                       ^                        |
+//                       +--------falha-----------+
+//
+// `verify` com `resending: true` é o "Reenviar código" em andamento.
+type Mode = 'entrar' | 'criar'
+type PwStep =
+  | { s: 'form'; mode: Mode }
+  | { s: 'submitting'; mode: Mode }
+  | { s: 'verify'; mode: Mode; email: string; resending: boolean }
+  | { s: 'verifying'; mode: Mode; email: string }
+
+type State = {
+  step: PwStep
+  name: string
+  email: string
+  password: string
+  code: string
+  error: string
+}
+
+type Action =
+  | { type: 'field'; field: 'name' | 'email' | 'password'; value: string }
+  | { type: 'code_changed'; value: string }
+  | { type: 'toggle_mode' }
+  | { type: 'submit_started' }
+  | { type: 'submit_failed'; message: string }
+  | { type: 'needs_verification'; email: string }
+  | { type: 'back_to_form' }
+  | { type: 'resend_started' }
+  | { type: 'resend_finished'; message: string }
+  | { type: 'verify_started' }
+  | { type: 'verify_failed'; message: string }
+
+export const initial: State = {
+  step: { s: 'form', mode: 'entrar' },
+  name: '',
+  email: '',
+  password: '',
+  code: '',
+  error: '',
+}
+
+export function reducer(state: State, action: Action): State {
+  const { step } = state
+  switch (action.type) {
+    case 'field':
+      return { ...state, [action.field]: action.value }
+    case 'code_changed':
+      return { ...state, code: action.value, error: '' }
+    case 'toggle_mode':
+      if (step.s !== 'form') return state
+      return {
+        ...state,
+        step: { s: 'form', mode: step.mode === 'criar' ? 'entrar' : 'criar' },
+        error: '',
+      }
+    case 'submit_started':
+      if (step.s !== 'form') return state
+      return { ...state, step: { s: 'submitting', mode: step.mode }, error: '' }
+    case 'submit_failed':
+      if (step.s !== 'submitting') return state
+      return {
+        ...state,
+        step: { s: 'form', mode: step.mode },
+        error: action.message,
+      }
+    case 'needs_verification':
+      if (step.s !== 'submitting') return state
+      return {
+        ...state,
+        step: {
+          s: 'verify',
+          mode: step.mode,
+          email: action.email,
+          resending: false,
+        },
+        code: '',
+        error: '',
+      }
+    case 'back_to_form':
+      if (step.s !== 'verify') return state
+      return { ...state, step: { s: 'form', mode: step.mode }, error: '' }
+    case 'resend_started':
+      if (step.s !== 'verify') return state
+      return { ...state, step: { ...step, resending: true }, error: '' }
+    case 'resend_finished':
+      if (step.s !== 'verify') return state
+      return {
+        ...state,
+        step: { ...step, resending: false },
+        error: action.message,
+      }
+    case 'verify_started':
+      if (step.s !== 'verify') return state
+      return {
+        ...state,
+        step: { s: 'verifying', mode: step.mode, email: step.email },
+        error: '',
+      }
+    case 'verify_failed':
+      if (step.s !== 'verifying') return state
+      return {
+        ...state,
+        step: {
+          s: 'verify',
+          mode: step.mode,
+          email: step.email,
+          resending: false,
+        },
+        error: action.message,
+      }
   }
 }
 
 export function PasswordForm({ callbackURL }: { callbackURL: string }) {
   const queryClient = useQueryClient()
-  const [isSignUp, setIsSignUp] = useState(false)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  // Preenchido quando falta confirmar o e-mail: também diz em qual etapa estamos.
-  const [verifyingEmail, setVerifyingEmail] = useState<string | null>(null)
-  const [code, setCode] = useState('')
+  const [state, dispatch] = useReducer(reducer, initial)
+  const cooldown = useCooldown()
+  const { step, name, email, password, code, error } = state
 
   async function handleVerify(event: React.FormEvent) {
     event.preventDefault()
-    if (!verifyingEmail) return
-    setError('')
-    setLoading(true)
+    if (step.s !== 'verify' || step.resending) return
+    const address = step.email
+    dispatch({ type: 'verify_started' })
     try {
       const { error: failure } = await authClient.emailOtp.verifyEmail({
-        email: verifyingEmail,
+        email: address,
         otp: code,
       })
       if (failure) {
-        setError(describeVerifyError(failure.code))
+        dispatch({
+          type: 'verify_failed',
+          message: authFailureMessage(toAuthFailure(failure), 'verificar'),
+        })
         return
       }
       // Confirmado: o Better Auth já abriu a sessão (autoSignInAfterVerification).
       await queryClient.invalidateQueries({ queryKey: ['session'] })
       window.location.assign(callbackURL)
     } catch {
-      setError('Ocorreu um erro inesperado. Tente de novo.')
-    } finally {
-      setLoading(false)
+      dispatch({
+        type: 'verify_failed',
+        message: 'Ocorreu um erro inesperado. Tente de novo.',
+      })
     }
   }
 
   async function handleResend() {
-    if (!verifyingEmail) return
-    setError('')
-    const { error: failure } = await authClient.emailOtp.sendVerificationOtp({
-      email: verifyingEmail,
-      type: 'email-verification',
-    })
-    if (failure) setError('Não foi possível reenviar o código. Tente de novo.')
+    if (step.s !== 'verify' || step.resending || cooldown.left > 0) return
+    dispatch({ type: 'resend_started' })
+    try {
+      const { error: failure } = await authClient.emailOtp.sendVerificationOtp({
+        email: step.email,
+        type: 'email-verification',
+      })
+      if (failure) {
+        dispatch({
+          type: 'resend_finished',
+          message: authFailureMessage(toAuthFailure(failure), 'reenviar'),
+        })
+        return
+      }
+      dispatch({ type: 'resend_finished', message: '' })
+      cooldown.start()
+    } catch {
+      dispatch({
+        type: 'resend_finished',
+        message: 'Ocorreu um erro inesperado. Tente de novo.',
+      })
+    }
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    setError('')
-    setLoading(true)
+    if (step.s !== 'form') return
+    const mode = step.mode
+    dispatch({ type: 'submit_started' })
     try {
-      const result = isSignUp
-        ? await authClient.signUp.email({ email, password, name })
-        : await authClient.signIn.email({ email, password })
+      const result =
+        mode === 'criar'
+          ? await authClient.signUp.email({ email, password, name })
+          : await authClient.signIn.email({ email, password })
+      const failure = result.error ? toAuthFailure(result.error) : null
       // Cadastro novo, ou entrada com e-mail ainda não confirmado: o Better Auth
       // já mandou o código; falta digitá-lo.
       if (
-        (isSignUp && !result.error) ||
-        result.error?.code === 'EMAIL_NOT_VERIFIED'
+        (mode === 'criar' && !result.error) ||
+        failure === 'email_not_verified'
       ) {
-        setVerifyingEmail(email.trim())
-        setCode('')
+        dispatch({ type: 'needs_verification', email: email.trim() })
+        cooldown.start()
         return
       }
-      if (result.error) {
-        setError(
-          result.error.message ||
-            (isSignUp
-              ? 'Não foi possível criar a conta.'
-              : 'E-mail ou senha incorretos.'),
-        )
+      if (failure) {
+        dispatch({
+          type: 'submit_failed',
+          message: authFailureMessage(failure, mode),
+        })
         return
       }
       await queryClient.invalidateQueries({ queryKey: ['session'] })
       window.location.assign(callbackURL)
     } catch {
-      setError('Ocorreu um erro inesperado. Tente de novo.')
-    } finally {
-      setLoading(false)
+      dispatch({
+        type: 'submit_failed',
+        message: 'Ocorreu um erro inesperado. Tente de novo.',
+      })
     }
   }
 
-  if (verifyingEmail) {
+  if (step.s === 'verify' || step.s === 'verifying') {
+    const verifying = step.s === 'verifying'
+    const resending = step.s === 'verify' && step.resending
     return (
       <form onSubmit={handleVerify} className="grid gap-3">
         <p className="text-sm text-muted-foreground">
           Enviamos um código de 6 dígitos para{' '}
-          <strong className="text-foreground">{verifyingEmail}</strong> para
+          <strong className="text-foreground">{step.email}</strong> para
           confirmar o e-mail. Ele vale por 10 minutos.
         </p>
         <div className="grid gap-2">
@@ -118,10 +245,12 @@ export function PasswordForm({ callbackURL }: { callbackURL: string }) {
             id="pw-code"
             autoFocus
             value={code}
-            onChange={(e) => {
-              setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-              setError('')
-            }}
+            onChange={(e) =>
+              dispatch({
+                type: 'code_changed',
+                value: e.target.value.replace(/\D/g, '').slice(0, 6),
+              })
+            }
             inputMode="numeric"
             autoComplete="one-time-code"
             placeholder="000000"
@@ -136,34 +265,39 @@ export function PasswordForm({ callbackURL }: { callbackURL: string }) {
         <Button
           type="submit"
           variant="outline"
-          disabled={loading || code.length < 6}
+          disabled={verifying || resending || code.length < 6}
           className="w-full"
         >
-          {loading ? 'Aguarde...' : 'Confirmar e entrar'}
+          {verifying ? 'Aguarde...' : 'Confirmar e entrar'}
         </Button>
         <div className="flex justify-between text-xs text-muted-foreground">
           <button
             type="button"
-            className="hover:text-foreground"
-            onClick={() => {
-              setVerifyingEmail(null)
-              setError('')
-            }}
+            disabled={verifying}
+            className="hover:text-foreground disabled:hover:text-muted-foreground"
+            onClick={() => dispatch({ type: 'back_to_form' })}
           >
             Voltar
           </button>
           <button
             type="button"
-            className="hover:text-foreground"
+            disabled={verifying || resending || cooldown.left > 0}
+            className="hover:text-foreground disabled:hover:text-muted-foreground"
             onClick={() => void handleResend()}
           >
-            Reenviar código
+            {resending
+              ? 'Enviando...'
+              : cooldown.left > 0
+                ? `Reenviar em ${cooldown.left}s`
+                : 'Reenviar código'}
           </button>
         </div>
       </form>
     )
   }
 
+  const isSignUp = step.mode === 'criar'
+  const loading = step.s === 'submitting'
   return (
     <form onSubmit={handleSubmit} className="grid gap-3">
       {isSignUp ? (
@@ -172,7 +306,9 @@ export function PasswordForm({ callbackURL }: { callbackURL: string }) {
           <Input
             id="pw-name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) =>
+              dispatch({ type: 'field', field: 'name', value: e.target.value })
+            }
             autoComplete="name"
             required
           />
@@ -184,7 +320,9 @@ export function PasswordForm({ callbackURL }: { callbackURL: string }) {
           id="pw-email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) =>
+            dispatch({ type: 'field', field: 'email', value: e.target.value })
+          }
           autoComplete="email"
           required
         />
@@ -195,7 +333,13 @@ export function PasswordForm({ callbackURL }: { callbackURL: string }) {
           id="pw-password"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) =>
+            dispatch({
+              type: 'field',
+              field: 'password',
+              value: e.target.value,
+            })
+          }
           autoComplete={isSignUp ? 'new-password' : 'current-password'}
           minLength={8}
           required
@@ -217,10 +361,8 @@ export function PasswordForm({ callbackURL }: { callbackURL: string }) {
       <button
         type="button"
         className="text-xs text-muted-foreground hover:text-foreground"
-        onClick={() => {
-          setIsSignUp(!isSignUp)
-          setError('')
-        }}
+        disabled={loading}
+        onClick={() => dispatch({ type: 'toggle_mode' })}
       >
         {isSignUp ? 'Já tem conta? Entrar' : 'Não tem conta? Criar conta'}
       </button>

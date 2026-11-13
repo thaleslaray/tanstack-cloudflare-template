@@ -1,9 +1,1 @@
-# Leia AGENTS.md e src/CLAUDE.md antes de editar.
-
-# shadcn instructions
-
-Use the latest version of Shadcn to install new components, like this command to add a button component:
-
-```bash
-npx shadcn@latest add button
-```
+Leia AGENTS.md e src/CLAUDE.md antes de editar. Peça nova do shadcn: `npx shadcn@latest add <nome>` e depois as correções do parágrafo "Falta uma peça?" (seção 2) em .claude/skills/tela/SKILL.md.

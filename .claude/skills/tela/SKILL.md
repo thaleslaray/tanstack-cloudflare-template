@@ -13,7 +13,7 @@ projeto é a que parece ter nascido junto com as outras.
 
 1. Leia `src/CLAUDE.md` (a direção visual e as sete regras). Várias são
    testadas: `npm run test` fica vermelho se uma for quebrada.
-2. Leia os dois arquivos que servem de molde:
+2. Leia os três moldes:
    - `src/routes/estilo.tsx`: todas as peças, uma de cada, com as classes certas;
    - `src/components/app/exemplo-lista.tsx`: a tela de lista completa (abas,
      busca, tabela, vazio, diálogo de criar), com dados de mentira;
@@ -61,7 +61,11 @@ Botões: **um** `variant="brand"` por tela, na ação principal ("Salvar",
 `destructive` (apaga). Dentro de um diálogo, o `brand` é o do diálogo.
 Lista sem nenhum item: a `Toolbar` inteira some (não há o que filtrar) e o
 único `brand` é o do `EmptyState`. Para os dois botões abrirem o mesmo
-diálogo, ele fica fora da `Toolbar`, controlado por um estado `aberto`.
+diálogo, ele fica fora da `Toolbar`. O molde é `src/routes/_app/app/clientes.tsx`:
+o estado do diálogo é UM valor (`Dialogo`, união com `k: 'nenhum' | 'criar' |
+'apagar'`) num `useReducer`, e `salvando`/`apagando` e os erros de campo moram
+dentro dele. Fechar (Esc, clique fora, Cancelar) é ignorado enquanto salva ou
+apaga; se falhar, o diálogo continua aberto com o erro.
 
 Falta uma peça? `npx shadcn@latest add <nome>`, e depois conserte o que o
 gerador erra neste projeto:
@@ -166,7 +170,7 @@ Estas saídas são as que denunciam tela gerada. Várias quebram teste.
 ## 7. Confira antes de entregar
 
 ```bash
-npx tsr generate      # rota nova: atualiza src/routeTree.gen.ts (sem isso o typecheck falha)
+# rota nova: deixe o `npm run dev` rodando (o plugin regera o `routeTree.gen.ts`) ou rode `npm run build`
 npm run check:fix
 npm run typecheck
 npm run test

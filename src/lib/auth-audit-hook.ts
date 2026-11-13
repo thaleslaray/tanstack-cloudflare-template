@@ -1,6 +1,8 @@
 // Liga o Better Auth à auditoria (src/lib/audit.ts). Roda como `hooks.after`,
 // uma vez por chamada HTTP a /api/auth/* (chamadas diretas a `auth.api.*` no
 // servidor não passam por hooks). Só registra o que deu certo.
+
+import { waitUntil } from 'cloudflare:workers'
 import { createAuthMiddleware } from 'better-auth/api'
 
 import { audit, requestMeta } from '#/lib/audit'
@@ -32,16 +34,19 @@ export const auditAfterHook = createAuthMiddleware(async (ctx) => {
     isSignInPath(ctx.path) &&
     Date.now() - new Date(fresh.session.createdAt).getTime() < FRESH_SESSION_MS
   ) {
-    await audit({
-      action: 'auth.sign_in',
-      actorId: fresh.user.id,
-      actorEmail: fresh.user.email,
-      targetType: 'user',
-      targetId: fresh.user.id,
-      // ex.: "sign-in/email-otp", "callback/google"
-      meta: { method: ctx.path.replace(/^\//, '') },
-      ...req,
-    })
+    await audit(
+      {
+        action: 'auth.sign_in',
+        actorId: fresh.user.id,
+        actorEmail: fresh.user.email,
+        targetType: 'user',
+        targetId: fresh.user.id,
+        // ex.: "sign-in/email-otp", "callback/google"
+        meta: { method: ctx.path.replace(/^\//, '') },
+        ...req,
+      },
+      { waitUntil },
+    )
     return
   }
 
@@ -50,13 +55,16 @@ export const auditAfterHook = createAuthMiddleware(async (ctx) => {
     const body = ctx.body as Record<string, unknown> | undefined
     const session = ctx.context.session
     if (!session || typeof body?.name !== 'string') return
-    await audit({
-      action: 'account.name_changed',
-      actorId: session.user.id,
-      actorEmail: session.user.email,
-      targetType: 'user',
-      targetId: session.user.id,
-      ...req,
-    })
+    await audit(
+      {
+        action: 'account.name_changed',
+        actorId: session.user.id,
+        actorEmail: session.user.email,
+        targetType: 'user',
+        targetId: session.user.id,
+        ...req,
+      },
+      { waitUntil },
+    )
   }
 })

@@ -1,22 +1,16 @@
 node_modules
 .DS_Store
 dist
-dist-ssr
 *.local
 .env
-.nitro
 .tanstack
 .wrangler
-.output
-.vinxi
-__unconfig*
-todos.json
 .dev.vars
 test-results
 playwright-report
 e2e/.dev.log
-e2e/.auth
 .prod.vars
+.claude/settings.local.json
 # Saída do cf/v2 beta (branch cf-v2-beta); não é mais gerada em main
 .cloudflare/
 

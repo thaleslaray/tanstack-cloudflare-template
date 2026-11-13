@@ -3,7 +3,7 @@
 // Quem registra: src/lib/account-handlers.ts (importado pelo src/server.ts).
 //
 // Encerrar a conta acontece em DUAS FASES:
-//   1. Encerrar (o usuário pede, em /conta): a conta recebe `deletedAt`, todas
+//   1. Encerrar (o usuário pede, em /app/configuracoes): a conta recebe `deletedAt`, todas
 //      as sessões caem e ela não entra mais. As linhas ficam guardadas por
 //      ACCOUNT_RETENTION_DAYS dias, para o suporte rastrear ou restaurar.
 //      Aqui rodam só os GUARDS (`onAccountDeletionGuard`).
@@ -85,6 +85,68 @@ export function purgeCutoff(now: Date): Date {
 /** Contas encerradas antes deste instante já estão no dia do lembrete. */
 export function reminderCutoff(now: Date): Date {
   return new Date(now.getTime() - PURGE_REMINDER_DAY * DAY_MS)
+}
+
+/**
+ * Em que fase do ciclo uma conta está (as duas fases do topo deste arquivo):
+ *
+ *   active --encerrar--> closed --lembrete (dia 5)--> reminded --prazo (dia 7)--> due
+ *
+ * - `active`: sem `deletedAt`. (`purgeRemindedAt` preenchido não muda nada:
+ *   quem restaura a conta zera só `deletedAt`, e ela volta a ser ativa.)
+ * - `closed`: encerrada, ainda sem lembrete enviado; `purgeAt` é a data de apagar.
+ * - `reminded`: encerrada e o lembrete do dia 5 já saiu.
+ * - `due`: passou do prazo, o cron apaga na próxima noite.
+ */
+export type AccountPhase =
+  | { k: 'active' }
+  | { k: 'closed'; purgeAt: Date }
+  | { k: 'reminded'; purgeAt: Date }
+  | { k: 'due' }
+
+type AccountRow = { deletedAt: Date | null; purgeRemindedAt: Date | null }
+
+/**
+ * A fase de uma conta agora. Usa as MESMAS funções de corte que os jobs
+ * (src/lib/jobs.ts), com a mesma comparação (`<` estrito): no instante exato
+ * do prazo a conta ainda não está `due`.
+ */
+export function accountPhase(row: AccountRow, now: Date): AccountPhase {
+  if (!row.deletedAt) return { k: 'active' }
+  if (row.deletedAt < purgeCutoff(now)) return { k: 'due' }
+  const purgeAt = purgeDateFor(row.deletedAt)
+  return row.purgeRemindedAt
+    ? { k: 'reminded', purgeAt }
+    : { k: 'closed', purgeAt }
+}
+
+/**
+ * O job `conta.lembrar-exclusao` deve mandar o lembrete desta conta agora?
+ * Mesma regra da consulta do job: já passou do dia 5, ainda não do prazo e
+ * o lembrete ainda não saiu.
+ */
+export function reminderDue(row: AccountRow, now: Date): boolean {
+  const { deletedAt } = row
+  if (!deletedAt || row.purgeRemindedAt) return false
+  return deletedAt < reminderCutoff(now) && deletedAt >= purgeCutoff(now)
+}
+
+/**
+ * Decide o que fazer depois do update condicional do encerramento
+ * (`where deletedAt is null`). `changed` é quantas linhas ele mudou:
+ * - 1: este pedido encerrou a conta (`first`: audita e manda o e-mail);
+ * - 0: outro pedido chegou antes. Responde igual, com o prazo calculado do
+ *   `deletedAt` JÁ gravado, e NÃO audita nem manda e-mail de novo.
+ */
+export function closeOutcome(
+  changed: number,
+  storedDeletedAt: Date | null,
+  now: Date,
+): { first: boolean; purgeAt: Date } {
+  if (changed > 0 || !storedDeletedAt) {
+    return { first: changed > 0, purgeAt: purgeDateFor(now) }
+  }
+  return { first: false, purgeAt: purgeDateFor(storedDeletedAt) }
 }
 
 /** Apaga todos os registros (só para testes). */

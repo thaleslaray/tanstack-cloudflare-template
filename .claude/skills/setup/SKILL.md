@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Primeira configuração depois de clonar o template — instala as dependências, cria o .dev.vars com um segredo gerado, aplica as migrações no banco local e sobe o servidor de desenvolvimento. Use logo depois de clonar ou quando o .dev.vars não existir.
+description: Primeira configuração depois de clonar o template — instala as dependências, cria o .dev.vars com um segredo gerado, aplica as migrações no banco local e sobe o servidor de desenvolvimento. Use logo depois de clonar ou quando o .dev.vars não existir. Use também quando pedirem "como rodo o projeto", "não abre no localhost", ou aparecer erro de BETTER_AUTH_SECRET.
 ---
 
 # Primeira configuração (do clone ao app rodando)
@@ -38,11 +38,11 @@ Edite o `.dev.vars` direto (nunca `git add -f` nele). As outras chaves podem
 ficar vazias: sem `RESEND_API_KEY` o e-mail aparece no terminal, e sem as
 chaves do Google/GitHub os botões de login social simplesmente não aparecem.
 
-A URL do app é deduzida da requisição; `BETTER_AUTH_URL` é opcional
-(só para outra porta). O login com senha é opcional e vem desligado
+A URL do app é deduzida da requisição, em qualquer porta; `BETTER_AUTH_URL`
+é opcional (só para fixar uma URL). O login com senha é opcional e vem desligado
 (`PASSWORD_LOGIN_ENABLED=true` liga).
 
-Depois de criar o `.dev.vars`, gere os tipos dos bindings (é rápido):
+Os tipos dos bindings já vêm prontos em `worker-configuration.d.ts`; só rode `npm run cf-typegen` se mudar o `wrangler.jsonc` ou o `.dev.vars.example`:
 
 ```bash
 npm run cf-typegen
@@ -93,7 +93,7 @@ painel, em `/app` (as configurações da conta ficam em `/app/configuracoes`).
 
 ## Problemas comuns
 
-- **Porta 3000 ocupada**: outro servidor está rodando. Feche-o ou rode `npx vite dev --port 3001` e acrescente `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars` (sem isso o login recusa a origem). Apague a linha quando voltar para a 3000.
+- **Porta 3000 ocupada**: outro servidor está rodando. Feche-o ou rode `npx vite dev --port 3001` e a URL do app vem da requisição, então nada muda no `.dev.vars` (só se ele tiver `BETTER_AUTH_URL` preenchido: aí ajuste a porta nele).
 - **Login quebra com erro de segredo**: o `.dev.vars` não existe ou `BETTER_AUTH_SECRET` está vazio. Refaça o passo 2 e reinicie o dev (os segredos são lidos ao iniciar).
 - **Primeira visita dá erro 500** depois de instalar dependência nova: o Vite está reotimizando. Recarregue a página.
 - **Dependências**: usam `^` e o `package-lock.json` é versionado; quem clona recebe o lock.

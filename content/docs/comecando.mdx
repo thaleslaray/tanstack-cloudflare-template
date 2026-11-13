@@ -67,7 +67,7 @@ Faça isso uma vez, e de novo sempre que você criar uma migration nova.
 npm run dev
 ```
 
-Abra `http://localhost:3000`. Se a porta 3000 estiver ocupada, rode `npx vite dev --port 3001` e acrescente `BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`.
+Abra `http://localhost:3000`. Se a porta 3000 estiver ocupada, rode `npx vite dev --port 3001`: a URL do app vem da requisição, então nada muda no `.dev.vars` (só se ele tiver `BETTER_AUTH_URL` preenchido: aí ajuste a porta nele).
 
 Com o app rodando, `http://localhost:3000/cdn-cgi/local/explorer` abre um painel com o banco, os arquivos e os logs de cada requisição.
 
@@ -90,7 +90,7 @@ O comando conversa com você, confere os pré-requisitos, cria o `.dev.vars`, ap
 ## Se algo der errado
 
 - **O `npm run e2e` falha com porta ocupada:** ele precisa da porta 3000 livre (não rode junto com o `npm run dev`); ou use `E2E_PORT=3001 npm run e2e`. Na primeira vez rode também `npx playwright install chromium`.
-- **A porta está ocupada:** use `npx vite dev --port 3001` (e o `BETTER_AUTH_URL` no `.dev.vars`, como acima).
+- **A porta está ocupada:** use `npx vite dev --port 3001` (nada a mudar no `.dev.vars`, como acima).
 - **Erro de tabela inexistente:** rode `npm run db:migrate:local` de novo.
 - **Tipos dos bindings desatualizados:** rode `npm run typecheck`, que regenera os tipos antes de checar.
 

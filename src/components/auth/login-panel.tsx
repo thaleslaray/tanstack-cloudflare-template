@@ -3,11 +3,15 @@ import { useQuery } from '@tanstack/react-query'
 import { EmailOtpForm } from '#/components/auth/email-otp-form'
 import { PasswordForm } from '#/components/auth/password-form'
 import { SocialButtons } from '#/components/auth/social-buttons'
+import { authFailureMessage, toAuthFailure } from '#/lib/auth-failure'
 import { authProvidersQuery } from '#/lib/auth-queries'
 
 // Mensagens para o `?error=` que volta de um login social recusado.
 function describeError(code: string | undefined) {
   if (!code) return null
+  // O código volta na URL, às vezes em minúsculas: conta encerrada tem texto próprio.
+  const failure = toAuthFailure({ code: code.toUpperCase() })
+  if (failure !== 'unknown') return authFailureMessage(failure, 'entrar')
   return 'Não foi possível entrar com esse método. Tente de novo ou use o código por e-mail.'
 }
 

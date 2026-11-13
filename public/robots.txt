@@ -4,7 +4,6 @@ User-agent: *
 Disallow: /api/
 Disallow: /app
 Disallow: /blocos
-Disallow: /conta
 Disallow: /estilo
 Disallow: /demo/
 

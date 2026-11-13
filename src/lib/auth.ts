@@ -53,9 +53,6 @@ export function getAuth(env: Env, request?: Request) {
     // handler de src/routes/api/auth/$.ts (src/lib/auth-rate-limit.ts), por IP
     // (prefixo /64 no IPv6) e por e-mail, com o binding PUBLIC_RATE_LIMIT.
     rateLimit: { enabled: false },
-    // `getSession` busca sessão e usuário num JOIN só (relação em
-    // src/db/auth-schema.ts): com o cache do cookie vencido, são 1 ida ao D1
-    // em vez de 2 em fila.
     emailAndPassword: {
       // Senha é opcional (PASSWORD_LOGIN_ENABLED). Quando liga, o e-mail precisa
       // ser confirmado por código antes de existir sessão: sem isso, alguém
@@ -126,7 +123,6 @@ export function getAuth(env: Env, request?: Request) {
     },
     // Auditoria de login e troca de nome (src/lib/auth-audit-hook.ts).
     hooks: { after: auditAfterHook },
-    // Login por código não traz nome: usa a parte local do e-mail.
     databaseHooks: {
       // Conta encerrada não entra de novo durante o prazo, por nenhum método:
       // todo login cria uma sessão, então esta é a única porta a fechar.
@@ -149,6 +145,7 @@ export function getAuth(env: Env, request?: Request) {
       },
       user: {
         create: {
+          // Login por código não traz nome: usa a parte local do e-mail.
           before: async (user) => {
             if (user.name?.trim()) return
             return { data: { ...user, name: user.email.split('@')[0] } }
@@ -157,6 +154,9 @@ export function getAuth(env: Env, request?: Request) {
       },
     },
     advanced: {
+      // `getSession` busca sessão e usuário num JOIN só (relação em
+      // src/db/auth-schema.ts): com o cache do cookie vencido, são 1 ida ao D1
+      // em vez de 2 em fila.
       database: { joins: true },
       ipAddress: { ipAddressHeaders: ['cf-connecting-ip', 'x-forwarded-for'] },
       // Tarefas "em segundo plano" (enviar o e-mail do código) seguem depois da

@@ -21,9 +21,9 @@
    --------------------------------------------------------------------------- */
 
 /* Autonomia (padrão): chão neutro (branco, cinza e tinta, sem matiz), UM
-   laranja (#ff4d00, da marca em ~/workspace/perfil/DESIGN.md) usado só como
-   PREENCHIMENTO sob texto branco, botão em pílula, borda fina, sombra zero.
-   As cinco regras e o porquê estão em src/CLAUDE.md. */
+   laranja (#ff4d00) usado só como PREENCHIMENTO sob texto tinta (#171717),
+   botão em pílula, borda fina, sombra zero.
+   As sete regras e o porquê estão em src/CLAUDE.md. */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -516,9 +516,6 @@
 }
 .demo-title {
   @apply text-2xl font-semibold tracking-tight;
-}
-.demo-muted {
-  @apply text-muted-foreground;
 }
 .demo-list-item {
   @apply rounded-lg border border-border bg-background px-4 py-3;

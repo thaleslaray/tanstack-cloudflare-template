@@ -10,8 +10,8 @@ import { session, user } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
 import {
   ACCOUNT_RETENTION_DAYS,
+  closeOutcome,
   collectAccountExport,
-  purgeDateFor,
   runAccountDeletionGuards,
 } from '#/lib/account'
 import { audit, requestMeta } from '#/lib/audit'
@@ -63,15 +63,32 @@ export const closeAccountFn = createServerFn({ method: 'POST' }).handler(
 
     const db = getDb(env.DB)
     const now = new Date()
-    // Atômico: marca a conta e derruba as sessões juntos.
-    await db.batch([
+    // Atômico: marca a conta e derruba as sessões juntos. O resultado do batch
+    // traz `meta.changes` por instrução: 0 no primeiro = a conta já estava
+    // encerrada (dois pedidos ao mesmo tempo, ex.: duplo clique).
+    const [marked] = await db.batch([
       db
         .update(user)
         .set({ deletedAt: now, purgeRemindedAt: null, updatedAt: now })
         .where(and(eq(user.id, me.id), isNull(user.deletedAt))),
       db.delete(session).where(eq(session.userId, me.id)),
     ])
-    const purgeAt = purgeDateFor(now)
+    let storedDeletedAt: Date | null = null
+    if (marked.meta.changes === 0) {
+      const [row] = await db
+        .select({ deletedAt: user.deletedAt })
+        .from(user)
+        .where(eq(user.id, me.id))
+        .limit(1)
+      storedDeletedAt = row?.deletedAt ?? null
+    }
+    const { first, purgeAt } = closeOutcome(
+      marked.meta.changes,
+      storedDeletedAt,
+      now,
+    )
+    // O outro pedido já auditou e avisou por e-mail: não repete.
+    if (!first) return { purgeAt: purgeAt.toISOString() }
     await audit(
       {
         action: 'account.close_requested',

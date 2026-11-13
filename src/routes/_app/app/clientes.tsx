@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { PlusIcon, SearchIcon, Trash2Icon, UsersIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useReducer, useState } from 'react'
 import { toast } from 'sonner'
 
 import { TableFrame, Toolbar } from '#/components/app/data-list'
@@ -69,22 +69,111 @@ function mensagemDe(error: unknown) {
     : 'Algo deu errado. Tente de novo.'
 }
 
+// Os diálogos da tela, como máquina de estados: só UM está aberto por vez e o
+// "o que está acontecendo" mora dentro dele, nunca em booleanos soltos.
+//
+//   nenhum --Novo cliente--> criar --Adicionar--> (salvando) --ok--> nenhum
+//   nenhum --lixeira-------> apagar --Apagar----> (apagando) --ok--> nenhum
+//
+// Enquanto `salvando`/`apagando` o diálogo NÃO fecha (Esc, clique fora e
+// Cancelar não fazem nada): senão o aviso de sucesso ou o erro chegaria depois
+// de a tela já ter fechado. Falhou? O diálogo continua aberto, com o erro.
+type Alvo = { id: string; nome: string }
+type ErrosCriar = { nome?: string; email?: string }
+type Dialogo =
+  | { k: 'nenhum' }
+  | { k: 'criar'; salvando: boolean; erros: ErrosCriar }
+  | { k: 'apagar'; alvo: Alvo; apagando: boolean }
+
+type Estado = {
+  dialogo: Dialogo
+  // Último cliente a apagar: o título "Apagar <nome>?" continua inteiro durante
+  // a animação de saída, quando `dialogo` já voltou para 'nenhum'.
+  ultimoAlvo?: Alvo
+}
+
+type Acao =
+  | { t: 'abrir_criar' }
+  | { t: 'abrir_apagar'; alvo: Alvo }
+  | { t: 'fechar' }
+  | { t: 'concluir' }
+  | { t: 'comecou' }
+  | { t: 'falhou'; erros?: ErrosCriar }
+  | { t: 'limpar_erro'; campo: keyof ErrosCriar }
+
+function reducer(estado: Estado, acao: Acao): Estado {
+  const { dialogo } = estado
+  switch (acao.t) {
+    case 'abrir_criar':
+      // Sempre começa limpo, sem erro de uma vez anterior.
+      return { ...estado, dialogo: { k: 'criar', salvando: false, erros: {} } }
+    case 'abrir_apagar':
+      return {
+        dialogo: { k: 'apagar', alvo: acao.alvo, apagando: false },
+        ultimoAlvo: acao.alvo,
+      }
+    case 'fechar': {
+      // Esc, clique fora e Cancelar: ignorados enquanto algo está sendo salvo.
+      const ocupado =
+        (dialogo.k === 'criar' && dialogo.salvando) ||
+        (dialogo.k === 'apagar' && dialogo.apagando)
+      return ocupado ? estado : { ...estado, dialogo: { k: 'nenhum' } }
+    }
+    case 'concluir':
+      return { ...estado, dialogo: { k: 'nenhum' } }
+    case 'comecou':
+      if (dialogo.k === 'criar') {
+        return { ...estado, dialogo: { ...dialogo, salvando: true } }
+      }
+      if (dialogo.k === 'apagar') {
+        return { ...estado, dialogo: { ...dialogo, apagando: true } }
+      }
+      return estado
+    case 'falhou':
+      if (dialogo.k === 'criar') {
+        return {
+          ...estado,
+          dialogo: {
+            ...dialogo,
+            salvando: false,
+            erros: acao.erros ?? dialogo.erros,
+          },
+        }
+      }
+      if (dialogo.k === 'apagar') {
+        return { ...estado, dialogo: { ...dialogo, apagando: false } }
+      }
+      return estado
+    case 'limpar_erro':
+      if (dialogo.k !== 'criar') return estado
+      return {
+        ...estado,
+        dialogo: {
+          ...dialogo,
+          erros: { ...dialogo.erros, [acao.campo]: undefined },
+        },
+      }
+  }
+}
+
 function ClientesPage() {
   const clientes = Route.useLoaderData()
   const router = useRouter()
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [busca, setBusca] = useState('')
 
-  const [aberto, setAberto] = useState(false)
+  const [{ dialogo, ultimoAlvo }, dispatch] = useReducer(reducer, {
+    dialogo: { k: 'nenhum' },
+  })
+  // Os valores dos campos ficam à parte: não são "estado do diálogo", só texto.
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [situacao, setSituacao] = useState<Situacao>('ativo')
-  const [erroNome, setErroNome] = useState<string>()
-  const [erroEmail, setErroEmail] = useState<string>()
-  const [salvando, setSalvando] = useState(false)
 
-  const [apagando, setApagando] = useState<{ id: string; nome: string }>()
-  const [confirmando, setConfirmando] = useState(false)
+  const criando = dialogo.k === 'criar'
+  const salvando = dialogo.k === 'criar' && dialogo.salvando
+  const erros = dialogo.k === 'criar' ? dialogo.erros : {}
+  const apagando = dialogo.k === 'apagar' && dialogo.apagando
 
   // Sem nenhum cliente não há o que filtrar: a faixa de filtros some e o
   // estado vazio fica com o único botão da marca da tela.
@@ -98,62 +187,59 @@ function ClientesPage() {
         c.email.toLowerCase().includes(termo)),
   )
 
-  function abrirDialogo(valor: boolean) {
-    setAberto(valor)
-    if (!valor) {
-      setNome('')
-      setEmail('')
-      setSituacao('ativo')
-      setErroNome(undefined)
-      setErroEmail(undefined)
-    }
+  function abrirCriar() {
+    setNome('')
+    setEmail('')
+    setSituacao('ativo')
+    dispatch({ t: 'abrir_criar' })
   }
 
   // Erro de um campo aparece junto do campo; qualquer outro (limite, sessão
   // vencida, rede) vira aviso, porque não é culpa de campo nenhum.
-  function mostrarErro(e: unknown) {
-    if (e instanceof CampoInvalido && e.campo === 'nome') {
-      setErroNome(e.message)
-    } else if (e instanceof CampoInvalido && e.campo === 'email') {
-      setErroEmail(e.message)
+  function falhaAoCriar(e: unknown) {
+    if (
+      e instanceof CampoInvalido &&
+      (e.campo === 'nome' || e.campo === 'email')
+    ) {
+      dispatch({ t: 'falhou', erros: { [e.campo]: e.message } })
     } else {
+      dispatch({ t: 'falhou' })
       toast.error(mensagemDe(e))
     }
   }
 
   async function criar(event: React.FormEvent) {
     event.preventDefault()
+    if (salvando) return
     try {
       validarCliente({ nome, email, situacao })
     } catch (e) {
-      mostrarErro(e)
+      falhaAoCriar(e)
       return
     }
-    setSalvando(true)
+    dispatch({ t: 'comecou' })
     try {
       await createClienteFn({ data: { nome, email, situacao } })
       await router.invalidate()
-      abrirDialogo(false)
+      dispatch({ t: 'concluir' })
       toast.success('Cliente adicionado')
     } catch (e) {
-      mostrarErro(e)
-    } finally {
-      setSalvando(false)
+      falhaAoCriar(e)
     }
   }
 
   async function apagar() {
-    if (!apagando) return
-    setConfirmando(true)
+    if (dialogo.k !== 'apagar' || dialogo.apagando) return
+    const { id } = dialogo.alvo
+    dispatch({ t: 'comecou' })
     try {
-      await deleteClienteFn({ data: { id: apagando.id } })
+      await deleteClienteFn({ data: { id } })
       await router.invalidate()
-      setApagando(undefined)
+      dispatch({ t: 'concluir' })
       toast.success('Cliente apagado')
     } catch (e) {
+      dispatch({ t: 'falhou' })
       toast.error(mensagemDe(e))
-    } finally {
-      setConfirmando(false)
     }
   }
 
@@ -167,7 +253,7 @@ function ClientesPage() {
       {semClientes ? null : (
         <Toolbar
           actions={
-            <Button variant="brand" onClick={() => abrirDialogo(true)}>
+            <Button variant="brand" onClick={abrirCriar}>
               <PlusIcon />
               Novo cliente
             </Button>
@@ -209,7 +295,7 @@ function ClientesPage() {
           }
           action={
             semClientes ? (
-              <Button variant="brand" onClick={() => abrirDialogo(true)}>
+              <Button variant="brand" onClick={abrirCriar}>
                 <PlusIcon />
                 Novo cliente
               </Button>
@@ -274,7 +360,10 @@ function ClientesPage() {
                         size="icon"
                         aria-label={`Apagar ${cliente.nome}`}
                         onClick={() =>
-                          setApagando({ id: cliente.id, nome: cliente.nome })
+                          dispatch({
+                            t: 'abrir_apagar',
+                            alvo: { id: cliente.id, nome: cliente.nome },
+                          })
                         }
                       >
                         <Trash2Icon />
@@ -288,7 +377,12 @@ function ClientesPage() {
         </TableFrame>
       )}
 
-      <Dialog open={aberto} onOpenChange={abrirDialogo}>
+      <Dialog
+        open={criando}
+        onOpenChange={(valor) => {
+          if (!valor) dispatch({ t: 'fechar' })
+        }}
+      >
         <DialogContent>
           <form onSubmit={criar} noValidate className="grid gap-5">
             <DialogHeader>
@@ -297,30 +391,30 @@ function ClientesPage() {
                 Ele entra na sua lista agora.
               </DialogDescription>
             </DialogHeader>
-            <Field id="cliente-nome" label="Nome" error={erroNome}>
+            <Field id="cliente-nome" label="Nome" error={erros.nome}>
               <Input
                 id="cliente-nome"
                 value={nome}
                 onChange={(e) => {
                   setNome(e.target.value)
-                  setErroNome(undefined)
+                  dispatch({ t: 'limpar_erro', campo: 'nome' })
                 }}
-                aria-invalid={erroNome ? true : undefined}
+                aria-invalid={erros.nome ? true : undefined}
                 maxLength={120}
                 autoComplete="off"
                 required
               />
             </Field>
-            <Field id="cliente-email" label="E-mail" error={erroEmail}>
+            <Field id="cliente-email" label="E-mail" error={erros.email}>
               <Input
                 id="cliente-email"
                 type="email"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value)
-                  setErroEmail(undefined)
+                  dispatch({ t: 'limpar_erro', campo: 'email' })
                 }}
-                aria-invalid={erroEmail ? true : undefined}
+                aria-invalid={erros.email ? true : undefined}
                 autoComplete="off"
                 required
               />
@@ -346,7 +440,8 @@ function ClientesPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => abrirDialogo(false)}
+                disabled={salvando}
+                onClick={() => dispatch({ t: 'fechar' })}
               >
                 Cancelar
               </Button>
@@ -359,28 +454,28 @@ function ClientesPage() {
       </Dialog>
 
       <Dialog
-        open={apagando !== undefined}
+        open={dialogo.k === 'apagar'}
         onOpenChange={(valor) => {
-          if (!valor) setApagando(undefined)
+          if (!valor) dispatch({ t: 'fechar' })
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Apagar {apagando?.nome}?</DialogTitle>
+            <DialogTitle>Apagar {ultimoAlvo?.nome}?</DialogTitle>
             <DialogDescription>
               O cliente some da sua lista e não dá para desfazer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApagando(undefined)}>
+            <Button
+              variant="outline"
+              disabled={apagando}
+              onClick={() => dispatch({ t: 'fechar' })}
+            >
               Cancelar
             </Button>
-            <Button
-              variant="destructive"
-              onClick={apagar}
-              disabled={confirmando}
-            >
-              {confirmando ? 'Apagando...' : 'Apagar cliente'}
+            <Button variant="destructive" onClick={apagar} disabled={apagando}>
+              {apagando ? 'Apagando...' : 'Apagar cliente'}
             </Button>
           </DialogFooter>
         </DialogContent>

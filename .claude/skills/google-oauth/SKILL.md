@@ -1,6 +1,6 @@
 ---
 name: google-oauth
-description: Liga o login com Google — guia o usuário na criação das credenciais OAuth no Google Cloud, grava GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET no .dev.vars (ou nos segredos de produção) e verifica que o botão apareceu. Opcional; o login por código no e-mail já funciona sem isso.
+description: Liga o login com Google ou GitHub — guia a criação das credenciais OAuth, grava GOOGLE_*/GITHUB_* no .dev.vars (ou nos segredos de produção) e confere que o botão apareceu. Use quando pedirem "login com Google", "entrar com GitHub" ou "login social". Opcional; o login por código no e-mail já funciona sem isso.
 ---
 
 # Login com Google

@@ -5,7 +5,7 @@ import {
   CircleIcon,
   XIcon,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader, StatCard, StatStrip } from '#/components/page-header'
 import { getDashboardStatsFn } from '#/lib/app-fns'
@@ -20,9 +20,6 @@ export const Route = createFileRoute('/_app/app/')({
   head: () => ({ meta: seo({ title: 'Painel', noindex: true }) }),
   component: DashboardPage,
 })
-
-// Onde a marca morava antes de virar cookie (src/lib/checklist.ts).
-const LEGACY_STORAGE_KEY = 'app-checklist-dispensado'
 
 type SetupStep = {
   done: boolean
@@ -42,22 +39,6 @@ function SetupChecklist({
   initiallyDismissed: boolean
 }) {
   const [dismissed, setDismissed] = useState(initiallyDismissed)
-
-  // Migração (pode sair depois de uns meses): quem dispensou quando a marca
-  // ficava no localStorage não tem o cookie ainda. Uma vez, grava o cookie,
-  // apaga a chave antiga e esconde.
-  useEffect(() => {
-    if (initiallyDismissed) return
-    try {
-      if (localStorage.getItem(LEGACY_STORAGE_KEY) === '1') {
-        writeChecklistDismissedCookie()
-        localStorage.removeItem(LEGACY_STORAGE_KEY)
-        setDismissed(true)
-      }
-    } catch {
-      // Sem localStorage (aba anônima restrita): nada a migrar.
-    }
-  }, [initiallyDismissed])
 
   const done = steps.filter((step) => step.done).length
   if (dismissed || done === steps.length) return null

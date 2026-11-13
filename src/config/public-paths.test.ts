@@ -18,7 +18,6 @@ describe('isPrerenderable', () => {
     '/login',
     '/blocos',
     '/estilo',
-    '/conta',
     '/app',
     '/app/',
     '/app/configuracoes',

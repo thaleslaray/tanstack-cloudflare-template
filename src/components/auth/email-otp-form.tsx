@@ -1,76 +1,147 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useReducer } from 'react'
 
+import { useCooldown } from '#/components/auth/use-cooldown'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { authClient } from '#/lib/auth-client'
+import { authFailureMessage, toAuthFailure } from '#/lib/auth-failure'
 
-// Login por código: duas etapas no mesmo componente (e-mail, depois código).
-// Voltar é só `sentTo = null`, sem mexer no histórico do navegador.
-const RESEND_COOLDOWN_SECONDS = 60
+// Login por código, como máquina de estados: o passo em que estamos é UM valor
+// (`OtpStep`), nunca uma combinação de booleanos.
+//
+//   email --enviar--> sending --ok--> code --entrar--> verifying --ok--> (recarrega a página)
+//     ^                  |             |  ^                |
+//     +------falha-------+             |  +-----falha------+
+//     +-------"usar outro e-mail"------+
+//
+// `sending` com `resend: true` é o "Reenviar código": a tela continua na etapa
+// do código e, se falhar, volta para ela. Em `sending` e `verifying` os botões
+// ficam travados (inclusive "Usar outro e-mail").
+type OtpStep =
+  | { s: 'email' }
+  | { s: 'sending'; to: string; resend: boolean }
+  | { s: 'code'; to: string }
+  | { s: 'verifying'; to: string }
 
-function describeError(code: string | undefined) {
-  switch (code) {
-    case 'OTP_EXPIRED':
-      return 'Este código expirou. Peça um novo.'
-    case 'INVALID_OTP':
-      return 'Código incorreto. Confira e tente de novo.'
-    case 'TOO_MANY_ATTEMPTS':
-      return 'Muitas tentativas erradas. Peça um novo código.'
-    case 'ACCOUNT_CLOSED':
-      return 'Esta conta foi encerrada e será apagada em breve. Para recuperá-la, fale com o suporte.'
-    default:
-      return 'Não deu certo. Tente de novo em instantes.'
+type State = {
+  step: OtpStep
+  email: string
+  code: string
+  error: string | null
+}
+
+type Action =
+  | { type: 'email_changed'; value: string }
+  | { type: 'code_changed'; value: string }
+  | { type: 'send_started'; to: string; resend: boolean }
+  | { type: 'send_succeeded'; to: string }
+  | { type: 'send_failed'; message: string }
+  | { type: 'verify_started'; to: string }
+  | { type: 'verify_failed'; message: string }
+  | { type: 'back_to_email' }
+
+export const initial: State = {
+  step: { s: 'email' },
+  email: '',
+  code: '',
+  error: null,
+}
+
+export function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'email_changed':
+      return { ...state, email: action.value }
+    case 'code_changed':
+      return { ...state, code: action.value, error: null }
+    case 'send_started':
+      return {
+        ...state,
+        step: { s: 'sending', to: action.to, resend: action.resend },
+        error: null,
+      }
+    case 'send_succeeded':
+      return { ...state, step: { s: 'code', to: action.to }, code: '' }
+    case 'send_failed': {
+      // Falhou o primeiro envio: volta ao e-mail. Falhou o reenvio: volta ao código.
+      const step: OtpStep =
+        state.step.s === 'sending' && state.step.resend
+          ? { s: 'code', to: state.step.to }
+          : { s: 'email' }
+      return { ...state, step, error: action.message }
+    }
+    case 'verify_started':
+      return { ...state, step: { s: 'verifying', to: action.to }, error: null }
+    case 'verify_failed':
+      return {
+        ...state,
+        step: {
+          s: 'code',
+          to: state.step.s === 'verifying' ? state.step.to : '',
+        },
+        error: action.message,
+      }
+    case 'back_to_email':
+      return { ...state, step: { s: 'email' }, error: null }
   }
 }
 
 export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
   const queryClient = useQueryClient()
-  const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
-  // Preenchido quando o código já foi enviado: também diz em qual etapa estamos.
-  const [sentTo, setSentTo] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [cooldown, setCooldown] = useState(0)
+  const [state, dispatch] = useReducer(reducer, initial)
+  const cooldown = useCooldown()
+  const { step, email, code, error } = state
 
-  useEffect(() => {
-    if (cooldown <= 0) return
-    const timer = setTimeout(() => setCooldown((n) => n - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [cooldown])
+  const pending = step.s === 'sending' || step.s === 'verifying'
+  // A etapa do código também vale durante o reenvio.
+  const codeStep =
+    step.s === 'code' ||
+    step.s === 'verifying' ||
+    (step.s === 'sending' && step.resend)
+  const sentTo = step.s === 'email' ? null : step.to
 
-  async function send(address: string) {
-    setPending(true)
-    setError(null)
-    const { error: failure } = await authClient.emailOtp.sendVerificationOtp({
-      email: address,
-      type: 'sign-in',
-    })
-    setPending(false)
+  async function send(address: string, resend: boolean) {
+    dispatch({ type: 'send_started', to: address, resend })
+    let failure: unknown
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email: address,
+        type: 'sign-in',
+      })
+      failure = result.error
+    } catch {
+      // Falha de rede: o cliente rejeita em vez de devolver `error`.
+      failure = {}
+    }
     if (failure) {
-      setError(
-        'Não foi possível enviar o código. Confira o e-mail e tente de novo.',
-      )
+      dispatch({
+        type: 'send_failed',
+        message: authFailureMessage(toAuthFailure(failure), 'enviar'),
+      })
       return
     }
-    setSentTo(address)
-    setCode('')
-    setCooldown(RESEND_COOLDOWN_SECONDS)
+    dispatch({ type: 'send_succeeded', to: address })
+    cooldown.start()
   }
 
-  async function verify() {
-    if (!sentTo) return
-    setPending(true)
-    setError(null)
-    const { error: failure } = await authClient.signIn.emailOtp({
-      email: sentTo,
-      otp: code,
-    })
+  async function verify(address: string) {
+    dispatch({ type: 'verify_started', to: address })
+    let failure: unknown
+    try {
+      const result = await authClient.signIn.emailOtp({
+        email: address,
+        otp: code,
+      })
+      failure = result.error
+    } catch {
+      failure = {}
+    }
     if (failure) {
-      setPending(false)
-      setError(describeError(failure.code))
+      dispatch({
+        type: 'verify_failed',
+        message: authFailureMessage(toAuthFailure(failure), 'verificar'),
+      })
       return
     }
     await queryClient.invalidateQueries({ queryKey: ['session'] })
@@ -84,11 +155,11 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
       onSubmit={(event) => {
         event.preventDefault()
         if (pending) return
-        if (sentTo) void verify()
-        else void send(email.trim())
+        if (codeStep && sentTo) void verify(sentTo)
+        else void send(email.trim(), false)
       }}
     >
-      {sentTo ? (
+      {codeStep && sentTo ? (
         <>
           <p className="text-sm text-muted-foreground">
             Enviamos um código de 6 dígitos para{' '}
@@ -101,10 +172,12 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
               id="otp-code"
               autoFocus
               value={code}
-              onChange={(event) => {
-                setCode(event.target.value.replace(/\D/g, '').slice(0, 6))
-                setError(null)
-              }}
+              onChange={(event) =>
+                dispatch({
+                  type: 'code_changed',
+                  value: event.target.value.replace(/\D/g, '').slice(0, 6),
+                })
+              }
               inputMode="numeric"
               autoComplete="one-time-code"
               placeholder="000000"
@@ -118,26 +191,26 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
             variant="brand"
             className="h-11 w-full"
           >
-            {pending ? 'Entrando...' : 'Entrar'}
+            {step.s === 'verifying' ? 'Entrando...' : 'Entrar'}
           </Button>
           <div className="flex justify-between text-xs text-muted-foreground">
             <button
               type="button"
-              className="hover:text-foreground"
-              onClick={() => {
-                setSentTo(null)
-                setError(null)
-              }}
+              disabled={pending}
+              className="hover:text-foreground disabled:hover:text-muted-foreground"
+              onClick={() => dispatch({ type: 'back_to_email' })}
             >
               Usar outro e-mail
             </button>
             <button
               type="button"
-              disabled={cooldown > 0 || pending}
+              disabled={cooldown.left > 0 || pending}
               className="hover:text-foreground disabled:hover:text-muted-foreground"
-              onClick={() => void send(sentTo)}
+              onClick={() => void send(sentTo, true)}
             >
-              {cooldown > 0 ? `Reenviar em ${cooldown}s` : 'Reenviar código'}
+              {cooldown.left > 0
+                ? `Reenviar em ${cooldown.left}s`
+                : 'Reenviar código'}
             </button>
           </div>
         </>
@@ -150,7 +223,9 @@ export function EmailOtpForm({ callbackURL }: { callbackURL: string }) {
               type="email"
               required
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) =>
+                dispatch({ type: 'email_changed', value: event.target.value })
+              }
               autoComplete="email"
               placeholder="voce@exemplo.com"
               className="h-12"

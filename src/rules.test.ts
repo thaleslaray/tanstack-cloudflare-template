@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-// As regras do CLAUDE.md marcadas com (teste), em forma de teste. Regra
+// As regras do AGENTS.md e do src/CLAUDE.md marcadas com (teste), em forma de teste. Regra
 // escrita é seguida quase sempre; estas transformam o "quase" em teste
 // vermelho em vez de bug em produção. Mudou a regra? Mude nos dois lugares.
 //
@@ -155,7 +155,7 @@ function matches(re: RegExp, pick: (f: (typeof files)[number]) => string) {
   })
 }
 
-describe('regras do projeto (CLAUDE.md)', () => {
+describe('regras do projeto (AGENTS.md e src/CLAUDE.md)', () => {
   it('encontra os arquivos de src/', () => {
     expect(files.length).toBeGreaterThan(50)
   })
@@ -336,7 +336,7 @@ describe('regras do projeto (CLAUDE.md)', () => {
       'O Wrangler é ferramenta de linha de comando (deploy, tipos, D1); ' +
         'não roda dentro do Worker. A config é o wrangler.jsonc e chega ao ' +
         'código como bindings em env. cloudflare.config.ts é do cf/v2 beta, ' +
-        'que este projeto não usa (veja CLAUDE.md).',
+        'que este projeto não usa (veja AGENTS.md).',
     ).toEqual([])
   })
 

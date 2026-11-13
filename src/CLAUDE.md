@@ -13,7 +13,7 @@ estado selecionado. Nunca como cor de letra. A página não tem cor própria;
 o contraste faz o trabalho.
 
 O que isso inverteu, e por quê: o tema padrão nasceu bege (`#f5f2ed`) com
-rótulos laranja, medidos da página dos alunos (`~/workspace/perfil/DESIGN.md`).
+rótulos laranja.
 Comparado lado a lado com interfaces que lemos como "bonitas" (o painel do
 ShipKit foi a referência), a diferença estava toda em duas coisas: o fundo
 tinha tom, e o texto tinha cor. Numa página de quatro telas, qualquer tom

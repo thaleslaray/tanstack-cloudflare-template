@@ -48,8 +48,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 Avisos do `npm install` (como `peer dependency`) pode ignorar; só erro importa.
 
 `npm run e2e` (opcional, Playwright) precisa da porta 3000 **livre**: não rode
-junto com o `npm run dev` (ou use `E2E_PORT=3001 npm run e2e`, com
-`BETTER_AUTH_URL=http://localhost:3001` no `.dev.vars`). Na primeira vez rode
+junto com o `npm run dev` (ou use `E2E_PORT=3001 npm run e2e`; a URL do app vem da
+requisição, então nada muda no `.dev.vars`). Na primeira vez rode
 `npx playwright install chromium`.
 
 Abra http://localhost:3000/login e peça um código. Sem provedor de e-mail
@@ -101,6 +101,8 @@ liga o login com Google, `/tela` cria uma tela nova no visual do app (peça
 | `npm run test` | Vitest (unidades) |
 | `npm run test:cold` | Sobe um servidor de dev à parte e confere que ele continua respondendo depois de um primeiro pedido abandonado |
 | `npm run e2e` | Playwright contra o servidor de dev (ele sobe o servidor sozinho) |
+| `npm run e2e:ui` | o mesmo Playwright, na interface gráfica dele |
+| `npm run load` / `load:sessoes` | teste de carga com k6 (veja `load/README.md`); gasta cota, rode só de propósito |
 | `npm run db:generate` | gera a migração a partir de `src/db/*.ts` |
 | `npm run db:migrate:local` / `:remote` | aplica as migrações no D1 local / remoto |
 

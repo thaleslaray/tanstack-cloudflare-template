@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as BlocosRouteImport } from './routes/blocos'
-import { Route as ContaRouteImport } from './routes/conta'
 import { Route as EstiloRouteImport } from './routes/estilo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
@@ -44,11 +43,6 @@ const AppRoute = AppRouteImport.update({
 const BlocosRoute = BlocosRouteImport.update({
   id: '/blocos',
   path: '/blocos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContaRoute = ContaRouteImport.update({
-  id: '/conta',
-  path: '/conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EstiloRoute = EstiloRouteImport.update({
@@ -145,7 +139,6 @@ const ApiAvatarUserIdRoute = ApiAvatarUserIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/blocos': typeof BlocosRoute
-  '/conta': typeof ContaRoute
   '/estilo': typeof EstiloRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -168,7 +161,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/blocos': typeof BlocosRoute
-  '/conta': typeof ContaRoute
   '/estilo': typeof EstiloRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -193,7 +185,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/blocos': typeof BlocosRoute
-  '/conta': typeof ContaRoute
   '/estilo': typeof EstiloRoute
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -218,7 +209,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/blocos'
-    | '/conta'
     | '/estilo'
     | '/login'
     | '/privacidade'
@@ -241,7 +231,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/blocos'
-    | '/conta'
     | '/estilo'
     | '/login'
     | '/privacidade'
@@ -265,7 +254,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/blocos'
-    | '/conta'
     | '/estilo'
     | '/login'
     | '/privacidade'
@@ -290,7 +278,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   BlocosRoute: typeof BlocosRoute
-  ContaRoute: typeof ContaRoute
   EstiloRoute: typeof EstiloRoute
   LoginRoute: typeof LoginRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -328,13 +315,6 @@ declare module '@tanstack/react-router' {
       path: '/blocos'
       fullPath: '/blocos'
       preLoaderRoute: typeof BlocosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/conta': {
-      id: '/conta'
-      path: '/conta'
-      fullPath: '/conta'
-      preLoaderRoute: typeof ContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/estilo': {
@@ -496,7 +476,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   BlocosRoute: BlocosRoute,
-  ContaRoute: ContaRoute,
   EstiloRoute: EstiloRoute,
   LoginRoute: LoginRoute,
   PrivacidadeRoute: PrivacidadeRoute,
