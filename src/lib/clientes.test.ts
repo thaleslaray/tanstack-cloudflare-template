@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { CampoInvalido, EMAIL_MAX, NOME_MAX, validarCliente } from './clientes'
+import {
+  CampoInvalido,
+  EMAIL_MAX,
+  linhaDoCliente,
+  NOME_MAX,
+  validarCliente,
+} from './clientes'
 
 const campoDe = (data: unknown) => {
   try {
@@ -58,5 +64,20 @@ describe('validarCliente', () => {
   it('não quebra com entrada que não é objeto', () => {
     expect(campoDe(null)).toBe('nome')
     expect(campoDe('texto')).toBe('nome')
+  })
+})
+
+describe('linhaDoCliente', () => {
+  it('o dono e o id são os da sessão, mesmo que data traga outros', () => {
+    const data = {
+      nome: 'A',
+      email: 'a@b.co',
+      situacao: 'ativo',
+      userId: 'de-outra-pessoa',
+      id: 'escolhido-pelo-cliente',
+    } as unknown as Parameters<typeof linhaDoCliente>[2]
+    const row = linhaDoCliente('id-novo', 'eu', data)
+    expect(row.userId).toBe('eu')
+    expect(row.id).toBe('id-novo')
   })
 })

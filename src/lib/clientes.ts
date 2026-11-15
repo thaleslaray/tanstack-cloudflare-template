@@ -47,3 +47,12 @@ export function validarCliente(data: unknown): NovoCliente {
   }
   return { nome, email, situacao: situacao as Situacao }
 }
+
+/**
+ * A linha a inserir. `id` e `userId` vêm DEPOIS de `...data` de propósito: se
+ * um dia a validação deixar passar um campo a mais, o dono da linha continua
+ * sendo o usuário da sessão e o cliente nunca escolhe o próprio id nem o dono.
+ */
+export function linhaDoCliente(id: string, userId: string, data: NovoCliente) {
+  return { ...data, id, userId }
+}

@@ -13,7 +13,7 @@ import { and, count, desc, eq } from 'drizzle-orm'
 import { getDb } from '#/db/index'
 import { clientes } from '#/db/schema'
 import { audit, requestMeta } from '#/lib/audit'
-import { CLIENTES_MAX, validarCliente } from '#/lib/clientes'
+import { CLIENTES_MAX, linhaDoCliente, validarCliente } from '#/lib/clientes'
 import { getRequestSession } from '#/lib/request-session'
 
 async function requireUser() {
@@ -55,7 +55,7 @@ export const createClienteFn = createServerFn({ method: 'POST' })
       )
     }
     const id = crypto.randomUUID()
-    await db.insert(clientes).values({ id, userId: user.id, ...data })
+    await db.insert(clientes).values(linhaDoCliente(id, user.id, data))
     await audit(
       {
         action: 'cliente.created',
