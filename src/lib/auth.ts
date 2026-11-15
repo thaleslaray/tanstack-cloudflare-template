@@ -13,6 +13,7 @@ import {
   assertAuthSecret,
   DISABLED_PATHS,
   isLocalUrl,
+  otpHasher,
   passwordEnabled,
   present,
   resolveBaseURL,
@@ -211,8 +212,10 @@ export function getAuth(env: Env, request?: Request) {
         otpLength: 6,
         expiresIn: 600,
         allowedAttempts: 3,
-        // Só o hash do código fica no banco (tabela `verification`).
-        storeOTP: 'hashed',
+        // Só o hash do código fica no banco (tabela `verification`), e é um
+        // HMAC com o segredo do app (src/lib/auth-config.ts, `otpHasher`):
+        // o SHA-256 puro do 'hashed' cai por força bruta em 6 dígitos.
+        storeOTP: { hash: otpHasher(env.BETTER_AUTH_SECRET) },
         // Entrega só `sign-in` e `email-verification` (src/lib/auth-otp.ts).
         sendVerificationOTP: deliverOtp,
         overrideDefaultEmailVerification: true,

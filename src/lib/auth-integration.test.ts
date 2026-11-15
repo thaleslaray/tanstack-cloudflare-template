@@ -1,7 +1,8 @@
 import { decryptOAuthToken, setTokenUtil } from 'better-auth/oauth2'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { type AuditRecord, onAudit } from '#/lib/audit'
+import { otpHasher } from '#/lib/auth-config'
 
 import { createAuthHarness } from '#/test/auth-harness'
 
@@ -141,5 +142,34 @@ describe('auditoria de saída, vínculo social e usuário novo (Better Auth mont
     expect(created.targetType).toBe('user')
     const linked = await until(() => find('auth.account_linked', email))
     expect(JSON.parse(linked.meta ?? '{}')).toEqual({ provider: 'google' })
+  })
+})
+
+describe('código de login com hash com chave (Better Auth montado)', () => {
+  it('o login funciona e o banco guarda o HMAC, não o SHA-256 puro', async () => {
+    const email = 'hmac@exemplo.test'
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await h.post('/email-otp/send-verification-otp', { email, type: 'sign-in' })
+    let code: string | undefined
+    for (let i = 0; i < 100 && !code; i++) {
+      const line = warn.mock.calls
+        .map(([l]) => String(l))
+        .find((l) => l.includes(email))
+      code = line?.match(/(\d{6})$/)?.[1]
+      if (!code) await new Promise((r) => setTimeout(r, 20))
+    }
+    warn.mockRestore()
+    expect(code).toBeDefined()
+    const row = await h.db
+      .prepare('select value from verification where identifier = ?')
+      .bind(`sign-in-otp-${email}`)
+      .first<{ value: string }>()
+    // o valor guardado é `<hash>:<tentativas>`
+    const stored = row?.value.split(':')[0]
+    expect(stored).toBe(
+      await otpHasher(h.env.BETTER_AUTH_SECRET)(code as string),
+    )
+    const login = await h.post('/sign-in/email-otp', { email, otp: code })
+    expect(login.status).toBe(200)
   })
 })

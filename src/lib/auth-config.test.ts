@@ -4,6 +4,7 @@ import {
   assertAuthSecret,
   DISABLED_PATHS,
   isLocalUrl,
+  otpHasher,
   passwordEnabled,
   resolveBaseURL,
   resolveTrustedOrigins,
@@ -93,5 +94,29 @@ describe('resolveTrustedOrigins', () => {
     expect(resolveTrustedOrigins('')).toBeUndefined()
     expect(resolveTrustedOrigins(undefined)).toBeUndefined()
     expect(resolveTrustedOrigins('lixo')).toBeUndefined()
+  })
+})
+
+describe('otpHasher', () => {
+  it('é determinístico e depende da chave', async () => {
+    const a = otpHasher('segredo-a'.repeat(4))
+    const b = otpHasher('segredo-b'.repeat(4))
+    expect(await a('123456')).toBe(await a('123456'))
+    expect(await a('123456')).not.toBe(await a('123457'))
+    expect(await a('123456')).not.toBe(await b('123456'))
+    expect(await a('123456')).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('não é o SHA-256 puro do código', async () => {
+    const plain = Array.from(
+      new Uint8Array(
+        await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode('123456'),
+        ),
+      ),
+      (b) => b.toString(16).padStart(2, '0'),
+    ).join('')
+    expect(await otpHasher('x'.repeat(40))('123456')).not.toBe(plain)
   })
 })

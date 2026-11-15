@@ -23,6 +23,34 @@ export function passwordEnabled(env: {
   return value === 'true' || value === '1'
 }
 
+/**
+ * Hash do código de login com CHAVE (HMAC-SHA-256, chave = o segredo do app).
+ * O `storeOTP: 'hashed'` do Better Auth é um SHA-256 puro: com só 6 dígitos,
+ * quem lesse a tabela `verification` descobriria o código em milissegundos.
+ * Com a chave, o hash vazado sozinho não dá para testar offline. Devolve hex.
+ * Trocar `BETTER_AUTH_SECRET` invalida só os códigos em voo (10 min).
+ */
+export function otpHasher(secret: string): (otp: string) => Promise<string> {
+  const encoder = new TextEncoder()
+  const key = crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret.trim()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  return async (otp) => {
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      await key,
+      encoder.encode(otp),
+    )
+    return Array.from(new Uint8Array(signature), (b) =>
+      b.toString(16).padStart(2, '0'),
+    ).join('')
+  }
+}
+
 /** True para localhost, 127.x, [::1] e *.localhost (desenvolvimento). */
 export function isLocalUrl(url: string): boolean {
   try {
