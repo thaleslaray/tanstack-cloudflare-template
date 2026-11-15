@@ -61,3 +61,19 @@ jobs:
             echo "::error::O schema mudou sem migração. Rode npm run db:generate e versione a pasta drizzle/."
             exit 1
           fi
+
+  # Procura segredo (chave de API, token, senha) em todo o histórico do git.
+  # Action oficial do Gitleaks, fixada por SHA (v3.0.0). Repositório de ORGANIZAÇÃO
+  # precisa do segredo `GITLEAKS_LICENSE` (gratuito, em gitleaks.io); conta
+  # pessoal não precisa.
+  segredos:
+    name: Segredos no histórico (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
