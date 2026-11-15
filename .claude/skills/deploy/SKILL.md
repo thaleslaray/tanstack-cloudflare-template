@@ -22,6 +22,11 @@ Confirme com o usuário o nome do projeto (hoje `tanstack-cloudflare-template`
 em `wrangler.jsonc` e `package.json`) e o domínio final, se houver.
 Sem domínio próprio, o app sai em `<nome>.<conta>.workers.dev`.
 
+**Mais de uma conta na Cloudflare?** O Wrangler pergunta qual usar a cada
+comando (e trava num terminal sem pergunta). Pegue o id no `npx wrangler whoami`
+e fixe com `CLOUDFLARE_ACCOUNT_ID=<id>` na frente de CADA comando do Wrangler
+(`deploy`, `secret put`, `d1`, `tail`, `npm run deploy` e `db:migrate:remote`).
+
 ## 1. Banco e bucket (criados sozinhos)
 
 O `wrangler.jsonc` não tem `database_id` nem `bucket_name` de propósito: o
@@ -35,8 +40,16 @@ Troque `url` em `src/config/app.ts` pela URL pública ANTES do build
 ## 2. URL pública
 
 Em produção, `BETTER_AUTH_URL` é OBRIGATÓRIO como segredo (a URL pública
-final, ex.: `https://app.seudominio.com.br`), definido ANTES do primeiro
-deploy. Motivo: sem ele a URL é deduzida da requisição e cada host que chega
+final, ex.: `https://app.seudominio.com.br`). A ordem depende do endereço:
+
+- **Domínio próprio já conhecido:** a URL vai no `.prod.vars` ANTES do
+  primeiro deploy.
+- **Sem domínio próprio:** o endereço `<nome>.<conta>.workers.dev` só aparece
+  no FIM do primeiro deploy. Publique e, logo em seguida, grave a URL com
+  `npx wrangler secret put BETTER_AUTH_URL` (com o `CLOUDFLARE_ACCOUNT_ID` se
+  houver mais de uma conta), ANTES de qualquer teste ou login.
+
+Motivo: sem ele a URL é deduzida da requisição e cada host que chega
 ao Worker vira origem confiável do login; além disso, `workers.dev` e o
 domínio próprio têm cookies separados e o OAuth (callback cadastrado no
 provedor) só funciona em um deles. Com a variável, o app confia só nessa
@@ -50,7 +63,7 @@ com os mesmos nomes do `.dev.vars.example`:
 ```
 BETTER_AUTH_SECRET=<novo, gerado com openssl rand -base64 32>
 BETTER_AUTH_URL=<obrigatório em produção: https://app.seudominio.com.br>
-RESEND_API_KEY=<recomendado: sem provedor de e-mail em produção o login RECUSA enviar>
+RESEND_API_KEY=<OBRIGATÓRIO (ou o binding EMAIL + EMAIL_FROM): sem provedor de e-mail o login não funciona>
 EMAIL_FROM=Meu App <contato@seudominio.com.br>
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -59,14 +72,21 @@ GITHUB_CLIENT_SECRET=
 PASSWORD_LOGIN_ENABLED=   # opcional; true liga o login com senha
 ```
 
-Nunca reaproveite o segredo do dev (mínimo de 32 caracteres). Sem provedor de
-e-mail em produção o login recusa enviar o código: configure o
-Resend (ou o Email Service da Cloudflare, veja `src/lib/email.ts`) ou um
-provedor social.
+Nunca reaproveite o segredo do dev (mínimo de 32 caracteres).
+
+**Provedor de e-mail é obrigatório antes de publicar.** Configure o Resend (ou o
+Email Service da Cloudflare, veja `src/lib/email.ts`). Sem provedor, fora do
+localhost, o pedido de código de login responde 503 `EMAIL_NAO_CONFIGURADO` e a
+tela mostra "O envio de e-mail deste sistema ainda não foi configurado. Avise
+quem administra." (antes, a tela dizia "código enviado" e o erro ficava só no
+log). Um provedor social (Google/GitHub) não substitui: o login por código
+continua na tela. Não publique para uso real sem isto.
 
 ## 4. Primeiro deploy
 
-Os segredos do passo 3 já têm de estar no `.prod.vars`. Depois:
+Os segredos do passo 3 já têm de estar no `.prod.vars` (sem domínio próprio,
+a `BETTER_AUTH_URL` ainda não existe: grave-a logo depois, veja o passo 2).
+Depois:
 
 ```bash
 npm run build
@@ -135,6 +155,13 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
 Rode depois que o app estiver no ar, com a réplica ligada e uns 15 min depois
 do deploy (tempo do Smart Placement). Use o k6 (`brew install k6` no Mac).
 
+**Antes de rodar, ajuste `load/rotas.json` às telas do produto.** O padrão mede
+a tela de clientes de exemplo e cria/apaga um cliente; se o produto trocou ou
+removeu essa tela, aponte as rotas públicas, as logadas e (opcional) a escrita
+para o que existe de verdade, ou use `"escrita": null`. Se uma rota configurada
+responder 404, o roteiro para antes de medir, com a mensagem dizendo qual.
+Detalhes em `load/README.md`.
+
 1. Entre no app pelo navegador. Nas ferramentas do navegador (Application →
    Cookies), copie o valor do cookie `__Secure-better-auth.session_token`.
    É a SUA sessão: não compartilhe e não versione.
@@ -148,8 +175,8 @@ do deploy (tempo do Smart Placement). Use o k6 (`brew install k6` no Mac).
    ```
 
    Leva uns 8 min e faz perto de 10 mil pedidos (cerca de 10% da cota
-   diária do plano Free de Workers). Cada rodada cria e apaga um cliente de
-   teste na sua conta.
+   diária do plano Free de Workers). Se a escrita estiver ligada em
+   `load/rotas.json`, cada rodada cria e apaga um registro de teste na sua conta.
 3. O resumo mostra o p95 de cada cenário contra a meta: estático < 100 ms,
    SSR público < 300 ms, SSR logado < 500 ms, escrita < 600 ms, e erro < 1%.
 4. O CPU por pedido não sai no k6: veja em Cloudflare → Workers → o Worker →
@@ -170,4 +197,4 @@ vai depois porque o banco só existe depois do primeiro deploy).
 - Dependências com `^` e `package-lock.json` versionado; quem clona recebe o lock.
 - A saída do build fica em `dist/` (`dist/server/wrangler.json` é a config
   que o Wrangler publica, gerada pelo plugin a partir do `wrangler.jsonc`).
-- Logs ao vivo: `npx wrangler tail`.
+- Logs ao vivo: `npx wrangler tail` (com `CLOUDFLARE_ACCOUNT_ID` se houver mais de uma conta). No macOS não existe `timeout`: para parar, Ctrl+C, ou rode em segundo plano e encerre o processo.
