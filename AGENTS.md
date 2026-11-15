@@ -140,6 +140,22 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - Cabeçalhos de segurança em `src/lib/security-headers.ts` (Worker) e `public/_headers` (assets/páginas estáticas): mantenha os dois iguais. Sem CSP de propósito (scripts inline do TanStack).
 - Server functions recusam chamadas cross-site (`same-origin.ts`); use `method: 'POST'` em server function que muda estado. Rota de API que muda estado com o cookie do usuário chama `isCrossSiteRequest(request)` no começo (403), como `api/avatar.ts`.
 
+### Dados sensíveis (inventário)
+O que o template guarda de pessoal, onde, por quanto tempo e como sai. Conferido no schema (`src/db/auth-schema.ts`, `src/db/schema.ts`) e no código de expurgo (`src/lib/jobs.ts`, `src/lib/account-handlers.ts`). Prazo só onde o código tem um; "sem prazo próprio" quer dizer que o dado fica enquanto a conta existir. Dado novo? Acrescente uma linha aqui.
+
+| Dado | Onde | Por quanto tempo | Como sai |
+| --- | --- | --- | --- |
+| Nome, e-mail, `emailVerified`, foto (URL) | `user` (D1) | Sem prazo próprio: enquanto a conta existir | Encerramento de conta: marca `deletedAt` e, depois de `ACCOUNT_RETENTION_DAYS` (7 dias), o cron apaga a linha |
+| Sessões: token, IP e navegador | `session` (D1) | 7 dias de validade (`expiresIn`); o cron `auth.limpar-expirados` apaga as vencidas | Fase 1 do encerramento apaga as sessões na hora; a cascata da fase 2 apaga o resto |
+| Contas vinculadas: tokens OAuth (`accessToken`, `refreshToken`, `idToken`), hash da senha (se o login com senha estiver ligado) | `account` (D1) | Sem prazo próprio | Cascata ao apagar o usuário (fase 2). Nunca saem no "baixar meus dados" |
+| Códigos de login (só o hash) e o e-mail no identificador | `verification` (D1) | 10 min de validade; o cron `auth.limpar-expirados` apaga os vencidos (a limpeza é diária) | Não há limpeza por usuário no encerramento: sai pelo cron, na primeira noite depois de vencer |
+| Clientes cadastrados pela pessoa (nome, e-mail, situação) | `clientes` (D1) | Sem prazo próprio; teto de `CLIENTES_MAX` por pessoa | Cascata ao apagar o usuário (fase 2); entram no "baixar meus dados" |
+| Trilha de auditoria: ação, e-mail do autor, IP e navegador | `audit_log` (D1), sem chave estrangeira de propósito | `AUDIT_RETENTION_DAYS` = 180 dias (job `auditoria.retencao`) | No expurgo da conta, `onBeforeAccountDelete('auditoria')` zera e-mail, IP e navegador das linhas dela; a linha (ação, data, id) fica até os 180 dias |
+| Foto de perfil | R2, chave `avatars/<userId>` | Sem prazo próprio | `onBeforeAccountDelete('avatar')` apaga o objeto no expurgo. Não há "remover foto", só substituir |
+| Cookies | Navegador | Sessão 7 dias; cache da sessão 60 s; `d1-bookmark` 1 h; checklist 1 ano | Expiram sozinhos; o encerramento limpa a sessão |
+
+O "baixar meus dados" (`exportMyDataFn`) reúne conta, sessões, provedores, foto, auditoria (até 500 linhas) e clientes. Fica FORA do que o código apaga: logs do Worker na Cloudflare, backups do D1 (Time Travel) e e-mails já enviados pelo provedor; o prazo deles é o da Cloudflare e do provedor de e-mail, não do template.
+
 ### Encerramento de conta (duas fases)
 - **Encerrar conta é em duas fases.** Fase 1 (`closeAccountFn`, botão "Encerrar conta"): roda os guards, marca `user.deletedAt`, apaga as sessões (num `db.batch`), audita `account.close_requested` e manda o e-mail `accountClosedEmail`. Nada é apagado. Fase 2 (cron `conta.apagar-encerradas`, depois de `ACCOUNT_RETENTION_DAYS` = 7 dias): guards de novo, `onBeforeAccountDelete`, apaga a linha de `user` (cascata em `session`/`account`) e audita `account.deleted` sem e-mail. No dia 5, `conta.lembrar-exclusao` manda `accountPurgeReminderEmail` uma vez (reivindicado por update condicional em `purgeRemindedAt`). A fase 1 é idempotente: o update condicional devolve `meta.changes`; com 0 linhas responde com o prazo do `deletedAt` já gravado, sem auditar nem mandar e-mail de novo.
 - O `deleteUser` nativo do Better Auth fica DESLIGADO (`user.deleteUser.enabled: false`): ele apaga na hora e pularia o prazo. `deletedAt`/`purgeRemindedAt` são `additionalFields` com `input: false` (o cliente não escreve).
