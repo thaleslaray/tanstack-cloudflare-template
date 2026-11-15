@@ -34,8 +34,13 @@ Troque `url` em `src/config/app.ts` pela URL pública ANTES do build
 
 ## 2. URL pública
 
-`BETTER_AUTH_URL` é opcional (a URL vem da requisição). Só defina como
-segredo se o usuário quiser fixar uma URL.
+Em produção, `BETTER_AUTH_URL` é OBRIGATÓRIO como segredo (a URL pública
+final, ex.: `https://app.seudominio.com.br`), definido ANTES do primeiro
+deploy. Motivo: sem ele a URL é deduzida da requisição e cada host que chega
+ao Worker vira origem confiável do login; além disso, `workers.dev` e o
+domínio próprio têm cookies separados e o OAuth (callback cadastrado no
+provedor) só funciona em um deles. Com a variável, o app confia só nessa
+origem. No localhost continua opcional.
 
 ## 3. Segredos de produção (crie ANTES do primeiro deploy)
 
@@ -44,6 +49,7 @@ com os mesmos nomes do `.dev.vars.example`:
 
 ```
 BETTER_AUTH_SECRET=<novo, gerado com openssl rand -base64 32>
+BETTER_AUTH_URL=<obrigatório em produção: https://app.seudominio.com.br>
 RESEND_API_KEY=<recomendado: sem provedor de e-mail em produção o login RECUSA enviar>
 EMAIL_FROM=Meu App <contato@seudominio.com.br>
 GOOGLE_CLIENT_ID=
@@ -88,7 +94,11 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
    `/github`) nos apps OAuth (veja `/google-oauth`).
 2. `src/config/app.ts`: confirme que `url` é a URL pública (links em e-mails e SEO).
 3. Resend: verifique o domínio de envio e ajuste `EMAIL_FROM`.
-4. Domínio próprio: Cloudflare → Workers → o Worker → Domains & Routes.
+4. Domínio próprio: Cloudflare → Workers → o Worker → Domains & Routes. Com
+   domínio próprio, recomende desligar `workers_dev` e `preview_urls` (campos
+   do `wrangler.jsonc`): senão o app continua acessível também em
+   `*.workers.dev` e nas URLs de preview, com cookies separados. Só
+   recomendação: não mude o `wrangler.jsonc` sem o ok do usuário.
 5. Réplica de leitura do D1 (deixa as páginas logadas mais rápidas longe do
    banco; sem custo extra). O código já usa a Sessions API; falta ligar no banco,
    uma vez por app. Pelo painel: D1 → o banco → Settings → Enable Read

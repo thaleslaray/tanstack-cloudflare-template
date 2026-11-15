@@ -6,6 +6,7 @@ import {
   isLocalUrl,
   passwordEnabled,
   resolveBaseURL,
+  resolveTrustedOrigins,
 } from './auth-config'
 
 describe('assertAuthSecret', () => {
@@ -74,5 +75,23 @@ describe('DISABLED_PATHS', () => {
     ]) {
       expect(DISABLED_PATHS).toContain(path)
     }
+  })
+})
+
+describe('resolveTrustedOrigins', () => {
+  it('em produção, fixa a origem de BETTER_AUTH_URL', () => {
+    expect(resolveTrustedOrigins('https://app.exemplo.com.br/')).toEqual([
+      'https://app.exemplo.com.br',
+    ])
+    expect(resolveTrustedOrigins(' https://app.exemplo.com.br/x ')).toEqual([
+      'https://app.exemplo.com.br',
+    ])
+  })
+
+  it('no localhost ou sem variável, não fixa nada (comportamento de dev)', () => {
+    expect(resolveTrustedOrigins('http://localhost:3001')).toBeUndefined()
+    expect(resolveTrustedOrigins('')).toBeUndefined()
+    expect(resolveTrustedOrigins(undefined)).toBeUndefined()
+    expect(resolveTrustedOrigins('lixo')).toBeUndefined()
   })
 })

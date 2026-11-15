@@ -16,6 +16,7 @@ import {
   passwordEnabled,
   present,
   resolveBaseURL,
+  resolveTrustedOrigins,
 } from '#/lib/auth-config'
 import { deliverOtp } from '#/lib/auth-otp'
 
@@ -45,6 +46,12 @@ export function getAuth(env: Env, request?: Request) {
     database: drizzleAdapter(getDb(env.DB), { provider: 'sqlite' }),
     secret: env.BETTER_AUTH_SECRET.trim(),
     baseURL,
+    // Em produção, só a origem de BETTER_AUTH_URL é confiável (o deploy exige
+    // a variável). Sem ela, cada host que chegasse ao Worker (workers.dev,
+    // domínio próprio) viraria origem confiável. Em dev: sem mudança.
+    ...(resolveTrustedOrigins(env.BETTER_AUTH_URL)
+      ? { trustedOrigins: resolveTrustedOrigins(env.BETTER_AUTH_URL) }
+      : {}),
     // Rotas que o template não usa ficam em 404 (lista em auth-config.ts).
     disabledPaths: DISABLED_PATHS,
     // O limitador interno do Better Auth fica DESLIGADO de propósito. O modo

@@ -57,6 +57,23 @@ export function resolveBaseURL(
   return undefined
 }
 
+/**
+ * Origens confiáveis fixas em produção: só a origem de `BETTER_AUTH_URL`.
+ * Sem a variável (URL deduzida da requisição) cada host que chega ao Worker
+ * vira origem confiável; por isso o deploy exige a variável. No localhost
+ * (ou sem variável) devolve `undefined` e vale o comportamento de dev.
+ */
+export function resolveTrustedOrigins(
+  envUrl: string | undefined,
+): string[] | undefined {
+  if (!present(envUrl) || isLocalUrl(envUrl)) return undefined
+  try {
+    return [new URL(envUrl.trim()).origin]
+  } catch {
+    return undefined
+  }
+}
+
 // Rotas do Better Auth que este template NÃO usa. Ficam desligadas (404):
 // o que não está na tela não deve estar na API. Os nomes foram conferidos em
 // node_modules/better-auth/dist (api/routes/*.mjs e plugins/email-otp/routes.mjs).
