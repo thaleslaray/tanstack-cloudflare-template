@@ -147,7 +147,22 @@ registerJob({
       try {
         await runAccountDeletionGuards(ref)
         await runBeforeAccountDelete(ref)
-        await db.delete(user).where(eq(user.id, ref.id))
+        // Reconfere `deletedAt` no próprio delete: se o suporte restaurou a
+        // conta (`deleted_at = NULL`) depois da consulta acima, a linha não
+        // casa e nada é apagado.
+        const result = await db
+          .delete(user)
+          .where(
+            and(
+              eq(user.id, ref.id),
+              isNotNull(user.deletedAt),
+              lt(user.deletedAt, purgeCutoff(new Date())),
+            ),
+          )
+        if (result.meta.changes === 0) {
+          kept++
+          continue
+        }
         // Sem e-mail: a conta sumiu e o registro não guarda dado pessoal.
         await audit({
           action: 'account.deleted',

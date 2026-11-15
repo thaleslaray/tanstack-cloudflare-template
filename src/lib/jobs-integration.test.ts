@@ -99,3 +99,49 @@ describe('job conta.apagar-social-nao-verificada', () => {
     expect(await exists('novo-social')).toBe(true)
   })
 })
+
+describe('job conta.apagar-encerradas', () => {
+  it('apaga a conta encerrada há mais de 7 dias e mantém a mais recente', async () => {
+    await addUser({
+      id: 'enc-velha',
+      verified: true,
+      ageDays: 30,
+      deletedDaysAgo: 8,
+    })
+    await addUser({
+      id: 'enc-nova',
+      verified: true,
+      ageDays: 30,
+      deletedDaysAgo: 2,
+    })
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runJobs(h.env)
+    expect(await exists('enc-velha')).toBe(false)
+    expect(await exists('enc-nova')).toBe(true)
+  })
+
+  it('conta restaurada no meio do caminho não é apagada (deletedAt reconferido)', async () => {
+    await addUser({
+      id: 'enc-restaurada',
+      verified: true,
+      ageDays: 30,
+      deletedDaysAgo: 8,
+    })
+    // O suporte restaura DEPOIS da consulta do job e ANTES do delete: o
+    // gancho `onBeforeAccountDelete` roda exatamente entre as duas coisas.
+    const { onBeforeAccountDelete } = await import('#/lib/account')
+    onBeforeAccountDelete('teste-restaura', async (ref) => {
+      if (ref.id !== 'enc-restaurada') return
+      await h.db
+        .prepare('update user set deleted_at = NULL where id = ?')
+        .bind(ref.id)
+        .run()
+    })
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runJobs(h.env)
+    expect(await exists('enc-restaurada')).toBe(true)
+    expect(log).toHaveBeenCalledWith(
+      expect.stringMatching(/conta\.apagar-encerradas: apagadas=0 mantidas=1/),
+    )
+  })
+})
