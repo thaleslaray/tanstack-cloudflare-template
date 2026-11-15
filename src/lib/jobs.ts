@@ -1,8 +1,18 @@
 // Registro simples de jobs agendados. O cron (wrangler.jsonc) chama `runJobs` pelo
 // `scheduled()` do src/server.ts. Cada job roda isolado: um erro não impede os demais.
 import '@tanstack/react-start/server-only'
-import { and, asc, eq, gte, isNotNull, isNull, lt } from 'drizzle-orm'
-import { session, user, verification } from '#/db/auth-schema'
+import {
+  and,
+  asc,
+  eq,
+  exists,
+  gte,
+  isNotNull,
+  isNull,
+  lt,
+  ne,
+} from 'drizzle-orm'
+import { account, session, user, verification } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
 import { auditLog } from '#/db/schema'
 import {
@@ -11,6 +21,7 @@ import {
   reminderCutoff,
   runAccountDeletionGuards,
   runBeforeAccountDelete,
+  unverifiedSocialCutoff,
 } from '#/lib/account'
 import { audit } from '#/lib/audit'
 import { sendEmailSafely } from '#/lib/email'
@@ -146,6 +157,68 @@ registerJob({
         purged++
       } catch (error) {
         console.error(`[jobs] conta ${ref.id} mantida`, error)
+        kept++
+      }
+    }
+    return `apagadas=${purged} mantidas=${kept}`
+  },
+})
+
+// Usuário criado pelo login social (tem uma conta que não é "credential") cujo
+// e-mail nunca foi verificado e que passou de UNVERIFIED_SOCIAL_DAYS dias:
+// cadastro abandonado. Mesmo caminho da fase 2 (guards, limpezas, linha,
+// auditoria), sem lembrete: a pessoa nunca terminou de entrar. Idempotente.
+registerJob({
+  name: 'conta.apagar-social-nao-verificada',
+  async run(env) {
+    const db = getDb(env.DB)
+    const due = await db
+      .select({ id: user.id, email: user.email })
+      .from(user)
+      .where(
+        and(
+          eq(user.emailVerified, false),
+          isNull(user.deletedAt),
+          lt(user.createdAt, unverifiedSocialCutoff(new Date())),
+          exists(
+            db
+              .select({ one: account.id })
+              .from(account)
+              .where(
+                and(
+                  eq(account.userId, user.id),
+                  ne(account.providerId, 'credential'),
+                ),
+              ),
+          ),
+        ),
+      )
+      .orderBy(asc(user.createdAt))
+      .limit(PURGE_BATCH)
+    let purged = 0
+    let kept = 0
+    for (const ref of due) {
+      try {
+        await runAccountDeletionGuards(ref)
+        await runBeforeAccountDelete(ref)
+        // Reconfere `emailVerified` na hora de apagar: quem verificou no meio
+        // do caminho não perde a conta.
+        const result = await db
+          .delete(user)
+          .where(and(eq(user.id, ref.id), eq(user.emailVerified, false)))
+        if (result.meta.changes === 0) {
+          kept++
+          continue
+        }
+        await audit({
+          action: 'account.deleted',
+          targetType: 'user',
+          targetId: ref.id,
+          meta: { reason: 'social_nao_verificada' },
+        })
+        purged++
+      } catch (error) {
+        console.error(`[jobs] usuário social ${ref.id} mantido`, error)
         kept++
       }
     }

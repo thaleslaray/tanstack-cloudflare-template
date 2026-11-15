@@ -150,7 +150,7 @@ O que o template guarda de pessoal, onde, por quanto tempo e como sai. Conferido
 
 | Dado | Onde | Por quanto tempo | Como sai |
 | --- | --- | --- | --- |
-| Nome, e-mail, `emailVerified`, foto (URL) | `user` (D1) | Sem prazo próprio: enquanto a conta existir | Encerramento de conta: marca `deletedAt` e, depois de `ACCOUNT_RETENTION_DAYS` (7 dias), o cron apaga a linha |
+| Nome, e-mail, `emailVerified`, foto (URL) | `user` (D1) | Sem prazo próprio: enquanto a conta existir; usuário do login social com e-mail nunca verificado sai em `UNVERIFIED_SOCIAL_DAYS` (7 dias) | Encerramento de conta: marca `deletedAt` e, depois de `ACCOUNT_RETENTION_DAYS` (7 dias), o cron apaga a linha |
 | Sessões: token, IP e navegador | `session` (D1) | 7 dias de validade (`expiresIn`); o cron `auth.limpar-expirados` apaga as vencidas | Fase 1 do encerramento apaga as sessões na hora; a cascata da fase 2 apaga o resto |
 | Contas vinculadas: tokens OAuth (`accessToken`, `refreshToken`, `idToken`; cifrados com `account.encryptOAuthTokens`, chave derivada do `BETTER_AUTH_SECRET`), hash da senha (se o login com senha estiver ligado) | `account` (D1) | Sem prazo próprio | Cascata ao apagar o usuário (fase 2). Nunca saem no "baixar meus dados" |
 | Códigos de login (só o hash) e o e-mail no identificador | `verification` (D1) | 10 min de validade; o cron `auth.limpar-expirados` apaga os vencidos (a limpeza é diária) | Não há limpeza por usuário no encerramento: sai pelo cron, na primeira noite depois de vencer |
@@ -171,7 +171,7 @@ O "baixar meus dados" (`exportMyDataFn`) reúne conta, sessões, provedores, fot
 - **Avatar tem limite**: PNG, JPEG ou WebP, até 2 MB (`AVATAR_MAX_BYTES`/`AVATAR_TYPES` em `src/lib/avatar.ts`). O tipo gravado vem dos primeiros bytes (`detectImageType`), não do que o navegador declarou.
 - `POST /api/avatar`: same-origin → sessão (401) → `isRateLimited('avatar')` (429) → multipart com um campo `file` → grava em `env.BUCKET` na chave `avatars/<userId>` → `user.image = /api/avatar/<userId>?v=<timestamp>` → auditoria `account.avatar_set`. Não há "remover", só substituir.
 - `GET /api/avatar/<userId>`: público. `Cache-Control: public, max-age=31536000, immutable` quando a URL leva `?v=` (muda a cada troca) e `public, max-age=300` sem ele; nos dois casos manda `ETag` e responde 304 com `If-None-Match`. Id inválido ou sem foto: 404.
-- Cron diário (03:00 UTC) roda `runJobs` em `src/lib/jobs.ts`; jobs precisam ser idempotentes. Hoje: `auth.limpar-expirados`, `auditoria.retencao`, `conta.lembrar-exclusao`, `conta.apagar-encerradas` (no máximo 25 contas por noite).
+- Cron diário (03:00 UTC) roda `runJobs` em `src/lib/jobs.ts`; jobs precisam ser idempotentes. Hoje: `auth.limpar-expirados`, `auditoria.retencao`, `conta.lembrar-exclusao`, `conta.apagar-encerradas` (no máximo 25 contas por noite) e `conta.apagar-social-nao-verificada` (usuário criado pelo login social com e-mail nunca verificado e mais de `UNVERIFIED_SOCIAL_DAYS` = 7 dias: mesmo caminho da fase 2, sem lembrete, auditado como `account.deleted` com `meta.reason`).
 
 ### Auditoria
 - `audit({ action, actorId, actorEmail, targetType, targetId, meta, ...requestMeta(headers) })` em `src/lib/audit.ts`. **Sem sink registrado é no-op**: quem chama não precisa saber se a auditoria existe. O sink padrão (`src/lib/audit-d1.ts`, tabela `audit_log`) é registrado pelo import em `src/server.ts`; apagar aquela linha desliga a gravação.

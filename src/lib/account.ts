@@ -19,6 +19,13 @@ export const ACCOUNT_RETENTION_DAYS = 7
 /** Em que dia depois de encerrar sai o lembrete por e-mail. */
 export const PURGE_REMINDER_DAY = 5
 
+/**
+ * Dias até apagar o usuário criado pelo login social cujo e-mail nunca foi
+ * verificado (ninguém terminou o cadastro: sobraria uma linha com e-mail de
+ * terceiro para sempre). Job `conta.apagar-social-nao-verificada`.
+ */
+export const UNVERIFIED_SOCIAL_DAYS = 7
+
 const DAY_MS = 86_400_000
 
 export type AccountRef = { id: string; email: string }
@@ -80,6 +87,11 @@ export function purgeDateFor(deletedAt: Date): Date {
 /** Contas encerradas ANTES deste instante já passaram do prazo: apagar. */
 export function purgeCutoff(now: Date): Date {
   return new Date(now.getTime() - ACCOUNT_RETENTION_DAYS * DAY_MS)
+}
+
+/** Usuários do login social criados ANTES deste instante e ainda sem e-mail verificado: apagar. */
+export function unverifiedSocialCutoff(now: Date): Date {
+  return new Date(now.getTime() - UNVERIFIED_SOCIAL_DAYS * DAY_MS)
 }
 
 /** Contas encerradas antes deste instante já estão no dia do lembrete. */
