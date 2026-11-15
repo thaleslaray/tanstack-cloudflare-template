@@ -40,4 +40,14 @@ describe('safeRedirect', () => {
       '/app/configuracoes?x=1#y',
     )
   })
+
+  it('recusa // que aparece só depois de normalizar o caminho', () => {
+    expect(safeRedirect('/.//evil.com')).toBe('/app')
+    expect(safeRedirect('/a/..//evil.com')).toBe('/app')
+    expect(safeRedirect('/%2F%2Fevil.com')).toBe('/%2F%2Fevil.com')
+  })
+
+  it('aceita caminho válido com query e hash', () => {
+    expect(safeRedirect('/app/clientes?x=1#y')).toBe('/app/clientes?x=1#y')
+  })
 })

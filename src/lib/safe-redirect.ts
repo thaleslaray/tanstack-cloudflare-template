@@ -13,7 +13,11 @@ export function safeRedirect(value: string | undefined): string {
     const url = new URL(value, PLACEHOLDER_ORIGIN)
     // Se a URL resolveu para outro site, o valor não era um caminho local.
     if (url.origin !== PLACEHOLDER_ORIGIN) return '/app'
-    return url.pathname + url.search + url.hash
+    // `/.//evil.com` vira `//evil.com` depois de normalizado: o navegador
+    // leria isso como outro site. Confere o resultado, não só a entrada.
+    const result = url.pathname + url.search + url.hash
+    if (result.startsWith('//') || result.includes('\\')) return '/app'
+    return result
   } catch {
     return '/app'
   }
