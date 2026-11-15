@@ -97,8 +97,18 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
 4. Domínio próprio: Cloudflare → Workers → o Worker → Domains & Routes. Com
    domínio próprio, recomende desligar `workers_dev` e `preview_urls` (campos
    do `wrangler.jsonc`): senão o app continua acessível também em
-   `*.workers.dev` e nas URLs de preview, com cookies separados. Só
-   recomendação: não mude o `wrangler.jsonc` sem o ok do usuário.
+   `*.workers.dev` e nas URLs de preview, com cookies separados e uma
+   segunda porta de entrada para o mesmo app. Só documentação: o template
+   NÃO traz esses campos no `wrangler.jsonc`. Quando o usuário tiver o
+   domínio no ar e disser sim, o ajuste é:
+
+   ```jsonc
+   "workers_dev": false,
+   "preview_urls": false
+   ```
+
+   (confira os nomes em `node_modules/wrangler/config-schema.json` antes de
+   escrever, e rode `npx wrangler deploy --dry-run`).
 5. Réplica de leitura do D1 (deixa as páginas logadas mais rápidas longe do
    banco; sem custo extra). O código já usa a Sessions API; falta ligar no banco,
    uma vez por app. Pelo painel: D1 → o banco → Settings → Enable Read
