@@ -6,6 +6,7 @@
 import { env as testEnv } from 'cloudflare:workers'
 import fs from 'node:fs'
 import path from 'node:path'
+import { vi } from 'vitest'
 import { getPlatformProxy } from 'wrangler'
 
 import { getAuth } from '#/lib/auth'
@@ -51,6 +52,49 @@ export async function createAuthHarness(vars: Record<string, string> = {}) {
         body: JSON.stringify(body),
       })
       return getAuth(env, request).handler(request)
+    },
+    /**
+     * Entra por código (o do console, como no dev) e devolve o cabeçalho
+     * `cookie` da sessão e o usuário criado.
+     */
+    async signIn(email: string, headers: Record<string, string> = {}) {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const sent = await this.post(
+          '/email-otp/send-verification-otp',
+          { email, type: 'sign-in' },
+          headers,
+        )
+        if (sent.status !== 200) throw new Error(`envio ${sent.status}`)
+        let code: string | undefined
+        for (let i = 0; i < 100 && !code; i++) {
+          for (const [line] of warn.mock.calls) {
+            const m = new RegExp(
+              `código de login para ${email}: (\\d{6})`,
+            ).exec(String(line))
+            if (m) code = m[1]
+          }
+          if (!code) await new Promise((r) => setTimeout(r, 20))
+        }
+        if (!code) throw new Error('código não apareceu no console')
+        const res = await this.post(
+          '/sign-in/email-otp',
+          { email, otp: code },
+          headers,
+        )
+        if (res.status !== 200) throw new Error(`login ${res.status}`)
+        const cookie = res.headers
+          .getSetCookie()
+          .map((c) => c.split(';')[0])
+          .join('; ')
+        return {
+          cookie,
+          res,
+          body: (await res.json()) as { user: { id: string } },
+        }
+      } finally {
+        warn.mockRestore()
+      }
     },
     dispose: () => proxy.dispose(),
   }

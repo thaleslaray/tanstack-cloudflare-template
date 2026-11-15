@@ -20,6 +20,7 @@ import {
 } from '#/lib/auth-config'
 import { deliverOtp } from '#/lib/auth-otp'
 import { assertPasswordNotCommon } from '#/lib/password-policy'
+import { sanitizeProfileUpdate } from '#/lib/profile'
 
 export { passwordEnabled }
 
@@ -158,6 +159,11 @@ export function getAuth(env: Env, request?: Request) {
         },
       },
       user: {
+        // `/update-user` aceita o que o navegador mandar: `image` só vale se
+        // for a foto do próprio app e `name` tem limite (src/lib/profile.ts).
+        update: {
+          before: async (data) => ({ data: sanitizeProfileUpdate(data) }),
+        },
         create: {
           // Login por código não traz nome: usa a parte local do e-mail.
           before: async (user) => {

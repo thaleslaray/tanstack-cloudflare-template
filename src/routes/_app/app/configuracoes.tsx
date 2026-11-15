@@ -13,6 +13,7 @@ import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { authClient } from '#/lib/auth-client'
 import { sessionQuery } from '#/lib/auth-queries'
+import { NAME_MAX_LENGTH } from '#/lib/profile'
 import { seo } from '#/lib/seo'
 
 // Configurações da conta.
@@ -87,6 +88,7 @@ function SettingsPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoComplete="name"
+              maxLength={NAME_MAX_LENGTH}
               required
             />
           </div>
