@@ -1,7 +1,7 @@
 import { waitUntil } from 'cloudflare:workers'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { APIError } from 'better-auth/api'
+import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { emailOTP } from 'better-auth/plugins/email-otp'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { eq } from 'drizzle-orm'
@@ -19,6 +19,7 @@ import {
   resolveTrustedOrigins,
 } from '#/lib/auth-config'
 import { deliverOtp } from '#/lib/auth-otp'
+import { assertPasswordNotCommon } from '#/lib/password-policy'
 
 export { passwordEnabled }
 
@@ -129,7 +130,13 @@ export function getAuth(env: Env, request?: Request) {
         : {}),
     },
     // Auditoria de login e troca de nome (src/lib/auth-audit-hook.ts).
-    hooks: { after: auditAfterHook },
+    hooks: {
+      // Senha da lista das mais comuns é recusada (só com senha ligada).
+      before: createAuthMiddleware(async (ctx) => {
+        assertPasswordNotCommon(ctx.path, ctx.body, password)
+      }),
+      after: auditAfterHook,
+    },
     databaseHooks: {
       // Conta encerrada não entra de novo durante o prazo, por nenhum método:
       // todo login cria uma sessão, então esta é a única porta a fechar.

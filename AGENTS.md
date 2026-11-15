@@ -89,6 +89,8 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 ### Auth
 - Rate limit em todo POST de `/api/auth/*`, exceto sign-out e get-session, por IP (/64 no IPv6) e por e-mail.
 - Login com senha vem DESLIGADO (`PASSWORD_LOGIN_ENABLED`); quando ligado, exige verificação de e-mail.
+- Com a senha ligada, `hooks.before` recusa senha da lista das mais comuns (`src/lib/password-policy.ts`, código `PASSWORD_TOO_COMMON`). Escolha: lista LOCAL, não o plugin `haveIBeenPwned` (que existe no Better Auth instalado, mas chama `api.pwnedpasswords.com` a cada cadastro: rede de terceiros no login, e cadastro com 500 se ela cair). Mais cobertura = aumentar a lista.
+- Teste com o Better Auth de verdade: `src/test/auth-harness.ts` (D1 local em memória via `getPlatformProxy`, migrações de `drizzle/` aplicadas); exemplo em `src/lib/auth-integration.test.ts`.
 - `getAuth` lança erro se `BETTER_AUTH_SECRET` faltar ou tiver menos de 32 caracteres.
 - `sendEmail` lança erro fora do localhost quando não há provedor de e-mail (o login recusa enviar, em vez de só logar o código).
 - Demos (`/demo/*`) só existem no `npm run dev`.

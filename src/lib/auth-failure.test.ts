@@ -31,6 +31,12 @@ describe('toAuthFailure', () => {
     ).toBe('invalid_credentials')
   })
 
+  it('senha comum demais tem falha e mensagem próprias', () => {
+    const failure = toAuthFailure({ status: 400, code: 'PASSWORD_TOO_COMMON' })
+    expect(failure).toBe('password_too_common')
+    expect(authFailureMessage(failure, 'criar')).toMatch(/muito comum/)
+  })
+
   it('o que não conhece é unknown', () => {
     expect(toAuthFailure({ status: 500, code: 'OUTRA_COISA' })).toBe('unknown')
     expect(toAuthFailure(null)).toBe('unknown')
