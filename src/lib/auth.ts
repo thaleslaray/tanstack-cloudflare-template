@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm'
 
 import { user as userTable } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
-import { auditAfterHook } from '#/lib/auth-audit-hook'
+import { auditAfterHook, auditDatabaseHooks } from '#/lib/auth-audit-hook'
 import {
   assertAuthSecret,
   DISABLED_PATHS,
@@ -44,6 +44,14 @@ export function getAuth(env: Env, request?: Request) {
   assertAuthSecret(env.BETTER_AUTH_SECRET)
   const baseURL = resolveBaseURL(env.BETTER_AUTH_URL, request)
   const password = passwordEnabled(env)
+  const auditHooks = auditDatabaseHooks(async (userId) => {
+    const [row] = await getDb(env.DB)
+      .select({ email: userTable.email })
+      .from(userTable)
+      .where(eq(userTable.id, userId))
+      .limit(1)
+    return row?.email ?? null
+  })
   return betterAuth({
     database: drizzleAdapter(getDb(env.DB), { provider: 'sqlite' }),
     secret: env.BETTER_AUTH_SECRET.trim(),
@@ -147,9 +155,13 @@ export function getAuth(env: Env, request?: Request) {
       after: auditAfterHook,
     },
     databaseHooks: {
+      // `audit*`: saída, vínculo de conta social e usuário novo vão para a
+      // auditoria (src/lib/auth-audit-hook.ts).
+      account: auditHooks.account,
       // Conta encerrada não entra de novo durante o prazo, por nenhum método:
       // todo login cria uma sessão, então esta é a única porta a fechar.
       session: {
+        delete: auditHooks.session.delete,
         create: {
           before: async (newSession) => {
             const [owner] = await getDb(env.DB)
@@ -178,6 +190,7 @@ export function getAuth(env: Env, request?: Request) {
             if (user.name?.trim()) return
             return { data: { ...user, name: user.email.split('@')[0] } }
           },
+          after: auditHooks.user.create.after,
         },
       },
     },

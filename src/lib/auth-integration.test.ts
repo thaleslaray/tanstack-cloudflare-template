@@ -1,6 +1,8 @@
 import { decryptOAuthToken, setTokenUtil } from 'better-auth/oauth2'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { type AuditRecord, onAudit } from '#/lib/audit'
+
 import { createAuthHarness } from '#/test/auth-harness'
 
 let h: Awaited<ReturnType<typeof createAuthHarness>>
@@ -88,5 +90,56 @@ describe('tokens OAuth cifrados (Better Auth montado)', () => {
     expect(await decryptOAuthToken(stored as string, ctx)).toBe(
       'ya29.token-de-acesso',
     )
+  })
+})
+
+describe('auditoria de saída, vínculo social e usuário novo (Better Auth montado)', () => {
+  const events: AuditRecord[] = []
+  let off: () => void
+  beforeAll(() => {
+    off = onAudit('teste-integracao', async (record) => {
+      events.push(record)
+    })
+  })
+  afterAll(() => off())
+
+  const find = (action: string, email: string) =>
+    events.find((e) => e.action === action && e.actorEmail === email)
+  async function until<T>(fn: () => T | undefined): Promise<T> {
+    for (let i = 0; i < 100; i++) {
+      const value = fn()
+      if (value) return value
+      await new Promise((r) => setTimeout(r, 20))
+    }
+    throw new Error('evento de auditoria não apareceu')
+  }
+
+  it('registra a saída (auth.sign_out)', async () => {
+    const email = 'saida@exemplo.test'
+    const { cookie } = await h.signIn(email)
+    const res = await h.post('/sign-out', {}, { cookie })
+    expect(res.status).toBe(200)
+    const event = await until(() => find('auth.sign_out', email))
+    expect(event.targetType).toBe('user')
+  })
+
+  it('registra o usuário novo e o vínculo do login social', async () => {
+    const ctx = (await h.getAuth().$context) as unknown as {
+      internalAdapter: {
+        createOAuthUser: (
+          user: Record<string, unknown>,
+          account: Record<string, unknown>,
+        ) => Promise<unknown>
+      }
+    }
+    const email = 'social@exemplo.test'
+    await ctx.internalAdapter.createOAuthUser(
+      { email, name: 'Social', emailVerified: false },
+      { providerId: 'google', accountId: 'g-123' },
+    )
+    const created = await until(() => find('account.created', email))
+    expect(created.targetType).toBe('user')
+    const linked = await until(() => find('auth.account_linked', email))
+    expect(JSON.parse(linked.meta ?? '{}')).toEqual({ provider: 'google' })
   })
 })

@@ -175,10 +175,10 @@ O "baixar meus dados" (`exportMyDataFn`) reúne conta, sessões, provedores, fot
 
 ### Auditoria
 - `audit({ action, actorId, actorEmail, targetType, targetId, meta, ...requestMeta(headers) })` em `src/lib/audit.ts`. **Sem sink registrado é no-op**: quem chama não precisa saber se a auditoria existe. O sink padrão (`src/lib/audit-d1.ts`, tabela `audit_log`) é registrado pelo import em `src/server.ts`; apagar aquela linha desliga a gravação.
-- `action` é `<area>.<verbo>` em minúsculas (`auth.sign_in`, `account.name_changed`, `account.avatar_set`, `account.close_requested`, `account.deleted`); formato inválido é descartado com log.
+- `action` é `<area>.<verbo>` em minúsculas (`auth.sign_in`, `auth.sign_out`, `auth.account_linked`, `account.created`, `account.name_changed`, `account.avatar_set`, `account.close_requested`, `account.deleted`); formato inválido é descartado com log.
 - Nunca grave segredo (token, senha, código, cookie, chave) nem corpo de request. `formatAuditEntry` descarta chaves com cara de segredo em `meta` e só aceita valores primitivos, mas a regra é de quem chama.
 - Com `waitUntil` à mão, passe-o (`audit(entry, { waitUntil })`, de `cloudflare:workers` ou do `ctx`) e a resposta não espera a gravação; sem ele, `await`. Falha de sink nunca derruba a ação.
-- Evento novo do Better Auth? Acrescente no `auditAfterHook` (`src/lib/auth-audit-hook.ts`); ele só vê chamadas HTTP a `/api/auth/*`.
+- Evento novo do Better Auth? Acrescente no `auditAfterHook` (`src/lib/auth-audit-hook.ts`); ele só vê chamadas HTTP a `/api/auth/*`. Eventos que nascem dentro do Better Auth entram por `auditDatabaseHooks` (mesmo arquivo, ligado em `databaseHooks` no `auth.ts`): `auth.sign_out` (só o `POST /sign-out`), `auth.account_linked` (conta social ligada; `meta.provider`) e `account.created` (usuário novo, inclusive o do login social; `meta.method` traz o endpoint).
 
 ### Endpoints locais (dev)
 - Cron: `curl "http://localhost:3000/cdn-cgi/local/scheduled?cron=0+3+*+*+*"`.
