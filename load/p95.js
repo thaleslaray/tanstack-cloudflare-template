@@ -1,10 +1,12 @@
 // Teste de carga com metas de p95. Rode com `npm run load` (veja load/README.md).
 //
-// Cinco cenários, cada um com a tag `cenario` e a sua própria meta:
-//   estatico         GET / e /blog (páginas pré-renderizadas)          p95 < 100 ms
-//   ssr_publico      GET /login (renderizada no Worker)                p95 < 300 ms
-//   ssr_logado       GET /app e /app/clientes, com cookie de sessão    p95 < 500 ms
-//   escrita_logada   cria um cliente (server function) e o apaga       p95 < 600 ms
+// Cinco cenários, cada um com a tag `cenario` e a sua própria meta. As rotas e
+// a escrita vêm de load/rotas.json (ajuste às telas do produto; o padrão é o
+// exemplo do template):
+//   estatico         GET das publicasEstaticas (pré-renderizadas)      p95 < 100 ms
+//   ssr_publico      GET das publicasSsr (renderizadas no Worker)      p95 < 300 ms
+//   ssr_logado       GET das logadas, com cookie de sessão             p95 < 500 ms
+//   escrita_logada   cria e apaga um registro (server function)        p95 < 600 ms
 //   rajada_login     8 POSTs seguidos de pedir código de login         a partir do 6º, 429
 //
 // As sessões vêm de `npm run load:sessoes` (load/.sessoes.json) ou de SESSOES_JSON.
@@ -20,6 +22,16 @@ import {
   isLocal,
   PROFILE,
 } from './config.js'
+import {
+  mensagem404,
+  preencherCampos,
+  rotasParaConferir,
+  validarRotas,
+} from './rotas.js'
+
+// --- Rotas medidas (load/rotas.json) ---------------------------------------
+// Erro de formato falha aqui, antes de qualquer pedido.
+const rotas = validarRotas(JSON.parse(open('./rotas.json')))
 
 // --- Sessões --------------------------------------------------------------
 // Formato: [{ "email": "...", "cookie": "nome=valor; outro=valor" }, ...]
@@ -49,18 +61,35 @@ export const options = {
   ...(isLocal() ? { dns: { policy: 'preferIPv6' } } : {}),
   // SEM_RAJADA=1 tira a rajada no login: contra um app publicado ela mandaria
   // e-mails de verdade pelo provedor e gastaria a cota de envio.
+  // Cenário sem rota configurada em rotas.json não entra.
   scenarios: {
-    estatico: cenario('estatico', 'estatico'),
-    ssr_publico: cenario('ssr_publico', 'ssrPublico'),
-    ssr_logado: cenario('ssr_logado', 'ssrLogado'),
-    escrita_logada: cenario('escrita_logada', 'escritaLogada'),
+    ...(rotas.publicasEstaticas.length
+      ? { estatico: cenario('estatico', 'estatico') }
+      : {}),
+    ...(rotas.publicasSsr.length
+      ? { ssr_publico: cenario('ssr_publico', 'ssrPublico') }
+      : {}),
+    ...(rotas.logadas.length
+      ? { ssr_logado: cenario('ssr_logado', 'ssrLogado') }
+      : {}),
+    ...(rotas.escrita
+      ? { escrita_logada: cenario('escrita_logada', 'escritaLogada') }
+      : {}),
     ...(SEM_RAJADA ? {} : { rajada_login: cenarioRajada('rajadaLogin') }),
   },
   thresholds: {
-    'http_req_duration{cenario:estatico}': ['p(95)<100'],
-    'http_req_duration{cenario:ssr_publico}': ['p(95)<300'],
-    'http_req_duration{cenario:ssr_logado}': ['p(95)<500'],
-    'http_req_duration{cenario:escrita_logada}': ['p(95)<600'],
+    ...(rotas.publicasEstaticas.length
+      ? { 'http_req_duration{cenario:estatico}': ['p(95)<100'] }
+      : {}),
+    ...(rotas.publicasSsr.length
+      ? { 'http_req_duration{cenario:ssr_publico}': ['p(95)<300'] }
+      : {}),
+    ...(rotas.logadas.length
+      ? { 'http_req_duration{cenario:ssr_logado}': ['p(95)<500'] }
+      : {}),
+    ...(rotas.escrita
+      ? { 'http_req_duration{cenario:escrita_logada}': ['p(95)<600'] }
+      : {}),
     // Falha = qualquer status fora do esperado de cada requisição (o 429 da
     // rajada é esperado e não entra na conta).
     http_req_failed: ['rate<0.01'],
@@ -74,14 +103,14 @@ const OK = http.expectedStatuses(200)
 const OK_OU_429 = http.expectedStatuses(200, 429)
 
 // --- Descoberta das server functions ---------------------------------------
-// O navegador chama `createClienteFn` por POST em /_serverFn/<id>. O id vem do
+// O navegador chama a função de criar (`escrita.criar.funcao`) por POST em /_serverFn/<id>. O id vem do
 // build e não é fixo:
-//  - no `vite dev` é um base64 do arquivo, legível em /src/lib/clientes-fns.ts;
+//  - no `vite dev` é um base64 do arquivo, legível em `escrita.arquivoDev`;
 //  - em produção é um hash que só existe nos JS da página. Achamos o trecho
-//    `await X({data:{nome:...` no JS da tela de clientes e seguimos o import de
+//    `await X({data:{<campo>:...` no JS da `escrita.pagina` e seguimos o import de
 //    X até o `.handler(fn(`<hash>`))` no arquivo que o define.
 // Se nada disso der certo, passe CRIAR_FN_ID e APAGAR_FN_ID. Sem ids, o
-// cenário escrita_logada cai para GET /app/clientes (veja o README).
+// cenário escrita_logada cai para GET da `escrita.pagina` (veja o README).
 
 function baixar(caminho, cookie) {
   const r = http.get(BASE_URL + caminho, {
@@ -92,19 +121,20 @@ function baixar(caminho, cookie) {
   return r.status === 200 ? r.body : ''
 }
 
-function descobrirNoDev(cookie) {
-  const js = baixar('/src/lib/clientes-fns.ts', cookie)
+function descobrirNoDev(cookie, esc) {
+  const js = baixar(esc.arquivoDev, cookie)
   const pega = (nome) => {
     const m = new RegExp(`${nome} = [^;]*?createClientRpc\\("([^"]+)"\\)`).exec(
       js,
     )
     return m ? m[1] : null
   }
-  return { criar: pega('createClienteFn'), apagar: pega('deleteClienteFn') }
+  return { criar: pega(esc.criar.funcao), apagar: pega(esc.apagar.funcao) }
 }
 
-function descobrirNoBuild(cookie) {
-  const html = baixar('/app/clientes', cookie)
+function descobrirNoBuild(cookie, esc) {
+  const primeiroCampo = Object.keys(esc.criar.campos)[0]
+  const html = baixar(esc.pagina, cookie)
   const arquivos = []
   const re = /(?:src|href)="([^"]+\.js)"/g
   for (let m = re.exec(html); m; m = re.exec(html)) arquivos.push(m[1])
@@ -114,7 +144,7 @@ function descobrirNoBuild(cookie) {
   let chunk = ''
   for (const url of arquivos) {
     const corpo = baixar(url, cookie)
-    if (corpo.includes('data:{nome:')) {
+    if (corpo.includes(`data:{${primeiroCampo}:`)) {
       chunk = corpo
       break
     }
@@ -150,41 +180,68 @@ function descobrirNoBuild(cookie) {
     }
     return null
   }
-  return { criar: seguir('nome:'), apagar: seguir('id:') }
+  return {
+    criar: seguir(`${primeiroCampo}:`),
+    apagar: seguir(`${esc.apagar.campo}:`),
+  }
 }
 
 // --- setup ----------------------------------------------------------------
+// Confere, antes de começar, que nenhuma rota configurada responde 404: num
+// produto que trocou ou removeu uma tela, medir página que não existe só
+// mediria o 404.
+function conferirRotas(cookie) {
+  for (const { caminho, logada } of rotasParaConferir(rotas)) {
+    const r = http.get(BASE_URL + caminho, {
+      headers: logada ? cabecalhos({ Cookie: cookie }) : cabecalhos(),
+      redirects: logada ? 0 : 5,
+      tags: { cenario: 'setup' },
+      responseCallback: http.expectedStatuses({ min: 200, max: 399 }, 404),
+    })
+    if (r.status === 404) fail(mensagem404(caminho))
+  }
+}
+
 export function setup() {
-  if (sessoes.length === 0) {
+  const precisaSessao = rotas.logadas.length > 0 || rotas.escrita !== null
+  if (precisaSessao && sessoes.length === 0) {
     fail(
       'Sem sessões. Rode `npm run load:sessoes` (localhost) ou passe SESSOES_JSON (veja load/README.md).',
     )
   }
-  const cookie = sessoes[0].cookie
+  const cookie = sessoes.length ? sessoes[0].cookie : ''
 
-  // A sessão ainda vale? Sem ela o /app redireciona para /login.
-  const app = http.get(`${BASE_URL}/app`, {
-    headers: cabecalhos({ Cookie: cookie }),
-    redirects: 0,
-    tags: { cenario: 'setup' },
-    responseCallback: http.expectedStatuses(200),
-  })
-  if (app.status !== 200) {
-    fail(
-      `A sessão de ${sessoes[0].email} não vale (GET /app deu ${app.status}). Gere de novo com npm run load:sessoes.`,
-    )
+  // 404 numa rota configurada: para antes de gastar um pedido de medição.
+  conferirRotas(cookie)
+
+  // A sessão ainda vale? Sem ela a área logada redireciona para /login.
+  const testada = rotas.logadas[0] ?? rotas.escrita?.pagina
+  if (testada) {
+    const app = http.get(BASE_URL + testada, {
+      headers: cabecalhos({ Cookie: cookie }),
+      redirects: 0,
+      tags: { cenario: 'setup' },
+      responseCallback: http.expectedStatuses(200),
+    })
+    if (app.status !== 200) {
+      fail(
+        `A sessão de ${sessoes[0].email} não vale (GET ${testada} deu ${app.status}). Gere de novo com npm run load:sessoes.`,
+      )
+    }
   }
 
+  const esc = rotas.escrita
+  if (!esc) return { criar: null, apagar: null }
   let ids = {
     criar: __ENV.CRIAR_FN_ID || null,
     apagar: __ENV.APAGAR_FN_ID || null,
   }
   if (!ids.criar || !ids.apagar) {
     const achados = isLocal()
-      ? descobrirNoDev(cookie)
+      ? descobrirNoDev(cookie, esc)
       : { criar: null, apagar: null }
     const viaBuild =
-      achados.criar && achados.apagar ? achados : descobrirNoBuild(cookie)
+      achados.criar && achados.apagar ? achados : descobrirNoBuild(cookie, esc)
     ids = {
       criar: ids.criar || viaBuild.criar,
       apagar: ids.apagar || viaBuild.apagar,
@@ -192,7 +249,7 @@ export function setup() {
   }
   if (!ids.criar || !ids.apagar) {
     console.warn(
-      'Não achei os ids das server functions: escrita_logada vai fazer GET /app/clientes no lugar.',
+      `Não achei os ids das server functions: escrita_logada vai fazer GET ${esc.pagina} no lugar.`,
     )
   } else {
     console.log(
@@ -204,18 +261,20 @@ export function setup() {
 
 // --- Cenários ---------------------------------------------------------------
 export function estatico() {
-  const caminho = __ITER % 2 === 0 ? '/' : '/blog'
+  const caminho =
+    rotas.publicasEstaticas[__ITER % rotas.publicasEstaticas.length]
   const r = http.get(BASE_URL + caminho, { responseCallback: OK })
   check(r, { 'estático 200': (x) => x.status === 200 })
 }
 
 export function ssrPublico() {
-  const r = http.get(`${BASE_URL}/login`, { responseCallback: OK })
-  check(r, { 'login 200': (x) => x.status === 200 })
+  const caminho = rotas.publicasSsr[__ITER % rotas.publicasSsr.length]
+  const r = http.get(BASE_URL + caminho, { responseCallback: OK })
+  check(r, { 'página pública 200': (x) => x.status === 200 })
 }
 
 export function ssrLogado() {
-  const caminho = __ITER % 2 === 0 ? '/app' : '/app/clientes'
+  const caminho = rotas.logadas[__ITER % rotas.logadas.length]
   const r = http.get(BASE_URL + caminho, {
     headers: { Cookie: cookieDoVU() },
     redirects: 0, // um redirect para /login seria sessão perdida: conta como falha
@@ -270,36 +329,35 @@ export function escritaLogada(ids) {
   const cookie = cookieDoVU()
   if (!ids.criar || !ids.apagar) {
     // Plano B documentado: sem os ids, só lê a tela de clientes.
-    const r = http.get(`${BASE_URL}/app/clientes`, {
+    const r = http.get(BASE_URL + rotas.escrita.pagina, {
       headers: { Cookie: cookie },
       redirects: 0,
       responseCallback: OK,
     })
-    check(r, { 'clientes 200 (plano B)': (x) => x.status === 200 })
+    check(r, { 'página de escrita 200 (plano B)': (x) => x.status === 200 })
     return
   }
   const n = `${__VU}-${__ITER}`
   const criado = chamarServerFn(
     ids.criar,
-    {
-      nome: `Cliente k6 ${n}`,
-      email: `k6-${n}@exemplo.test`,
-      situacao: 'ativo',
-    },
+    preencherCampos(rotas.escrita.criar.campos, n),
     cookie,
     {}, // herda cenario:escrita_logada: é este pedido que tem meta
   )
   const id = /"s":"([0-9a-f-]{36})"/.exec(criado.body)
   const ok = check(criado, {
-    'cliente criado': (x) => x.status === 200 && id !== null,
+    'registro criado': (x) => x.status === 200 && id !== null,
   })
   if (!ok) return
-  // Limpeza: apaga o que criou para não bater no teto de CLIENTES_MAX. Tem
+  // Limpeza: apaga o que criou (no exemplo, para não bater no teto de CLIENTES_MAX). Tem
   // outra tag, então não entra no p95 da escrita.
-  const apagado = chamarServerFn(ids.apagar, { id: id[1] }, cookie, {
-    cenario: 'escrita_logada_limpeza',
-  })
-  check(apagado, { 'cliente apagado': (x) => x.status === 200 })
+  const apagado = chamarServerFn(
+    ids.apagar,
+    { [rotas.escrita.apagar.campo]: id[1] },
+    cookie,
+    { cenario: 'escrita_logada_limpeza' },
+  )
+  check(apagado, { 'registro apagado': (x) => x.status === 200 })
 }
 
 export function rajadaLogin() {

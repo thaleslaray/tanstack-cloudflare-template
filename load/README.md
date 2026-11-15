@@ -1,6 +1,6 @@
 # Teste de carga (k6) com metas de p95
 
-Mede o tempo de resposta do app em cinco situações e falha se alguma meta de
+Mede o tempo de resposta do app em cinco situações (as rotas vêm de `rotas.json`, veja abaixo; a tabela mostra o padrão do template) e falha se alguma meta de
 p95 estourar. Precisa do [k6](https://k6.io) instalado (`k6 version`).
 
 | Cenário          | O que faz                                               | Meta                                |
@@ -14,6 +14,37 @@ p95 estourar. Precisa do [k6](https://k6.io) instalado (`k6 version`).
 Além disso, `http_req_failed` tem de ficar abaixo de 1%. O `429` da rajada é um
 status esperado e não conta como falha (cada pedido declara os status que
 espera).
+
+## Ajuste as rotas às telas do produto (antes de rodar)
+
+O roteiro NÃO mede telas fixas: ele lê `load/rotas.json`. O arquivo que vem no
+template é só o exemplo (home, blog, login, `/app`, e a tela de clientes de
+exemplo com criar/apagar). Se o seu produto trocou ou removeu essas telas,
+edite o arquivo ANTES de rodar:
+
+```json
+{
+  "publicasEstaticas": ["/", "/blog"],          // páginas pré-renderizadas (meta p95 < 100 ms)
+  "publicasSsr": ["/login"],                    // páginas públicas renderizadas no Worker (< 300 ms)
+  "logadas": ["/app", "/app/clientes"],         // páginas da área logada, com cookie (< 500 ms)
+  "escrita": {                                  // opcional: use null para não medir escrita
+    "pagina": "/app/clientes",                  // tela que chama as funções (o plano B só lê esta)
+    "arquivoDev": "/src/lib/clientes-fns.ts",   // arquivo das server functions (para achar o id no vite dev)
+    "criar": { "funcao": "createClienteFn",
+               "campos": { "nome": "Cliente k6 {n}", "email": "k6-{n}@exemplo.test", "situacao": "ativo" } },
+    "apagar": { "funcao": "deleteClienteFn", "campo": "id" }
+  }
+}
+```
+
+(O JSON real não aceita comentários; os de cima são só explicação.) `{n}` vira
+`<VU>-<rodada>` e deixa cada registro único. Lista vazia ou `escrita: null`
+tira o cenário (e a meta dele). Pelo menos uma lista tem de ter rota.
+
+Antes do primeiro pedido de medição, o `setup()` abre cada rota configurada e
+PARA com uma mensagem clara se alguma responder 404 (a sessão é conferida na
+primeira rota logada). O formato do arquivo é validado em `load/rotas.js`, com
+teste em `load/rotas.test.ts` (`npm run test`).
 
 ## Perfis
 

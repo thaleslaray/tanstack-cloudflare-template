@@ -1,0 +1,18 @@
+{
+  "publicasEstaticas": ["/", "/blog"],
+  "publicasSsr": ["/login"],
+  "logadas": ["/app", "/app/clientes"],
+  "escrita": {
+    "pagina": "/app/clientes",
+    "arquivoDev": "/src/lib/clientes-fns.ts",
+    "criar": {
+      "funcao": "createClienteFn",
+      "campos": {
+        "nome": "Cliente k6 {n}",
+        "email": "k6-{n}@exemplo.test",
+        "situacao": "ativo"
+      }
+    },
+    "apagar": { "funcao": "deleteClienteFn", "campo": "id" }
+  }
+}
