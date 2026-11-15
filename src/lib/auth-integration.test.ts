@@ -1,3 +1,4 @@
+import { env as testEnv } from 'cloudflare:workers'
 import { decryptOAuthToken, setTokenUtil } from 'better-auth/oauth2'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -171,5 +172,46 @@ describe('código de login com hash com chave (Better Auth montado)', () => {
     )
     const login = await h.post('/sign-in/email-otp', { email, otp: code })
     expect(login.status).toBe(200)
+  })
+})
+
+describe('pedido de código sem provedor de e-mail (Better Auth montado)', () => {
+  it('fora do dev, recusa com 503 EMAIL_NAO_CONFIGURADO, com ou sem conta', async () => {
+    const { cookie } = await h.signIn('existe@exemplo.test')
+    expect(cookie).toBeTruthy()
+    vi.stubEnv('DEV', false)
+    try {
+      for (const email of ['existe@exemplo.test', 'nao-existe@exemplo.test']) {
+        const res = await h.post('/email-otp/send-verification-otp', {
+          email,
+          type: 'sign-in',
+        })
+        expect(res.status).toBe(503)
+        expect(((await res.json()) as { code: string }).code).toBe(
+          'EMAIL_NAO_CONFIGURADO',
+        )
+      }
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('com RESEND_API_KEY, o pedido é aceito mesmo fora do dev', async () => {
+    vi.stubEnv('DEV', false)
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{"id":"x"}', { status: 200 }))
+    Object.assign(testEnv, { RESEND_API_KEY: 're_teste' })
+    try {
+      const res = await h.post('/email-otp/send-verification-otp', {
+        email: 'com-provedor@exemplo.test',
+        type: 'sign-in',
+      })
+      expect(res.status).toBe(200)
+    } finally {
+      delete (testEnv as { RESEND_API_KEY?: string }).RESEND_API_KEY
+      fetchMock.mockRestore()
+      vi.unstubAllEnvs()
+    }
   })
 })

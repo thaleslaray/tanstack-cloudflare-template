@@ -70,6 +70,15 @@ describe('authFailureMessage', () => {
     )
   })
 
+  it('EMAIL_NAO_CONFIGURADO vira email_not_configured, com aviso a quem administra', () => {
+    expect(toAuthFailure({ status: 503, code: 'EMAIL_NAO_CONFIGURADO' })).toBe(
+      'email_not_configured',
+    )
+    expect(authFailureMessage('email_not_configured', 'enviar')).toBe(
+      'O envio de e-mail deste sistema ainda não foi configurado. Avise quem administra.',
+    )
+  })
+
   it('mensagens em pt-BR para os códigos conhecidos', () => {
     expect(authFailureMessage('invalid_otp', 'verificar')).toMatch(/incorreto/)
     expect(authFailureMessage('otp_expired', 'verificar')).toMatch(/expirou/)

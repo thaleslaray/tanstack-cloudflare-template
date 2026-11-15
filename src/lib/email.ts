@@ -38,6 +38,23 @@ function isLocalDev(): boolean {
   return url ? isLocalUrl(url) : true
 }
 
+/** Há um provedor de e-mail de verdade (Resend ou binding EMAIL + EMAIL_FROM)? */
+export function hasEmailProvider(): boolean {
+  if (optional(env.RESEND_API_KEY)) return true
+  const binding = (env as { EMAIL?: SendEmail }).EMAIL
+  return Boolean(binding && optional(env.EMAIL_FROM))
+}
+
+/**
+ * O envio de e-mail vai funcionar neste ambiente? Sim se há provedor ou se é
+ * desenvolvimento local (onde o e-mail sai no terminal). Serve para recusar o
+ * pedido de código ANTES de aceitá-lo: o Better Auth envia em segundo plano e
+ * um erro de envio só apareceria no log, com a tela dizendo "código enviado".
+ */
+export function canDeliverEmail(): boolean {
+  return hasEmailProvider() || isLocalDev()
+}
+
 export async function sendEmail({
   to,
   subject,

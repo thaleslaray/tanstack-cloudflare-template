@@ -12,6 +12,7 @@ export type AuthFailure =
   | 'email_not_verified'
   | 'invalid_credentials'
   | 'password_too_common'
+  | 'email_not_configured'
   | 'unknown'
 
 /** Em que passo a falha aconteceu: muda o texto só nos casos sem causa clara. */
@@ -33,6 +34,7 @@ const BY_CODE: Record<string, AuthFailure> = {
   EMAIL_NOT_VERIFIED: 'email_not_verified',
   INVALID_EMAIL_OR_PASSWORD: 'invalid_credentials',
   PASSWORD_TOO_COMMON: 'password_too_common',
+  EMAIL_NAO_CONFIGURADO: 'email_not_configured',
 }
 
 /** Traduz o erro do servidor (ou de rede) numa falha com nome. */
@@ -74,6 +76,8 @@ export function authFailureMessage(
       return 'E-mail ou senha incorretos.'
     case 'password_too_common':
       return 'Essa senha é muito comum. Escolha outra, mais difícil de adivinhar.'
+    case 'email_not_configured':
+      return 'O envio de e-mail deste sistema ainda não foi configurado. Avise quem administra.'
     case 'unknown':
       return UNKNOWN[contexto]
   }

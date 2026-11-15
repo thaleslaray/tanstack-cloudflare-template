@@ -1,13 +1,29 @@
 // Entrega dos códigos do Better Auth (plugin emailOTP) por e-mail.
 import { APIError } from 'better-auth/api'
 
-import { sendEmail } from '#/lib/email'
+import { canDeliverEmail, sendEmail } from '#/lib/email'
 import {
   emailVerificationCodeEmail,
   loginCodeEmail,
 } from '#/lib/email-templates'
 
 const OTP_MINUTES = 10
+
+export const SEND_OTP_PATH = '/email-otp/send-verification-otp'
+
+/**
+ * Recusa o pedido de código quando não há como entregá-lo (produção sem
+ * provedor de e-mail). Vale para qualquer e-mail, exista conta ou não, para não
+ * revelar quem tem conta. Sem isto, o Better Auth responde `success` e o erro
+ * de envio morre no log, porque ele envia em segundo plano.
+ */
+export function assertEmailConfigured(path: string): void {
+  if (path !== SEND_OTP_PATH || canDeliverEmail()) return
+  throw new APIError('SERVICE_UNAVAILABLE', {
+    message: 'O envio de e-mail deste sistema ainda não foi configurado.',
+    code: 'EMAIL_NAO_CONFIGURADO',
+  })
+}
 
 /**
  * Só dois tipos de código têm tela e e-mail neste template: `sign-in` (entrar)

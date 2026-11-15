@@ -96,6 +96,7 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - Teste com o Better Auth de verdade: `src/test/auth-harness.ts` (D1 local em memória via `getPlatformProxy`, migrações de `drizzle/` aplicadas); exemplo em `src/lib/auth-integration.test.ts`.
 - `getAuth` lança erro se `BETTER_AUTH_SECRET` faltar ou tiver menos de 32 caracteres.
 - `sendEmail` lança erro quando não há provedor de e-mail e não é dev (o login recusa enviar, em vez de só logar o código). "Dev" exige `import.meta.env.DEV` (o `vite dev`) E, se `BETTER_AUTH_URL` estiver definido, que seja localhost: um build de produção nunca imprime código no log, nem com a URL de localhost esquecida.
+- **Pedido de código sem e-mail configurado falha na cara.** O Better Auth envia o código em segundo plano, então um erro de envio só aparecia no log e a tela dizia "código enviado". O `hooks.before` chama `assertEmailConfigured` (`src/lib/auth-otp.ts`): em `POST /api/auth/email-otp/send-verification-otp`, sem provedor (`hasEmailProvider`, `src/lib/email.ts`) e fora do dev local, responde 503 com `code: 'EMAIL_NAO_CONFIGURADO'`, para qualquer e-mail (tenha conta ou não, para não vazar quem tem). `auth-failure.ts` traduz para "O envio de e-mail deste sistema ainda não foi configurado. Avise quem administra." Teste: `src/lib/auth-integration.test.ts`.
 - Demos (`/demo/*`) só existem no `npm run dev`.
 - Encerrar conta exige e-mail verificado e sessão com menos de 1 h.
 - Job `auditoria.retencao` apaga a auditoria com mais de 180 dias.

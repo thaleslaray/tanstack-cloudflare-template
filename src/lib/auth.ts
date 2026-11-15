@@ -19,7 +19,7 @@ import {
   resolveBaseURL,
   resolveTrustedOrigins,
 } from '#/lib/auth-config'
-import { deliverOtp } from '#/lib/auth-otp'
+import { assertEmailConfigured, deliverOtp } from '#/lib/auth-otp'
 import { assertPasswordNotCommon } from '#/lib/password-policy'
 import { sanitizeProfileUpdate } from '#/lib/profile'
 
@@ -151,6 +151,7 @@ export function getAuth(env: Env, request?: Request) {
     hooks: {
       // Senha da lista das mais comuns é recusada (só com senha ligada).
       before: createAuthMiddleware(async (ctx) => {
+        assertEmailConfigured(ctx.path)
         assertPasswordNotCommon(ctx.path, ctx.body, password)
       }),
       after: auditAfterHook,
