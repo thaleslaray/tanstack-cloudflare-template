@@ -45,6 +45,21 @@ describe('bookmarkFromRequest', () => {
       BOOKMARK,
     )
   })
+  it('aceita o nome com __Host- e prefere ele ao antigo', () => {
+    const novo = '00000086-0000024c-00004c6d-8e61117bf38d7adb71b934ebbf891683'
+    expect(bookmarkFromRequest(req(`__Host-d1-bookmark=${novo}`))).toBe(novo)
+    expect(
+      bookmarkFromRequest(
+        req(`d1-bookmark=${BOOKMARK}; __Host-d1-bookmark=${novo}`),
+      ),
+    ).toBe(novo)
+    // __Host- inválido: cai para o nome antigo, se este for válido
+    expect(
+      bookmarkFromRequest(
+        req(`__Host-d1-bookmark=lixo; d1-bookmark=${BOOKMARK}`),
+      ),
+    ).toBe(BOOKMARK)
+  })
   it('ignora cookie ausente ou inválido', () => {
     expect(bookmarkFromRequest(req())).toBeUndefined()
     expect(bookmarkFromRequest(req('a=1'))).toBeUndefined()
@@ -53,6 +68,19 @@ describe('bookmarkFromRequest', () => {
 })
 
 describe('bookmarkCookie', () => {
+  it('usa __Host- fora do localhost e o nome simples em dev', () => {
+    const https = bookmarkCookie(
+      BOOKMARK,
+      req(undefined, 'https://app.exemplo.com/'),
+    )
+    expect(https.startsWith(`__Host-d1-bookmark=${BOOKMARK}; Path=/;`)).toBe(
+      true,
+    )
+    expect(https).not.toContain('Domain')
+    expect(bookmarkCookie(BOOKMARK, req()).startsWith('d1-bookmark=')).toBe(
+      true,
+    )
+  })
   it('só marca Secure em https', () => {
     expect(bookmarkCookie(BOOKMARK, req())).not.toContain('Secure')
     const https = bookmarkCookie(
