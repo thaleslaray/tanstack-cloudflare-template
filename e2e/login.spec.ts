@@ -53,6 +53,21 @@ test('entra com o código enviado por e-mail e chega em /app', async () => {
   )
 })
 
+test('logado, /login?redirect=/.//evil.com não dá 500 nem sai do site', async () => {
+  // `/.//evil.com` vira `//evil.com` depois de normalizado: antes dava 500.
+  // Fica aqui (e não num teste com login próprio) para não gastar o rate limit
+  // de login (5 por minuto por IP).
+  const resposta = await page.goto('/login?redirect=/.//evil.com')
+  expect(resposta?.status()).toBeLessThan(500)
+  await expect(page).toHaveURL(/localhost:\d+\/app$/)
+  await page.goto('/app')
+  await waitForHydration(
+    page
+      .getByRole('navigation', { name: 'Área logada' })
+      .getByRole('link', { name: 'Clientes' }),
+  )
+})
+
 test('clientes: lista vazia, cria um cliente e ele aparece na tabela', async () => {
   await page
     .getByRole('navigation', { name: 'Área logada' })

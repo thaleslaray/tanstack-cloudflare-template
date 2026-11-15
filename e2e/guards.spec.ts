@@ -25,16 +25,3 @@ test('depois do login, volta para a página que pediu', async ({ page }) => {
   await expect(page).toHaveURL(/\/app\/configuracoes\?de=e2e$/)
   await expect(page.getByText(email).first()).toBeVisible()
 })
-
-test('logado, /login?redirect=/.//evil.com não dá 500 nem sai do site', async ({
-  page,
-}) => {
-  await page.goto('/login')
-  await loginWithCode(page, `e2e-aberto-${Date.now()}@exemplo.test`)
-  await expect(page).toHaveURL(/\/app$/)
-
-  // `/.//evil.com` vira `//evil.com` depois de normalizado: antes dava 500.
-  const resposta = await page.goto('/login?redirect=/.//evil.com')
-  expect(resposta?.status()).toBeLessThan(500)
-  await expect(page).toHaveURL(/localhost:\d+\/app$/)
-})
