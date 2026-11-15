@@ -18,6 +18,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
@@ -38,6 +39,23 @@ describe('sendEmail', () => {
       /Nenhum provedor de e-mail configurado/,
     )
     expect(log).not.toHaveBeenCalled()
+  })
+
+  it('fora do vite dev (DEV falso) não imprime no console, mesmo com URL localhost', async () => {
+    vi.stubEnv('DEV', false)
+    Object.assign(stubEnv, { BETTER_AUTH_URL: 'http://localhost:3000' })
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await expect(sendEmail(params)).rejects.toThrow(
+      /Nenhum provedor de e-mail configurado/,
+    )
+    expect(log).not.toHaveBeenCalled()
+  })
+
+  it('sem URL definida, vale só o DEV', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    expect((await sendEmail(params)).provider).toBe('console')
+    vi.stubEnv('DEV', false)
+    await expect(sendEmail(params)).rejects.toThrow()
   })
 
   it('127.0.0.1 também conta como desenvolvimento', async () => {

@@ -28,12 +28,14 @@ function optional(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined
 }
 
-// Desenvolvimento local: URL do app em localhost/127.x ou, sem URL definida,
-// o `vite dev` (`import.meta.env.DEV`).
+// Desenvolvimento local = `import.meta.env.DEV` (o `vite dev`; no build de
+// produção é `false`) E, se houver URL definida, que ela seja localhost/127.x.
+// As duas condições valem juntas: um build de produção com
+// BETTER_AUTH_URL=http://localhost... esquecido não imprime código de login no log.
 function isLocalDev(): boolean {
+  if (import.meta.env.DEV !== true) return false
   const url = optional(env.BETTER_AUTH_URL)
-  if (url) return isLocalUrl(url)
-  return import.meta.env.DEV === true
+  return url ? isLocalUrl(url) : true
 }
 
 export async function sendEmail({
