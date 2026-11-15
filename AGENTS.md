@@ -140,6 +140,10 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - Formato novo de bloco = tipo em `src/components/landing/types.ts` (props comentadas em pt-BR) + componente em `src/components/landing/blocks/` (os 7 originais em `core.tsx`, um arquivo por formato extra; moldura, cabeçalho e botões em `src/components/landing/section.tsx`) + `case` no `render.tsx` + exemplo em `blocos-exemplo.ts`. O typecheck cobra o `case` e o exemplo; `render.test.tsx` confere os três pelo texto e renderiza cada exemplo. Cada bloco sai num invólucro `data-block="<tipo>"`.
 - Ícone de bloco só do `lucide-react`, pedido por nome (`icon: 'mail'`) a partir de `src/components/landing/icons.ts`. Imagem de bloco mora em `public/` (`gallery`: `loading="lazy"`, `width`/`height` reais). SVG em string (`logos`) usa `currentColor`. Animação respeita `prefers-reduced-motion` e não esconde conteúdo sem JS (veja `blocks/terminal.tsx`).
 
+### Riscos aceitos (de propósito)
+- **Corrida no teto de 500 clientes**: `createClienteFn` conta e depois insere, sem transação; duas criações simultâneas da mesma pessoa podem passar de `CLIENTES_MAX` por uma ou duas linhas. Aceitável: o teto é para evitar excesso por engano, não uma cota de cobrança.
+- **Segredo conferido só pelo tamanho**: `assertAuthSecret` exige 32 caracteres ou mais, mas não mede entropia (`'a'.repeat(32)` passa). Aceitável: quem gera com `openssl rand -base64 32`, como as instruções pedem, está coberto; a conferência existe para pegar segredo vazio ou esquecido.
+
 ### Proteções
 - `PUBLIC_RATE_LIMIT` (5/min por IP) cobre os endpoints de login e as escritas públicas; `isRateLimited()` falha ABERTA sem o binding. Endpoint público de escrita novo? Aplique.
 - Cabeçalhos de segurança em `src/lib/security-headers.ts` (Worker) e `public/_headers` (assets/páginas estáticas): mantenha os dois iguais. Sem CSP de propósito (scripts inline do TanStack).
