@@ -61,3 +61,15 @@ describe('/update-user (Better Auth montado)', () => {
     expect(row?.image).toBe(image)
   })
 })
+
+describe('rotas sem tela ficam desligadas (Better Auth montado)', () => {
+  it('/change-password responde 404, mesmo logado', async () => {
+    const { cookie } = await h.signIn('senha-troca@exemplo.test')
+    const res = await h.post(
+      '/change-password',
+      { currentPassword: 'a', newPassword: 'cavalo-bateria-grampo-7' },
+      { cookie },
+    )
+    expect(res.status).toBe(404)
+  })
+})

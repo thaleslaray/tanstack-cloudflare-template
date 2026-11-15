@@ -84,6 +84,8 @@ export const DISABLED_PATHS = [
   '/email-otp/reset-password',
   '/request-password-reset',
   '/reset-password',
+  // Troca de senha de quem já está logado: não há tela para isso
+  '/change-password',
   // Troca de e-mail
   '/change-email',
   '/email-otp/request-email-change',
