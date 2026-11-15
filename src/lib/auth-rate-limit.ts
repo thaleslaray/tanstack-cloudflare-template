@@ -6,15 +6,17 @@ import { isRateLimited, tooManyRequests } from '#/lib/rate-limit'
 // Fora do limite: sair e ler a sessão não gastam e-mail nem testam senha.
 const UNLIMITED_SUFFIXES = ['/sign-out', '/get-session']
 
-// Endpoints que recebem um e-mail no corpo: além do IP, limita por e-mail, para
-// que um atacante com muitos IPs não encha a caixa de uma pessoa de códigos.
+// Endpoints que ENVIAM e-mail ou testam senha: além do IP, limita por e-mail,
+// para que um atacante com muitos IPs não encha a caixa de uma pessoa de
+// códigos. A VERIFICAÇÃO do código (`/sign-in/email-otp`,
+// `/email-otp/verify-email`, `/email-otp/check-verification-otp`) fica só com
+// a chave por IP, de propósito: com a chave por e-mail, quem soubesse o
+// e-mail de alguém esgotava o limite dele e o impedia de entrar. Adivinhar o
+// código não compensa: são 3 tentativas por código emitido (`allowedAttempts`).
 const EMAIL_KEYED_SUFFIXES = [
   '/email-otp/send-verification-otp',
   '/sign-in/email',
   '/sign-up/email',
-  '/sign-in/email-otp',
-  '/email-otp/verify-email',
-  '/email-otp/check-verification-otp',
   '/forget-password/email-otp',
   '/email-otp/reset-password',
 ]

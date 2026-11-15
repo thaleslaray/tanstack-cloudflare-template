@@ -70,9 +70,6 @@ describe('authRateLimit', () => {
     for (const path of [
       '/sign-in/email',
       '/sign-up/email',
-      '/sign-in/email-otp',
-      '/email-otp/verify-email',
-      '/email-otp/check-verification-otp',
       '/forget-password/email-otp',
       '/email-otp/reset-password',
     ]) {
@@ -81,14 +78,49 @@ describe('authRateLimit', () => {
     }
   })
 
+  it('a verificação do código só tem a chave por IP (não trava a vítima)', async () => {
+    // Se a chave por e-mail valesse aqui, quem soubesse o e-mail de alguém
+    // esgotaria o limite dele e o impediria de digitar o próprio código. O
+    // código já tem 3 tentativas por emissão (`allowedAttempts`).
+    const limiter = limiterBlocking('auth-email:')
+    Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiter })
+    for (const path of [
+      '/sign-in/email-otp',
+      '/email-otp/verify-email',
+      '/email-otp/check-verification-otp',
+    ]) {
+      expect(
+        await authRateLimit(post(path, { email: 'a@b.com' })),
+        path,
+      ).toBeNull()
+    }
+    expect(
+      limiter.limit.mock.calls.every(([a]) => a.key.startsWith('auth:')),
+    ).toBe(true)
+    expect(limiter.limit).toHaveBeenCalledTimes(3)
+  })
+
+  it('o envio do código continua limitado por e-mail', async () => {
+    Object.assign(stubEnv, {
+      PUBLIC_RATE_LIMIT: limiterBlocking('auth-email:'),
+    })
+    const res = await authRateLimit(
+      post('/email-otp/send-verification-otp', {
+        email: 'a@b.com',
+        type: 'sign-in',
+      }),
+    )
+    expect(res?.status).toBe(429)
+  })
+
   it('sem e-mail válido no corpo, pula só a chave por e-mail', async () => {
     const limiter = limiterBlocking('auth-email:')
     Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiter })
     expect(
-      await authRateLimit(post('/sign-in/email-otp', { email: 'sem-arroba' })),
+      await authRateLimit(post('/sign-in/email', { email: 'sem-arroba' })),
     ).toBeNull()
-    expect(await authRateLimit(post('/sign-in/email-otp', { x: 1 }))).toBeNull()
-    expect(await authRateLimit(post('/sign-in/email-otp'))).toBeNull()
+    expect(await authRateLimit(post('/sign-in/email', { x: 1 }))).toBeNull()
+    expect(await authRateLimit(post('/sign-in/email'))).toBeNull()
     // só a chave por IP foi consultada
     expect(
       limiter.limit.mock.calls.every(([a]) => a.key.startsWith('auth:')),

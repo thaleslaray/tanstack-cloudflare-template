@@ -87,7 +87,7 @@ As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no
 - Não instalar SDK de e-mail; Resend é REST via `fetch`.
 
 ### Auth
-- Rate limit em todo POST de `/api/auth/*`, exceto sign-out e get-session, por IP (/64 no IPv6) e por e-mail.
+- Rate limit em todo POST de `/api/auth/*`, exceto sign-out e get-session, por IP (/64 no IPv6). Por e-mail também, mas só onde há envio de código ou teste de senha (`send-verification-otp`, `sign-in/email`, `sign-up/email`); a VERIFICAÇÃO do código (`sign-in/email-otp`, `email-otp/verify-email`, `check-verification-otp`) fica só com a chave por IP, senão quem soubesse o e-mail de alguém o travaria fora do login (o código tem 3 tentativas, `allowedAttempts`).
 - Login com senha vem DESLIGADO (`PASSWORD_LOGIN_ENABLED`); quando ligado, exige verificação de e-mail.
 - Com a senha ligada, `hooks.before` recusa senha da lista das mais comuns (`src/lib/password-policy.ts`, código `PASSWORD_TOO_COMMON`). Escolha: lista LOCAL, não o plugin `haveIBeenPwned` (que existe no Better Auth instalado, mas chama `api.pwnedpasswords.com` a cada cadastro: rede de terceiros no login, e cadastro com 500 se ela cair). Mais cobertura = aumentar a lista.
 - `/update-user` passa por `databaseHooks.user.update.before` (`sanitizeProfileUpdate`, `src/lib/profile.ts`): `image` só vale se for nulo ou `/api/avatar/<id>[?v=n]` (senão é descartado) e `name` é cortado em `NAME_MAX_LENGTH` (100, o mesmo `maxLength` do campo em `/app/configuracoes`).
