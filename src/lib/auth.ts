@@ -104,6 +104,14 @@ export function getAuth(env: Env, request?: Request) {
       // ligado, qualquer cliente pularia o prazo de 7 dias.
       deleteUser: { enabled: false },
     },
+    account: {
+      // Tokens do Google/GitHub (access, refresh, id) ficam CIFRADOS no D1
+      // (AES com o BETTER_AUTH_SECRET): um vazamento do banco sozinho não
+      // entrega acesso à conta da pessoa no provedor. Custo: trocar o
+      // BETTER_AUTH_SECRET torna os tokens já guardados ilegíveis (o login
+      // social segue funcionando, pois o template não usa o token depois).
+      encryptOAuthTokens: true,
+    },
     socialProviders: {
       ...(googleEnabled(env)
         ? {

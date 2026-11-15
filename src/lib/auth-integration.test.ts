@@ -1,3 +1,4 @@
+import { decryptOAuthToken, setTokenUtil } from 'better-auth/oauth2'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createAuthHarness } from '#/test/auth-harness'
@@ -71,5 +72,21 @@ describe('rotas sem tela ficam desligadas (Better Auth montado)', () => {
       { cookie },
     )
     expect(res.status).toBe(404)
+  })
+})
+
+describe('tokens OAuth cifrados (Better Auth montado)', () => {
+  it('encryptOAuthTokens liga e o token gravado não é o texto puro', async () => {
+    // Cast: as funções do Better Auth pedem o contexto com opções genéricas.
+    const ctx = (await h.getAuth().$context) as unknown as Parameters<
+      typeof setTokenUtil
+    >[1]
+    expect(ctx.options.account?.encryptOAuthTokens).toBe(true)
+    const stored = await setTokenUtil('ya29.token-de-acesso', ctx)
+    expect(stored).not.toBe('ya29.token-de-acesso')
+    expect(stored).not.toContain('ya29')
+    expect(await decryptOAuthToken(stored as string, ctx)).toBe(
+      'ya29.token-de-acesso',
+    )
   })
 })
