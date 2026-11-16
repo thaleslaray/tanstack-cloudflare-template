@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm'
 import { account, session, user, verification } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
-import { auditLog } from '#/db/schema'
+import { auditLog, otpDiario } from '#/db/schema'
 import {
   purgeCutoff,
   purgeDateFor,
@@ -69,6 +69,21 @@ registerJob({
       db.delete(verification).where(lt(verification.expiresAt, now)),
     ])
     return `sessions=${sessions.meta.changes} verifications=${verifications.meta.changes}`
+  },
+})
+
+// Contador diário de pedidos de código (src/lib/otp-daily-cap.ts): só o dia de
+// hoje importa; guarda uma semana de linhas e apaga o resto.
+registerJob({
+  name: 'otp.limpar-contador',
+  async run(env) {
+    const cutoff = new Date(Date.now() - 7 * 86_400_000)
+      .toISOString()
+      .slice(0, 10)
+    const result = await getDb(env.DB)
+      .delete(otpDiario)
+      .where(lt(otpDiario.dia, cutoff))
+    return `apagadas=${result.meta.changes}`
   },
 })
 

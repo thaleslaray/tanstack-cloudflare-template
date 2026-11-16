@@ -7,6 +7,15 @@ vi.mock('@tanstack/react-start/server', () => ({
   getRequest: () => new Request('http://localhost/'),
 }))
 
+// O teto diário vai ao D1; aqui é testado em otp-daily-cap.test.ts.
+const capState = vi.hoisted(() => ({ reached: false, calls: 0 }))
+vi.mock('#/lib/otp-daily-cap', () => ({
+  otpDailyCapReached: async () => {
+    capState.calls++
+    return capState.reached
+  },
+}))
+
 const stubEnv = env as unknown as Record<string, unknown>
 
 function post(path: string, body?: unknown, ip = '203.0.113.7') {
@@ -27,6 +36,8 @@ function limiterBlocking(...blocked: string[]) {
 }
 
 beforeEach(() => {
+  capState.reached = false
+  capState.calls = 0
   for (const key of Object.keys(stubEnv)) delete stubEnv[key]
 })
 
@@ -125,6 +136,41 @@ describe('authRateLimit', () => {
     expect(
       limiter.limit.mock.calls.every(([a]) => a.key.startsWith('auth:')),
     ).toBe(true)
+  })
+
+  describe('teto diário global de códigos', () => {
+    it('o envio de código que passou dos outros limites conta no teto; estourou, 429', async () => {
+      Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiterBlocking() })
+      capState.reached = true
+      const res = await authRateLimit(
+        post('/email-otp/send-verification-otp', {
+          email: 'a@b.com',
+          type: 'sign-in',
+        }),
+      )
+      expect(res?.status).toBe(429)
+      expect(res?.headers.get('retry-after')).toBe('60')
+      capState.reached = false
+      expect(
+        await authRateLimit(
+          post('/email-otp/send-verification-otp', {
+            email: 'a@b.com',
+            type: 'sign-in',
+          }),
+        ),
+      ).toBeNull()
+    })
+
+    it('verificação do código e pedido já recusado por IP não gastam o teto', async () => {
+      Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiterBlocking() })
+      await authRateLimit(post('/sign-in/email-otp', { email: 'a@b.com' }))
+      expect(capState.calls).toBe(0)
+      Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiterBlocking('auth:') })
+      await authRateLimit(
+        post('/email-otp/send-verification-otp', { email: 'a@b.com' }),
+      )
+      expect(capState.calls).toBe(0)
+    })
   })
 
   it('recusa tipo de código sem fluxo com 400', async () => {

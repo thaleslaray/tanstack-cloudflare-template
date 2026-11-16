@@ -63,3 +63,10 @@ export const clientes = sqliteTable(
   },
   (table) => [index('clientes_user_idx').on(table.userId, table.createdAt)],
 )
+
+// Contador diário de pedidos de código por e-mail (src/lib/otp-daily-cap.ts):
+// uma linha por dia UTC (`AAAA-MM-DD`), apagada pelo cron depois de alguns dias.
+export const otpDiario = sqliteTable('otp_diario', {
+  dia: text('dia').primaryKey(),
+  total: integer('total').notNull().default(0),
+})

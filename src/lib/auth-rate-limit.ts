@@ -1,6 +1,7 @@
 // Rate limit de todo POST em /api/auth/* (somente servidor).
 // O limitador interno do Better Auth está desligado (src/lib/auth.ts): quem
 // limita é esta função, chamada por src/routes/api/auth/$.ts.
+import { otpDailyCapReached } from '#/lib/otp-daily-cap'
 import { isRateLimited, tooManyRequests } from '#/lib/rate-limit'
 
 // Fora do limite: sair e ler a sessão não gastam e-mail nem testam senha.
@@ -19,6 +20,13 @@ const EMAIL_KEYED_SUFFIXES = [
   '/sign-up/email',
   '/forget-password/email-otp',
   '/email-otp/reset-password',
+]
+
+// Caminhos que mandam e-mail com código (mesmos de EMAIL_SENDING_PATHS em
+// src/lib/auth-otp.ts): contam no teto diário global.
+const DAILY_CAPPED_SUFFIXES = [
+  '/email-otp/send-verification-otp',
+  '/sign-up/email',
 ]
 
 // Tipos de código que têm tela e e-mail (src/lib/auth-otp.ts).
@@ -100,6 +108,15 @@ export async function authRateLimit(
       headers: request.headers,
       key: `auth-email:${email}`,
     }))
+  ) {
+    return tooManyRequests()
+  }
+
+  // Teto diário global de e-mails de código (src/lib/otp-daily-cap.ts): por
+  // último, para pedido já recusado acima não gastar o teto.
+  if (
+    endsWithAny(path, DAILY_CAPPED_SUFFIXES) &&
+    (await otpDailyCapReached())
   ) {
     return tooManyRequests()
   }

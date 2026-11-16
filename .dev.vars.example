@@ -17,6 +17,10 @@ BETTER_AUTH_URL=
 # `true` ou `1` liga: quem cria conta com senha confirma o e-mail por código antes de entrar.
 PASSWORD_LOGIN_ENABLED=
 
+# Teto diário GLOBAL de e-mails com código de login/cadastro (opcional). Vazio = 500 por dia (UTC).
+# `0` desliga. Ajuste à cota do seu provedor (Resend gratuito: 100 por dia).
+OTP_DAILY_LIMIT=
+
 # E-mail (opcional). Sem estas duas variáveis, o e-mail aparece no terminal do `npm run dev`.
 # Crie a chave em https://resend.com/api-keys
 RESEND_API_KEY=

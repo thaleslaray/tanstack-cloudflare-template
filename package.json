@@ -31,6 +31,9 @@
       "GITHUB_CLIENT_SECRET": {
         "description": "Opcional: login com GitHub (precisa do par id + segredo)."
       },
+      "OTP_DAILY_LIMIT": {
+        "description": "Opcional: teto diário global de e-mails com código (padrão 500; `0` desliga). Ajuste à cota do seu provedor de e-mail."
+      },
       "PASSWORD_LOGIN_ENABLED": {
         "description": "Opcional: `true` liga o login com senha (vem desligado)."
       }
