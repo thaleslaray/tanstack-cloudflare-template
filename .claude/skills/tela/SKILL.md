@@ -13,7 +13,8 @@ projeto é a que parece ter nascido junto com as outras.
 
 1. Leia `src/CLAUDE.md` (a direção visual e as sete regras). Várias são
    testadas: `npm run test` fica vermelho se uma for quebrada.
-2. Leia os três moldes:
+2. Leia os três moldes (no template; num produto, `/estilo`, `/blocos` e a tela
+   de clientes costumam estar apagados: use as telas do próprio produto como molde):
    - `src/routes/estilo.tsx`: todas as peças, uma de cada, com as classes certas;
    - `src/components/app/exemplo-lista.tsx`: a tela de lista completa (abas,
      busca, tabela, vazio, diálogo de criar), com dados de mentira;

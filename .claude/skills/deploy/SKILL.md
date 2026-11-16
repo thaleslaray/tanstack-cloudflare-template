@@ -161,7 +161,7 @@ Rode depois que o app estiver no ar, com a réplica ligada e uns 15 min depois
 do deploy (tempo do Smart Placement). Use o k6 (`brew install k6` no Mac).
 
 **Antes de rodar, ajuste `load/rotas.json` às telas do produto.** O padrão mede
-a tela de clientes de exemplo e cria/apaga um cliente; se o produto trocou ou
+a tela de clientes de exemplo (no template; num produto, use as telas do próprio produto) e cria/apaga um cliente; se o produto trocou ou
 removeu essa tela, aponte as rotas públicas, as logadas e (opcional) a escrita
 para o que existe de verdade, ou use `"escrita": null`. Se uma rota configurada
 responder 404, o roteiro para antes de medir, com a mensagem dizendo qual.
