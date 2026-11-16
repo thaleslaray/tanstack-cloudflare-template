@@ -22,9 +22,13 @@ Primeira vez: `npx playwright install chromium`.
 
 - `marketing.spec.ts`: home em pt-BR, links do header, redirecionamento de `/docs`, 404.
 - `helpers.ts`: portas, leitura do código no log e `loginWithCode()` (usado pelos specs de login).
-- `login.spec.ts`: o produto logado de ponta a ponta com UM login (o rate limit é 5/min por IP): entra por código e chega em `/app`, navega pela barra lateral, troca a foto (R2), baixa os dados em JSON e encerra a conta.
+- `login.spec.ts`: o produto logado de ponta a ponta com UM login (para a rodada ficar curta): entra por código e chega em `/app`, navega pela barra lateral, troca a foto (R2), baixa os dados em JSON e encerra a conta.
 - `guards.spec.ts`: `/app` anônimo redireciona para `/login?redirect=...`, e, depois do login, volta para a página pedida.
 - `security-headers.spec.ts`: cabeçalhos de segurança nas respostas do Worker (dev) e nos estáticos (preview: página pré-renderizada, `public/`, `/assets/`).
+
+## Limite de login desligado no e2e
+
+O servidor de desenvolvimento do e2e sobe com `VITE_E2E_SEM_LIMITE=1`, e nesse caso `isRateLimited()` (`src/lib/rate-limit.ts`) libera tudo: com o limite de 5 por minuto, vários logins seguidos esperariam um minuto e a rodada passava de 8 minutos. Só vale com `import.meta.env.DEV`; no build de produção o ramo some e nada liga isso no ar. O preview (build de produção) não recebe a variável. O teste do próprio limite fica nos testes de unidade (`src/lib/rate-limit.test.ts`).
 
 ## Convenções
 

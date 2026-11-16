@@ -4,8 +4,8 @@ import { loginWithCode, waitForHydration } from './helpers'
 
 // O produto logado de ponta a ponta, com UM login só: entrar, navegar pela
 // área logada, cadastrar um cliente, trocar a foto, baixar os dados, apagar o
-// cliente e encerrar a conta. Um login por
-// teste estouraria o rate limit (5 por minuto por IP nos endpoints de login).
+// cliente e encerrar a conta. Um login só para a rodada ficar curta (o limite
+// de login fica desligado no e2e; o teste do limite está em rate-limit.test.ts).
 test.describe.configure({ mode: 'serial' })
 
 // PNG 1x1 válido (os primeiros bytes são conferidos pelo servidor).
@@ -55,8 +55,8 @@ test('entra com o código enviado por e-mail e chega em /app', async () => {
 
 test('logado, /login?redirect=/.//evil.com não dá 500 nem sai do site', async () => {
   // `/.//evil.com` vira `//evil.com` depois de normalizado: antes dava 500.
-  // Fica aqui (e não num teste com login próprio) para não gastar o rate limit
-  // de login (5 por minuto por IP).
+  // Fica aqui (e não num teste com login próprio) para não gastar mais um
+  // login e alongar a rodada.
   const resposta = await page.goto('/login?redirect=/.//evil.com')
   expect(resposta?.status()).toBeLessThan(500)
   await expect(page).toHaveURL(/localhost:\d+\/app$/)

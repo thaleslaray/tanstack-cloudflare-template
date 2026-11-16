@@ -178,7 +178,7 @@ npm run e2e           # com o `npm run dev` desligado: ele usa a mesma porta
 ```
 
 Tela com dados ganha um teste em `e2e/login.spec.ts`, dentro do fluxo que já
-está logado (um login por teste estoura o limite de login): criar, ver na
+está logado (um login só deixa a rodada curta; o limite de login fica desligado no e2e): criar, ver na
 lista, apagar.
 
 Depois abra a tela no navegador (`npm run dev`) e olhe de verdade:

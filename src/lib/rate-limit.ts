@@ -63,6 +63,12 @@ export async function isRateLimited(
   scope: string,
   options: { headers?: Headers; key?: string } = {},
 ): Promise<boolean> {
+  // Só no servidor de desenvolvimento subido pelo Playwright (e2e): lá o limite
+  // atrapalharia os vários logins. No build de produção `import.meta.env.DEV` é
+  // false e este ramo some do bundle, então nenhuma variável ou segredo liga
+  // isso no ar. O limite em si é testado nos testes de unidade.
+  if (import.meta.env.DEV && import.meta.env.VITE_E2E_SEM_LIMITE === '1')
+    return false
   const limiter: RateLimit | undefined = env.PUBLIC_RATE_LIMIT
   if (!limiter) return false
   try {

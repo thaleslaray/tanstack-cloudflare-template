@@ -6,6 +6,8 @@ import { devPort, previewPort } from './e2e/helpers'
 // e2e/.dev.log: é dali que o teste de login lê o código impresso no terminal.
 // Porta 3000 ocupada? `E2E_PORT=3001 npm run e2e` (a URL do app vem da
 // requisição, então não precisa mexer no .dev.vars). Veja e2e/README.md.
+// O servidor de desenvolvimento sobe com VITE_E2E_SEM_LIMITE=1: o limite de
+// pedidos de login fica desligado só ali (veja `isRateLimited`).
 // O segundo servidor (preview, porta 4173 ou E2E_PREVIEW_PORT) é a saída de
 // produção: faz o build e serve com o public/_headers aplicado aos estáticos.
 const port = devPort
@@ -31,7 +33,7 @@ export default defineConfig({
   webServer: [
     {
       // `--strictPort`: se a porta estiver ocupada, falha em vez de pular para outra.
-      command: `npx vite dev --port ${port} --strictPort > e2e/.dev.log 2>&1`,
+      command: `VITE_E2E_SEM_LIMITE=1 npx vite dev --port ${port} --strictPort > e2e/.dev.log 2>&1`,
       url: `${baseURL}/`,
       // Sempre sobe o próprio servidor: o login precisa do log em e2e/.dev.log.
       reuseExistingServer: false,

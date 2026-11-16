@@ -23,9 +23,26 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllEnvs()
 })
 
 describe('isRateLimited', () => {
+  it('sem VITE_E2E_SEM_LIMITE o limite vale mesmo em dev', async () => {
+    const limit = vi.fn(async () => ({ success: false }))
+    Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: { limit } })
+    vi.stubEnv('VITE_E2E_SEM_LIMITE', '')
+    expect(await isRateLimited('login', { headers })).toBe(true)
+    expect(limit).toHaveBeenCalled()
+  })
+
+  it('com VITE_E2E_SEM_LIMITE=1 em dev (e2e) não limita nem consulta', async () => {
+    const limit = vi.fn(async () => ({ success: false }))
+    Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: { limit } })
+    vi.stubEnv('VITE_E2E_SEM_LIMITE', '1')
+    expect(await isRateLimited('login', { headers })).toBe(false)
+    expect(limit).not.toHaveBeenCalled()
+  })
+
   it('sem binding não limita', async () => {
     expect(await isRateLimited('login', { headers })).toBe(false)
   })
