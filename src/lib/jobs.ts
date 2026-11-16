@@ -87,51 +87,6 @@ registerJob({
   },
 })
 
-// Contas encerradas no dia do lembrete (dia 5 de 7) que ainda não foram
-// avisadas. Pega também quem o cron "pulou" numa noite, desde que ainda esteja
-// dentro do prazo. Cada envio é REIVINDICADO antes com um update condicional
-// em `purgeRemindedAt`: cron duplicado ou dois rodando juntos mandam 1 e-mail.
-registerJob({
-  name: 'conta.lembrar-exclusao',
-  async run(env) {
-    const db = getDb(env.DB)
-    const now = new Date()
-    const due = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(
-        and(
-          lt(user.deletedAt, reminderCutoff(now)),
-          gte(user.deletedAt, purgeCutoff(now)),
-          isNull(user.purgeRemindedAt),
-        ),
-      )
-    let reminded = 0
-    for (const { id } of due) {
-      const [claimed] = await db
-        .update(user)
-        .set({ purgeRemindedAt: now })
-        .where(
-          and(
-            eq(user.id, id),
-            isNotNull(user.deletedAt),
-            isNull(user.purgeRemindedAt),
-          ),
-        )
-        .returning({ email: user.email, deletedAt: user.deletedAt })
-      if (!claimed?.deletedAt) continue
-      await sendEmailSafely({
-        to: claimed.email,
-        ...accountPurgeReminderEmail({
-          purgeAt: purgeDateFor(claimed.deletedAt),
-        }),
-      })
-      reminded++
-    }
-    return `lembradas=${reminded}`
-  },
-})
-
 // Quantas contas apagar por noite: cada uma passa pelas limpezas (R2...).
 // Um acúmulo se resolve em poucas noites, sem prender uma execução por minutos.
 const PURGE_BATCH = 25
@@ -275,5 +230,60 @@ registerJob({
       .delete(auditLog)
       .where(lt(auditLog.createdAt, auditCutoff(new Date())))
     return `apagadas=${result.meta.changes}`
+  },
+})
+
+// Contas encerradas no dia do lembrete (dia 5 de 7) que ainda não foram
+// avisadas. Pega também quem o cron "pulou" numa noite, desde que ainda esteja
+// dentro do prazo. Cada envio é REIVINDICADO antes com um update condicional
+// em `purgeRemindedAt`: cron duplicado ou dois rodando juntos mandam 1 e-mail.
+// Roda por ÚLTIMO e com teto (REMINDER_BATCH): o plano gratuito limita as
+// operações por invocação, e o expurgo (prazo legal) vem antes dos lembretes
+// (cortesia). O que passar do teto fica para a noite seguinte, enquanto a
+// conta estiver dentro do prazo.
+// Quantos lembretes mandar por noite (cada um é um update + um e-mail).
+export const REMINDER_BATCH = 50
+
+registerJob({
+  name: 'conta.lembrar-exclusao',
+  async run(env) {
+    const db = getDb(env.DB)
+    const now = new Date()
+    const due = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(
+        and(
+          lt(user.deletedAt, reminderCutoff(now)),
+          gte(user.deletedAt, purgeCutoff(now)),
+          isNull(user.purgeRemindedAt),
+        ),
+      )
+      // As mais antigas primeiro: são as que estão mais perto do expurgo.
+      .orderBy(asc(user.deletedAt))
+      .limit(REMINDER_BATCH)
+    let reminded = 0
+    for (const { id } of due) {
+      const [claimed] = await db
+        .update(user)
+        .set({ purgeRemindedAt: now })
+        .where(
+          and(
+            eq(user.id, id),
+            isNotNull(user.deletedAt),
+            isNull(user.purgeRemindedAt),
+          ),
+        )
+        .returning({ email: user.email, deletedAt: user.deletedAt })
+      if (!claimed?.deletedAt) continue
+      await sendEmailSafely({
+        to: claimed.email,
+        ...accountPurgeReminderEmail({
+          purgeAt: purgeDateFor(claimed.deletedAt),
+        }),
+      })
+      reminded++
+    }
+    return `lembradas=${reminded}`
   },
 })

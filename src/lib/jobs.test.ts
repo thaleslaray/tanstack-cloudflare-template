@@ -6,7 +6,12 @@ import { fakeDb } from '#/test/fake-db'
 const state = vi.hoisted(() => ({ db: undefined as unknown }))
 vi.mock('#/db/index', () => ({ getDb: () => state.db }))
 
-import { AUDIT_RETENTION_DAYS, auditCutoff, runJobs } from '#/lib/jobs'
+import {
+  AUDIT_RETENTION_DAYS,
+  auditCutoff,
+  REMINDER_BATCH,
+  runJobs,
+} from '#/lib/jobs'
 
 const DAY = 86_400_000
 
@@ -42,5 +47,32 @@ describe('job auditoria.retencao', () => {
     await runJobs({ DB: {} } as unknown as Env)
     await runJobs({ DB: {} } as unknown as Env)
     expect(log).toHaveBeenCalledWith('[jobs] auditoria.retencao: apagadas=0')
+  })
+})
+
+describe('cron em partes', () => {
+  it('o expurgo roda antes dos lembretes (lembrete é o último job)', async () => {
+    const { db } = fakeDb()
+    state.db = db
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    const nomes = Object.keys(await runJobs({ DB: {} } as unknown as Env))
+    const lembrete = nomes.indexOf('conta.lembrar-exclusao')
+    expect(lembrete).toBe(nomes.length - 1)
+    expect(nomes.indexOf('conta.apagar-encerradas')).toBeLessThan(lembrete)
+    expect(nomes.indexOf('conta.apagar-social-nao-verificada')).toBeLessThan(
+      lembrete,
+    )
+  })
+
+  it('os lembretes têm teto por invocação (o resto fica para a noite seguinte)', async () => {
+    expect(REMINDER_BATCH).toBeGreaterThan(0)
+    const { db, calls } = fakeDb()
+    state.db = db
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runJobs({ DB: {} } as unknown as Env)
+    // o select dos lembretes é o único com `.limit(REMINDER_BATCH)`
+    expect(
+      calls.some(([m, args]) => m === 'limit' && args[0] === REMINDER_BATCH),
+    ).toBe(true)
   })
 })
