@@ -10,7 +10,7 @@ import { getDb } from '#/db/index'
 import { otpDiario } from '#/db/schema'
 
 /** Teto padrão por dia. A variável `OTP_DAILY_LIMIT` troca; `0` desliga o teto. */
-export const OTP_DAILY_LIMIT_DEFAULT = 500
+export const OTP_DAILY_LIMIT_DEFAULT = 100
 
 export function otpDailyLimit(raw: unknown = env.OTP_DAILY_LIMIT): number {
   if (typeof raw !== 'string' || raw.trim() === '')

@@ -86,8 +86,8 @@ continua na tela. Não publique para uso real sem isto.
 
 Os segredos do passo 3 já têm de estar no `.prod.vars` (sem domínio próprio,
 a `BETTER_AUTH_URL` ainda não existe: grave-a logo depois, veja o passo 2).
-Troque também o `namespace_id` do rate limit no `wrangler.jsonc` (`"1001"`)
-por um número próprio do produto (ex.: derivado do nome, como 4 dígitos do
+Troque também os `namespace_id` dos rate limits no `wrangler.jsonc` (`"1001"` do
+público e `"1002"` do limite por usuário) por números próprios do produto (ex.: derivado do nome, como 4 dígitos do
 hash dele): ele é único na conta, e dois produtos com o mesmo número dividiriam
 o limite.
 
