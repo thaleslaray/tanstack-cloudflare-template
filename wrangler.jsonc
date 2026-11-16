@@ -63,6 +63,8 @@
   ],
   // Rate limit por IP nos endpoints públicos de escrita (login e demos): 5 por minuto.
   // `namespace_id` é um inteiro (como texto) único na conta; `period` só aceita 10 ou 60.
+  // Dois produtos na mesma conta com o mesmo número dividiriam o limite: troque o 1001
+  // por um número próprio do produto antes do primeiro deploy (a skill /deploy pede).
   // Uso: src/lib/rate-limit.ts (falha aberta se o binding não existir).
   "ratelimits": [
     {
