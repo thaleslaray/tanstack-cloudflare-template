@@ -11,14 +11,27 @@ const OTP_MINUTES = 10
 
 export const SEND_OTP_PATH = '/email-otp/send-verification-otp'
 
+export const SIGN_UP_PATH = '/sign-up/email'
+
+// Caminhos do Better Auth que mandam e-mail neste template. Reenvio por link
+// (`/send-verification-email`) e redefinição de senha estão em DISABLED_PATHS
+// (404): o reenvio é o próprio SEND_OTP_PATH com `type: 'email-verification'`.
+const EMAIL_SENDING_PATHS = new Set([SEND_OTP_PATH, SIGN_UP_PATH])
+
 /**
  * Recusa o pedido de código quando não há como entregá-lo (produção sem
- * provedor de e-mail). Vale para qualquer e-mail, exista conta ou não, para não
+ * provedor de e-mail), incluindo o cadastro com senha. Vale para qualquer e-mail, exista conta ou não, para não
  * revelar quem tem conta. Sem isto, o Better Auth responde `success` e o erro
  * de envio morre no log, porque ele envia em segundo plano.
  */
-export function assertEmailConfigured(path: string): void {
-  if (path !== SEND_OTP_PATH || canDeliverEmail()) return
+export function assertEmailConfigured(
+  path: string,
+  passwordLoginEnabled = false,
+): void {
+  if (!EMAIL_SENDING_PATHS.has(path) || canDeliverEmail()) return
+  // O cadastro só dispara e-mail quando a senha está ligada; desligada, o
+  // Better Auth já recusa por conta própria.
+  if (path === SIGN_UP_PATH && !passwordLoginEnabled) return
   throw new APIError('SERVICE_UNAVAILABLE', {
     message: 'O envio de e-mail deste sistema ainda não foi configurado.',
     code: 'EMAIL_NAO_CONFIGURADO',

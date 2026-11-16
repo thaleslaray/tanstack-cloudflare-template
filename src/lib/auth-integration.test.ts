@@ -215,3 +215,83 @@ describe('pedido de código sem provedor de e-mail (Better Auth montado)', () =>
     }
   })
 })
+
+describe('cadastro com senha sem provedor de e-mail (Better Auth montado)', () => {
+  const body = (email: string) => ({
+    email,
+    password: 'cavalo-bateria-grampo-7',
+    name: 'Nova',
+  })
+
+  it('fora do dev, recusa com 503 EMAIL_NAO_CONFIGURADO e não cria a conta', async () => {
+    vi.stubEnv('DEV', false)
+    try {
+      const res = await h.post(
+        '/sign-up/email',
+        body('sem-provedor@exemplo.test'),
+      )
+      expect(res.status).toBe(503)
+      expect(((await res.json()) as { code: string }).code).toBe(
+        'EMAIL_NAO_CONFIGURADO',
+      )
+      const row = await h.db
+        .prepare('select id from user where email = ?')
+        .bind('sem-provedor@exemplo.test')
+        .first()
+      expect(row).toBeNull()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('o reenvio da verificação (código email-verification) também é recusado', async () => {
+    vi.stubEnv('DEV', false)
+    try {
+      const res = await h.post('/email-otp/send-verification-otp', {
+        email: 'sem-provedor@exemplo.test',
+        type: 'email-verification',
+      })
+      expect(res.status).toBe(503)
+      expect(((await res.json()) as { code: string }).code).toBe(
+        'EMAIL_NAO_CONFIGURADO',
+      )
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('com RESEND_API_KEY, o cadastro e o reenvio são aceitos fora do dev', async () => {
+    vi.stubEnv('DEV', false)
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{"id":"x"}', { status: 200 }))
+    Object.assign(testEnv, { RESEND_API_KEY: 're_teste' })
+    try {
+      const up = await h.post(
+        '/sign-up/email',
+        body('com-provedor-senha@exemplo.test'),
+      )
+      expect(up.status).toBe(200)
+      const again = await h.post('/email-otp/send-verification-otp', {
+        email: 'com-provedor-senha@exemplo.test',
+        type: 'email-verification',
+      })
+      expect(again.status).toBe(200)
+    } finally {
+      delete (testEnv as { RESEND_API_KEY?: string }).RESEND_API_KEY
+      fetchMock.mockRestore()
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('os caminhos por link (reenvio e redefinição) seguem em 404', async () => {
+    for (const route of [
+      '/send-verification-email',
+      '/request-password-reset',
+      '/reset-password',
+    ]) {
+      const res = await h.post(route, { email: 'x@exemplo.test' })
+      expect(res.status).toBe(404)
+    }
+  })
+})

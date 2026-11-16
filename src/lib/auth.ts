@@ -151,7 +151,7 @@ export function getAuth(env: Env, request?: Request) {
     hooks: {
       // Senha da lista das mais comuns é recusada (só com senha ligada).
       before: createAuthMiddleware(async (ctx) => {
-        assertEmailConfigured(ctx.path)
+        assertEmailConfigured(ctx.path, password)
         assertPasswordNotCommon(ctx.path, ctx.body, password)
       }),
       after: auditAfterHook,
