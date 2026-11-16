@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers'
 import { getRequest } from '@tanstack/react-start/server'
 
-// Somente servidor: lê o binding PUBLIC_RATE_LIMIT (wrangler.jsonc) dentro das funções.
+// Somente servidor: lê os bindings PUBLIC_RATE_LIMIT e USER_RATE_LIMIT (wrangler.jsonc) dentro das funções.
 
 /**
  * IPv6: cada pessoa costuma receber um bloco /64 inteiro (bilhões de endereços),
@@ -83,6 +83,49 @@ export async function isRateLimited(
       error,
     )
     return false
+  }
+}
+
+/** Escopos do limite por usuário: leitura e escrita contam em separado. */
+export type UserLimitScope = 'leitura' | 'escrita'
+
+/**
+ * Retorna true quando a pessoa logada estourou o limite do escopo (chave
+ * `user:<id>:<escopo>` no binding USER_RATE_LIMIT, 60 por minuto cada).
+ * Falha ABERTA como `isRateLimited`: sem o binding, ou com erro, passa.
+ */
+export async function isUserRateLimited(
+  userId: string,
+  scope: UserLimitScope,
+): Promise<boolean> {
+  // Mesmo desligamento só-do-Playwright de `isRateLimited` (some do build de produção).
+  if (import.meta.env.DEV && import.meta.env.VITE_E2E_SEM_LIMITE === '1')
+    return false
+  const limiter: RateLimit | undefined = env.USER_RATE_LIMIT
+  if (!limiter) return false
+  try {
+    const { success } = await limiter.limit({ key: `user:${userId}:${scope}` })
+    return !success
+  } catch (error) {
+    console.error(
+      '[rate-limit] falha ao consultar o limitador de usuário (liberado):',
+      error,
+    )
+    return false
+  }
+}
+
+/**
+ * Chame logo depois de checar a sessão em TODA server function de quem está
+ * logado: `await limitarUsuario(user.id, 'leitura' | 'escrita')`. Passou do
+ * limite, lança um erro com mensagem em pt-BR (a tela mostra no toast).
+ */
+export async function limitarUsuario(
+  userId: string,
+  scope: UserLimitScope,
+): Promise<void> {
+  if (await isUserRateLimited(userId, scope)) {
+    throw new Error('Muitas requisições. Tente de novo em um minuto.')
   }
 }
 

@@ -8,12 +8,14 @@ import { count, eq } from 'drizzle-orm'
 import { getDb } from '#/db/index'
 import { auditLog, clientes } from '#/db/schema'
 import { checklistDismissedFromCookie } from '#/lib/checklist'
+import { limitarUsuario } from '#/lib/rate-limit'
 import { getRequestSession } from '#/lib/request-session'
 
 export const getDashboardStatsFn = createServerFn({ method: 'GET' }).handler(
   async () => {
     const current = await getRequestSession()
     if (!current) throw new Error('Entre na sua conta primeiro.')
+    await limitarUsuario(current.user.id, 'leitura')
     const db = getDb(env.DB)
     // Duas leituras numa ida só ao D1.
     const [[activity], [clients]] = await db.batch([

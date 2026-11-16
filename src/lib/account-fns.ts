@@ -19,6 +19,7 @@ import { audit, requestMeta } from '#/lib/audit'
 import { getAuth } from '#/lib/auth'
 import { sendEmailSafely } from '#/lib/email'
 import { accountClosedEmail } from '#/lib/email-templates'
+import { limitarUsuario } from '#/lib/rate-limit'
 
 async function requireSession() {
   const request = getRequest()
@@ -30,6 +31,7 @@ async function requireSession() {
     query: { disableCookieCache: true },
   })
   if (!current) throw new Error('Entre na sua conta primeiro.')
+  await limitarUsuario(current.user.id, 'escrita')
   return { current, headers }
 }
 

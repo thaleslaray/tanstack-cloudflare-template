@@ -14,17 +14,19 @@ import { getDb } from '#/db/index'
 import { clientes } from '#/db/schema'
 import { audit, requestMeta } from '#/lib/audit'
 import { CLIENTES_MAX, linhaDoCliente, validarCliente } from '#/lib/clientes'
+import { limitarUsuario, type UserLimitScope } from '#/lib/rate-limit'
 import { getRequestSession } from '#/lib/request-session'
 
-async function requireUser() {
+async function requireUser(scope: UserLimitScope) {
   const current = await getRequestSession()
   if (!current) throw new Error('Entre na sua conta primeiro.')
+  await limitarUsuario(current.user.id, scope)
   return { user: current.user, headers: getRequest().headers }
 }
 
 export const listClientesFn = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const { user } = await requireUser()
+    const { user } = await requireUser('leitura')
     return getDb(env.DB)
       .select({
         id: clientes.id,
@@ -43,7 +45,7 @@ export const listClientesFn = createServerFn({ method: 'GET' }).handler(
 export const createClienteFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => validarCliente(data))
   .handler(async ({ data }) => {
-    const { user, headers } = await requireUser()
+    const { user, headers } = await requireUser('escrita')
     const db = getDb(env.DB)
     const [row] = await db
       .select({ total: count() })
@@ -78,7 +80,7 @@ export const deleteClienteFn = createServerFn({ method: 'POST' })
     return { id: data.id }
   })
   .handler(async ({ data }) => {
-    const { user, headers } = await requireUser()
+    const { user, headers } = await requireUser('escrita')
     // O `and` com userId é o que impede apagar o cliente de outra pessoa.
     const apagados = await getDb(env.DB)
       .delete(clientes)

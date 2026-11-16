@@ -369,4 +369,26 @@ describe('regras do projeto (AGENTS.md e src/CLAUDE.md)', () => {
         'o provedor (Resend, Email Service ou terminal). Chame sendEmail().',
     ).toEqual([])
   })
+
+  it('server function de quem está logado chama limitarUsuario (teste)', () => {
+    // Quem lê a sessão (getRequestSession ou getSession) dentro de um
+    // `*-fns.ts` tem de limitar por usuário, senão uma conta esgota a cota do D1.
+    // Exceção NOMEADA: auth-fns.ts só devolve a sessão (roda em toda navegação).
+    const SEM_LIMITE = new Set(['lib/auth-fns.ts'])
+    const offenders = files
+      .filter(
+        (f) =>
+          /-fns\.ts$/.test(f.path) &&
+          !SEM_LIMITE.has(f.path) &&
+          /createServerFn\s*\(/.test(f.code) &&
+          /getRequestSession\s*\(|\.getSession\s*\(/.test(f.code) &&
+          !/\blimitarUsuario\s*\(/.test(f.code),
+      )
+      .map((f) => f.path)
+    expect(
+      offenders,
+      'Server function de quem está logado chama limitarUsuario(user.id, ' +
+        "'leitura' | 'escrita') logo depois de checar a sessão (src/lib/rate-limit.ts).",
+    ).toEqual([])
+  })
 })

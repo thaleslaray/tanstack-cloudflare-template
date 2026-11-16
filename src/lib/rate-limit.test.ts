@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clientIp,
   isRateLimited,
+  isUserRateLimited,
+  limitarUsuario,
   normalizeIp,
   tooManyRequests,
 } from './rate-limit'
@@ -172,5 +174,56 @@ describe('limite por /64 (limitador em memória, 5 por chave)', () => {
     Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiter })
     await isRateLimited('auth', { headers: from('203.0.113.7') })
     expect(limiter.limit).toHaveBeenCalledWith({ key: 'auth:203.0.113.7' })
+  })
+})
+
+describe('limite por usuário', () => {
+  it('sem binding não limita (falha aberta)', async () => {
+    expect(await isUserRateLimited('u1', 'leitura')).toBe(false)
+    await expect(limitarUsuario('u1', 'escrita')).resolves.toBeUndefined()
+  })
+
+  it('usa a chave user:<id>:<escopo> no USER_RATE_LIMIT, não no público', async () => {
+    const limit = vi.fn(async () => ({ success: true }))
+    const publico = vi.fn(async () => ({ success: false }))
+    Object.assign(stubEnv, {
+      USER_RATE_LIMIT: { limit },
+      PUBLIC_RATE_LIMIT: { limit: publico },
+    })
+    await limitarUsuario('u1', 'leitura')
+    await limitarUsuario('u1', 'escrita')
+    expect(limit).toHaveBeenNthCalledWith(1, { key: 'user:u1:leitura' })
+    expect(limit).toHaveBeenNthCalledWith(2, { key: 'user:u1:escrita' })
+    expect(publico).not.toHaveBeenCalled()
+  })
+
+  it('estourou: limitarUsuario lança erro em pt-BR', async () => {
+    Object.assign(stubEnv, {
+      USER_RATE_LIMIT: { limit: vi.fn(async () => ({ success: false })) },
+    })
+    expect(await isUserRateLimited('u1', 'escrita')).toBe(true)
+    await expect(limitarUsuario('u1', 'escrita')).rejects.toThrow(
+      /Muitas requisições/,
+    )
+  })
+
+  it('erro no binding libera', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    Object.assign(stubEnv, {
+      USER_RATE_LIMIT: {
+        limit: vi.fn(async () => {
+          throw new Error('boom')
+        }),
+      },
+    })
+    expect(await isUserRateLimited('u1', 'leitura')).toBe(false)
+  })
+
+  it('com VITE_E2E_SEM_LIMITE=1 em dev não consulta', async () => {
+    const limit = vi.fn(async () => ({ success: false }))
+    Object.assign(stubEnv, { USER_RATE_LIMIT: { limit } })
+    vi.stubEnv('VITE_E2E_SEM_LIMITE', '1')
+    expect(await isUserRateLimited('u1', 'leitura')).toBe(false)
+    expect(limit).not.toHaveBeenCalled()
   })
 })
