@@ -32,11 +32,16 @@ export async function readLoginCode(email: string): Promise<string> {
   }
   const pattern = new RegExp(
     `\\[auth\\] código de login para ${escapeRegExp(email)}: (\\d{6})`,
+    'g',
   )
   const deadline = Date.now() + 15_000
   while (Date.now() < deadline) {
-    const match = pattern.exec(fs.readFileSync(logPath, 'utf8'))
-    if (match) return match[1]
+    // O ÚLTIMO código: quem entra duas vezes com o mesmo e-mail não pode
+    // pegar o da primeira vez.
+    const ultimo = [...fs.readFileSync(logPath, 'utf8').matchAll(pattern)].at(
+      -1,
+    )
+    if (ultimo) return ultimo[1]
     await new Promise((resolve) => setTimeout(resolve, 250))
   }
   throw new Error(
