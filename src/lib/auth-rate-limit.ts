@@ -46,14 +46,34 @@ function endsWithAny(path: string, suffixes: string[]): boolean {
   return suffixes.some((suffix) => path.endsWith(suffix))
 }
 
-async function readJsonBody(
+/**
+ * Lê o corpo do POST como objeto, pelo `content-type` (o Better Auth aceita
+ * JSON e `application/x-www-form-urlencoded`; ler só JSON deixava o formulário
+ * urlencoded contornar o limite por e-mail). `null` = corpo que não se
+ * consegue ler: quem chama recusa em vez de pular o limite.
+ */
+async function readBody(
   request: Request,
 ): Promise<Record<string, unknown> | null> {
+  const type = (request.headers.get('content-type') ?? '')
+    .split(';')[0]
+    ?.trim()
+    .toLowerCase()
   try {
-    const body: unknown = await request.clone().json()
-    return body && typeof body === 'object'
-      ? (body as Record<string, unknown>)
-      : null
+    if (type === 'application/x-www-form-urlencoded') {
+      const params = new URLSearchParams(await request.clone().text())
+      // Chave repetida: vale a primeira (como o parser do Better Auth).
+      const body: Record<string, unknown> = {}
+      for (const [key, value] of params) if (!(key in body)) body[key] = value
+      return body
+    }
+    if (type === 'application/json' || type === '') {
+      const body: unknown = await request.clone().json()
+      return body && typeof body === 'object' && !Array.isArray(body)
+        ? (body as Record<string, unknown>)
+        : null
+    }
+    return null
   } catch {
     return null
   }
@@ -86,13 +106,19 @@ export async function authRateLimit(
   }
 
   if (!endsWithAny(path, EMAIL_KEYED_SUFFIXES)) return null
-  const body = await readJsonBody(request)
+  const body = await readBody(request)
+  if (!body) {
+    return Response.json(
+      { message: 'Corpo da requisição inválido.' },
+      { status: 400 },
+    )
+  }
 
   // O Better Auth envia o código em segundo plano, então um tipo não suportado
   // só apareceria no log. Recusar aqui devolve o erro a quem chamou.
   if (
     path.endsWith('/email-otp/send-verification-otp') &&
-    typeof body?.type === 'string' &&
+    typeof body.type === 'string' &&
     !ALLOWED_OTP_TYPES.includes(body.type)
   ) {
     return Response.json(

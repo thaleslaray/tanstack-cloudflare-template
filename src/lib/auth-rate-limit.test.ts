@@ -131,11 +131,57 @@ describe('authRateLimit', () => {
       await authRateLimit(post('/sign-in/email', { email: 'sem-arroba' })),
     ).toBeNull()
     expect(await authRateLimit(post('/sign-in/email', { x: 1 }))).toBeNull()
-    expect(await authRateLimit(post('/sign-in/email'))).toBeNull()
     // só a chave por IP foi consultada
     expect(
       limiter.limit.mock.calls.every(([a]) => a.key.startsWith('auth:')),
     ).toBe(true)
+  })
+
+  it('lê o e-mail também de application/x-www-form-urlencoded', async () => {
+    const limiter = limiterBlocking('auth-email:')
+    Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiter })
+    const request = new Request(
+      'https://app.exemplo.com/api/auth/sign-in/email',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded; charset=utf-8',
+          'cf-connecting-ip': '203.0.113.7',
+        },
+        body: 'email=Ana%40Exemplo.com&password=x',
+      },
+    )
+    const res = await authRateLimit(request)
+    expect(res?.status).toBe(429)
+    expect(limiter.limit).toHaveBeenCalledWith({
+      key: 'auth-email:ana@exemplo.com',
+    })
+    // o corpo continua legível para o Better Auth
+    expect(await request.text()).toBe('email=Ana%40Exemplo.com&password=x')
+  })
+
+  it('recusa com 400 o corpo que não consegue ler (em vez de pular o limite)', async () => {
+    Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiterBlocking() })
+    const semCorpo = await authRateLimit(post('/sign-in/email'))
+    expect(semCorpo?.status).toBe(400)
+    const jsonQuebrado = new Request(
+      'https://app.exemplo.com/api/auth/sign-in/email',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{nao e json',
+      },
+    )
+    expect((await authRateLimit(jsonQuebrado))?.status).toBe(400)
+    const textoPuro = new Request(
+      'https://app.exemplo.com/api/auth/sign-up/email',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: 'email=a@b.com',
+      },
+    )
+    expect((await authRateLimit(textoPuro))?.status).toBe(400)
   })
 
   describe('teto diário global de códigos', () => {
