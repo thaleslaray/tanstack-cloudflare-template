@@ -10,6 +10,7 @@ import { session, user } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
 import {
   ACCOUNT_RETENTION_DAYS,
+  assertFreshSession,
   closeOutcome,
   collectAccountExport,
   runAccountDeletionGuards,
@@ -18,9 +19,6 @@ import { audit, requestMeta } from '#/lib/audit'
 import { getAuth } from '#/lib/auth'
 import { sendEmailSafely } from '#/lib/email'
 import { accountClosedEmail } from '#/lib/email-templates'
-
-// Mesmo valor de `session.freshAge` em src/lib/auth.ts.
-const FRESH_SESSION_MS = 60 * 60 * 1000
 
 async function requireSession() {
   const request = getRequest()
@@ -50,13 +48,7 @@ export const closeAccountFn = createServerFn({ method: 'POST' }).handler(
     // "freshAge" feito à mão: o do Better Auth só vale para os endpoints dele
     // (senha, e-mail), e aqui o login é por código. Sessão com mais de 1 hora
     // (cookie esquecido ou roubado) não encerra a conta.
-    const sessionAge =
-      Date.now() - new Date(current.session.createdAt).getTime()
-    if (sessionAge > FRESH_SESSION_MS) {
-      throw new Error(
-        'Por segurança, entre de novo (peça um novo código) antes de encerrar a conta.',
-      )
-    }
+    assertFreshSession(current.session.createdAt, 'encerrar a conta')
     const me = { id: current.user.id, email: current.user.email }
     // Um guard pode recusar (ex.: assinatura ativa); a mensagem chega à tela.
     await runAccountDeletionGuards(me)
@@ -111,6 +103,8 @@ export const closeAccountFn = createServerFn({ method: 'POST' }).handler(
 export const exportMyDataFn = createServerFn({ method: 'POST' }).handler(
   async () => {
     const { current, headers } = await requireSession()
+    // Os dados da conta inteira: mesma regra de sessão recente do encerramento.
+    assertFreshSession(current.session.createdAt, 'baixar seus dados')
     const me = { id: current.user.id, email: current.user.email }
     const data = await collectAccountExport(me)
     await audit(

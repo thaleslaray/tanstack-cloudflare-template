@@ -36,8 +36,13 @@ export function DownloadMyData() {
       link.download = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`
       link.click()
       URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Não foi possível gerar o arquivo. Tente de novo.')
+    } catch (err) {
+      // A recusa por sessão antiga traz a mensagem pedindo para sair e entrar.
+      toast.error(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Não foi possível gerar o arquivo. Tente de novo.',
+      )
     } finally {
       setBusy(false)
     }

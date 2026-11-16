@@ -26,6 +26,30 @@ export const PURGE_REMINDER_DAY = 5
  */
 export const UNVERIFIED_SOCIAL_DAYS = 7
 
+/** Idade máxima da sessão para ações sensíveis (encerrar conta, baixar dados). */
+export const FRESH_SESSION_MS = 60 * 60 * 1000
+
+/** A sessão é recente o bastante para uma ação sensível? */
+export function isSessionFresh(
+  createdAt: Date | string | number,
+  now: Date = new Date(),
+): boolean {
+  return now.getTime() - new Date(createdAt).getTime() <= FRESH_SESSION_MS
+}
+
+/** Recusa (com mensagem para a tela) quando a sessão é velha demais. */
+export function assertFreshSession(
+  createdAt: Date | string | number,
+  action: string,
+  now: Date = new Date(),
+): void {
+  if (!isSessionFresh(createdAt, now)) {
+    throw new Error(
+      `Por segurança, saia e entre de novo (peça um novo código) antes de ${action}.`,
+    )
+  }
+}
+
 const DAY_MS = 86_400_000
 
 export type AccountRef = { id: string; email: string }

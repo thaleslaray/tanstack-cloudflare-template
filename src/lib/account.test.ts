@@ -4,8 +4,11 @@ import {
   ACCOUNT_RETENTION_DAYS,
   AccountDeletionBlocked,
   accountPhase,
+  assertFreshSession,
   closeOutcome,
   collectAccountExport,
+  FRESH_SESSION_MS,
+  isSessionFresh,
   onAccountDeletionGuard,
   onAccountExport,
   onBeforeAccountDelete,
@@ -202,5 +205,25 @@ describe('closeOutcome (pedidos simultâneos ao encerrar)', () => {
       first: false,
       purgeAt: purgeDateFor(now),
     })
+  })
+})
+
+describe('sessão recente (baixar dados e encerrar conta)', () => {
+  const now = new Date('2026-01-01T12:00:00Z')
+
+  it('sessão recente passa', () => {
+    const created = new Date(now.getTime() - 5 * 60_000)
+    expect(isSessionFresh(created, now)).toBe(true)
+    expect(() =>
+      assertFreshSession(created, 'baixar seus dados', now),
+    ).not.toThrow()
+  })
+
+  it('sessão velha recusa pedindo para sair e entrar', () => {
+    const created = new Date(now.getTime() - FRESH_SESSION_MS - 1000)
+    expect(isSessionFresh(created, now)).toBe(false)
+    expect(() => assertFreshSession(created, 'baixar seus dados', now)).toThrow(
+      /saia e entre de novo.*baixar seus dados/,
+    )
   })
 })
