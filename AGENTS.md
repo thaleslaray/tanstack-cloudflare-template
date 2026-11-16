@@ -52,7 +52,7 @@ Rode `npm run check:fix`, `npm run typecheck` e `npm run test` e leia a saída. 
 ## Regras
 
 ### O que sempre precisa de um "sim" de quem pediu
-Pergunte e espere a confirmação antes de: publicar (`npm run deploy`, `wrangler deploy`, `versions deploy`, `rollback`); qualquer comando com `--remote` (migração ou `d1 execute` no banco de produção); `wrangler secret put/delete/bulk`; apagar banco, bucket ou Worker na Cloudflare; `npm run load` (gasta a cota e cria dados na conta real); `git push` (e nunca `--force`); `git reset --hard`, `git clean`, `git checkout -- .`; apagar `.dev.vars`, `.prod.vars` ou `.wrangler/state/` (é o banco local). Motivo: são ações na conta ou nos dados da pessoa e não têm desfazer. `npx wrangler deploy --dry-run` não publica e pode rodar à vontade.
+Pergunte e espere a confirmação antes de: publicar (`npm run deploy`, `wrangler deploy`, `versions deploy`, `rollback`); qualquer comando com `--remote` (migração ou `d1 execute` no banco de produção); `wrangler secret put/delete/bulk`; apagar banco, bucket ou Worker na Cloudflare; `npm run load` (gasta a cota e cria dados na conta real); `git push` (e nunca `--force`); `git reset --hard`, `git clean`, `git checkout -- .`; apagar `.dev.vars`, `.prod.vars` ou `.wrangler/state/` (é o banco local; numa worktree descartável de ticket, cujo banco local só tem dados de teste, apagar ou recriar o `.wrangler/state` não pede "sim"). Motivo: são ações na conta ou nos dados da pessoa e não têm desfazer. `npx wrangler deploy --dry-run` não publica e pode rodar à vontade.
 
 As regras marcadas com (teste) são verificadas por `src/rules.test.ts` (roda no `npm run test`).
 
