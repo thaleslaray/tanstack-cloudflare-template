@@ -233,7 +233,7 @@ do deploy (tempo do Smart Placement). Use o k6 (`brew install k6` no Mac).
 **Antes de rodar, ajuste `load/rotas.json` às telas do produto.** O padrão mede
 a tela de clientes de exemplo (no template; num produto, use as telas do próprio produto) e cria/apaga um cliente; se o produto trocou ou
 removeu essa tela, aponte as rotas públicas, as logadas e (opcional) a escrita
-para o que existe de verdade, ou use `"escrita": null`. Se uma rota configurada
+para o que existe de verdade. **Mantenha a escrita ligada** (é a parte mais lenta do app) com campos que passem na validação do produto (telefone válido, por exemplo `"11987{num}"`; `{n}` leva hífen e `{num}` são só dígitos); `"escrita": null` só se o produto não grava nada. O `setup` do k6 grava um registro de teste antes de medir e para com a resposta do servidor se os campos forem recusados. Se uma rota configurada
 responder 404, o roteiro para antes de medir, com a mensagem dizendo qual.
 Detalhes em `load/README.md`.
 

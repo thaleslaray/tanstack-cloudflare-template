@@ -28,18 +28,52 @@ edite o arquivo ANTES de rodar:
   "publicasSsr": ["/login"],                    // páginas públicas renderizadas no Worker (< 300 ms)
   "logadas": ["/app", "/app/clientes"],         // páginas da área logada, com cookie (< 500 ms)
   "escrita": {                                  // opcional: use null para não medir escrita
-    "pagina": "/app/clientes",                  // tela que chama as funções (o plano B só lê esta)
-    "arquivoDev": "/src/lib/clientes-fns.ts",   // arquivo das server functions (para achar o id no vite dev)
+    "pagina": "/app/clientes",                  // tela que chama as funções (o roteiro lê o JS dela para conferir o id)
+    "arquivoDev": "/src/lib/clientes-fns.ts",   // arquivo das server functions (acha o id no vite dev e no build)
     "criar": { "funcao": "createClienteFn",
-               "campos": { "nome": "Cliente k6 {n}", "email": "k6-{n}@exemplo.test", "situacao": "ativo" } },
+               "campos": { "nome": "Cliente k6 {n}", "email": "k6-{n}@exemplo.test", "situacao": "ativo" } }  // têm de passar na validação do produto; telefone: "11987{num}",
     "apagar": { "funcao": "deleteClienteFn", "campo": "id" }
   }
 }
 ```
 
-(O JSON real não aceita comentários; os de cima são só explicação.) `{n}` vira
-`<VU>-<rodada>` e deixa cada registro único. Lista vazia ou `escrita: null`
-tira o cenário (e a meta dele). Pelo menos uma lista tem de ter rota.
+(O JSON real não aceita comentários; os de cima são só explicação, e o
+arquivo traz uma chave `_ajuda` com o resumo.) Lista vazia tira o cenário (e a
+meta dele). Pelo menos uma lista tem de ter rota.
+
+### Ligue a escrita (não deixe `null`)
+
+Gravar um registro é a parte mais lenta do app (uma escrita no D1, mais a
+auditoria), e é a que o teste existe para medir: **num produto, deixe
+`escrita` ligada, apontando para a tela e as server functions de criar e apagar
+dele**. `escrita: null` tira o cenário e o k6 avisa no começo ("escrita
+DESLIGADA"); só use `null` se o produto não grava nada.
+
+Os `campos` de `escrita.criar` têm de **passar na validação do produto**, como
+se uma pessoa os digitasse no formulário. O servidor responde **200 mesmo ao
+recusar** (o erro vai no corpo da resposta), então um campo inválido não
+aparece como falha de HTTP. Por isso o `setup()` grava um registro de teste (e
+apaga em seguida) ANTES de medir: se o produto recusar, o k6 PARA com a
+mensagem que o servidor devolveu (ex.: "Digite um e-mail válido..."). Durante a
+medição, a meta `checks{cenario:escrita_logada}` (acima de 99%) pega o que
+escapar.
+
+Os marcadores que tornam cada registro único:
+
+| Marcador | Vira | Serve para |
+| --- | --- | --- |
+| `{n}` | `<VU>-<rodada>`, ex.: `2-5` (letras, dígitos e **hífen**) | nome, e-mail: `"Cliente k6 {n}"`, `"k6-{n}@exemplo.test"` |
+| `{num}` | 6 dígitos, ex.: `020005` (VU e rodada juntos, com zeros) | campo **só de dígitos**: `"telefone": "11987{num}"` vira `11987020005` (11 dígitos, DDD 11 + celular válido) |
+
+O `{n}` leva hífen: num telefone ele seria recusado (foi o que aconteceu num
+produto real). Para telefone, CPF ou qualquer campo numérico, use `{num}` e
+escreva o resto do valor de modo que o total fique no formato que o produto
+aceita (ex.: `"11987{num}"` = 5 dígitos fixos + 6 do marcador = 11).
+
+O arquivo das server functions (`arquivoDev`, o nome é antigo: vale para o
+`vite dev` e para o build) é o caminho relativo à raiz do projeto, ex.:
+`/src/lib/clientes-fns.ts`. A resposta de criar precisa devolver o id do
+registro (um uuid de 36 caracteres), que o roteiro usa para apagar.
 
 Antes do primeiro pedido de medição, o `setup()` abre cada rota configurada e
 PARA com uma mensagem clara se alguma responder 404 (a sessão é conferida na
@@ -150,15 +184,29 @@ o p95 dele oscila muito. O passo a passo completo está na skill `/deploy`
 O navegador chama `createClienteFn` (`src/lib/clientes-fns.ts`) com um POST em
 `/_serverFn/<id>`, cabeçalho `x-tsr-serverFn: true` e corpo JSON no formato do
 seroval (o serializador do TanStack Start). O `p95.js` monta o mesmo corpo e
-descobre o `<id>` no `setup()`:
+descobre o `<id>` no `setup()`, nesta ordem:
 
-- em `vite dev`, o id é um base64 legível em `/src/lib/clientes-fns.ts`;
-- em build (preview, staging), o id é um hash. O script acha no JS da tela de
-  clientes a chamada `await X({data:{nome:...`, segue o `import` de `X` até o
-  arquivo que define a função e lê o `.handler(...("<hash>"))`;
-- se nada disso funcionar (o build mudou de formato), passe `CRIAR_FN_ID` e
-  `APAGAR_FN_ID`. Sem os ids, o cenário avisa e faz `GET /app/clientes` com
-  sessão no lugar (a meta de p95 continua valendo, mas deixa de medir escrita).
+1. `CRIAR_FN_ID` e `APAGAR_FN_ID`, se você os passar;
+2. em `vite dev`, o id é um base64 legível em `/src/lib/clientes-fns.ts`;
+3. em build (preview, staging, produção), o id é um hash: **`sha256("<arquivo>--<função>_createServerFn_handler")`**
+   (o compilador do TanStack Start, `generateFunctionId`; `load/ids.js`). O
+   mapa id -> função existe em `dist/server/assets/__tanstack-start-server-fn-resolver-*.js`,
+   mas fica no servidor: o navegador só recebe o hash em `.handler(fn("<hash>"))`
+   nos JS (com o nome da função minificado). Por isso o roteiro CALCULA o id a
+   partir de `escrita.arquivoDev` e do nome em `escrita.criar.funcao` /
+   `escrita.apagar.funcao`, e CONFERE que ele aparece nos JS que a
+   `escrita.pagina` carrega (seguindo os `import` dos chunks). Conferido, vale;
+   o log diz "ids das server functions: sha256 ... conferido nos JS servidos";
+4. plano B, se a conta não bater (o TanStack mudou o jeito de calcular): acha no
+   JS da página a chamada `await X({data:{<campo>:...`, segue o `import` de `X`
+   até a definição e lê o `.handler(...("<hash>"))`. O log diz "plano B".
+
+Nada disso funcionou (o build mudou de formato)? Passe `CRIAR_FN_ID` e
+`APAGAR_FN_ID` (o hash está no mapa do `dist/server/assets/`, ou calcule com
+`node -e "console.log(require('crypto').createHash('sha256').update('src/lib/clientes-fns.ts--createClienteFn_createServerFn_handler').digest('hex'))"`).
+Sem os ids, o cenário avisa e faz `GET /app/clientes` com sessão no lugar (a
+meta de p95 continua valendo, mas deixa de medir escrita). `load/ids.test.ts`
+confere a conta contra o mapa do build, quando há `dist/`.
 
 Cada rodada cria um cliente e logo apaga o mesmo cliente, para ficar longe do
 teto `CLIENTES_MAX` (500 por pessoa). Se o teste for interrompido no meio,

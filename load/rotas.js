@@ -28,7 +28,7 @@ function texto(valor, nome) {
 /**
  * Confere o objeto lido de rotas.json e devolve a configuração normalizada.
  * `escrita` é opcional (null, ausente ou `false` desliga o cenário de escrita);
- * o texto `{n}` nos valores de `criar.campos` vira "<VU>-<rodada>".
+ * os marcadores `{n}` e `{num}` nos valores de `criar.campos` viram o identificador da rodada.
  * Lança Error com mensagem em pt-BR quando algo está errado.
  */
 export function validarRotas(bruto) {
@@ -89,11 +89,23 @@ export function validarRotas(bruto) {
   return config
 }
 
-/** Troca `{n}` pelo identificador da rodada em cada valor dos campos. */
-export function preencherCampos(campos, n) {
+/**
+ * Troca os marcadores nos valores dos campos:
+ *  - `{n}` vira `<VU>-<rodada>` (letras, dígitos e hífen: serve para nome e e-mail);
+ *  - `{num}` vira 6 dígitos (`<VU>` e `<rodada>` juntos, com zeros à esquerda): serve
+ *    para campo SÓ de dígitos, como telefone (`"11987{num}"` dá 11 dígitos).
+ */
+export function preencherCampos(campos, n, num = '000000') {
   const saida = {}
-  for (const k of Object.keys(campos)) saida[k] = campos[k].split('{n}').join(n)
+  for (const k of Object.keys(campos)) {
+    saida[k] = campos[k].split('{n}').join(n).split('{num}').join(num)
+  }
   return saida
+}
+
+/** O `{num}` de uma rodada: 6 dígitos, único por (VU, rodada) enquanto houver menos de 10 mil rodadas por VU. */
+export function numeroDaRodada(vu, rodada) {
+  return String((vu % 100) * 10000 + (rodada % 10000)).padStart(6, '0')
 }
 
 /** Todas as rotas a conferir antes de começar: [{ caminho, logada }]. */

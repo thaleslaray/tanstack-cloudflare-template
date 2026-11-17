@@ -1,4 +1,5 @@
 {
+  "_ajuda": "LEIA ANTES DE RODAR. Ajuste as rotas às telas do produto. NÃO deixe 'escrita' como null: gravar é a parte mais lenta do app e é a que o teste existe para medir. Os 'campos' de escrita.criar têm de PASSAR NA VALIDAÇÃO do produto (o servidor responde 200 mesmo ao recusar, o erro vem no corpo; o setup do k6 grava um registro de teste antes de medir e para com a mensagem do servidor se ele recusar). {n} vira '<VU>-<rodada>' (letras, dígitos e hífen: nome, e-mail); {num} vira 6 dígitos (campo só de dígitos): telefone válido, por exemplo '11987{num}'. 'arquivoDev' é o caminho do arquivo das server functions, relativo à raiz do projeto (serve ao vite dev e ao build). Veja load/README.md.",
   "publicasEstaticas": ["/", "/blog"],
   "publicasSsr": ["/login"],
   "logadas": ["/app", "/app/clientes"],
@@ -13,6 +14,9 @@
         "situacao": "ativo"
       }
     },
-    "apagar": { "funcao": "deleteClienteFn", "campo": "id" }
+    "apagar": {
+      "funcao": "deleteClienteFn",
+      "campo": "id"
+    }
   }
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   mensagem404,
+  numeroDaRodada,
   preencherCampos,
   rotasParaConferir,
   validarRotas,
@@ -45,6 +46,26 @@ describe('load/rotas.json', () => {
     expect(preencherCampos({ nome: 'Cliente {n}', s: 'ativo' }, '2-5')).toEqual(
       { nome: 'Cliente 2-5', s: 'ativo' },
     )
+  })
+
+  it('{num} vira só dígitos (campo como telefone), {n} leva hífen', () => {
+    const c = preencherCampos(
+      { telefone: '11987{num}', nome: 'Cliente {n}' },
+      '2-5',
+      numeroDaRodada(2, 5),
+    )
+    expect(c.telefone).toBe('11987020005')
+    expect(c.telefone).toMatch(/^\d{11}$/)
+    expect(c.nome).toBe('Cliente 2-5')
+  })
+
+  it('numeroDaRodada tem 6 dígitos e não repete entre VUs e rodadas', () => {
+    expect(numeroDaRodada(1, 0)).toBe('010000')
+    expect(numeroDaRodada(20, 9999)).toBe('209999')
+    const vistos = new Set<string>()
+    for (let vu = 1; vu <= 20; vu++)
+      for (let r = 0; r < 200; r++) vistos.add(numeroDaRodada(vu, r))
+    expect(vistos.size).toBe(20 * 200)
   })
 
   it('lista as rotas a conferir sem repetir', () => {

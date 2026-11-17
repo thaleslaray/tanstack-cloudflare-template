@@ -11,6 +11,7 @@
 //
 // As sessões vêm de `npm run load:sessoes` (load/.sessoes.json) ou de SESSOES_JSON.
 import { check, fail } from 'k6'
+import { sha256 } from 'k6/crypto'
 import http from 'k6/http'
 
 import {
@@ -23,7 +24,14 @@ import {
   PROFILE,
 } from './config.js'
 import {
+  idDeBuild,
+  importsRelativos,
+  temIdDeServerFn,
+  urlsDeJs,
+} from './ids.js'
+import {
   mensagem404,
+  numeroDaRodada,
   preencherCampos,
   rotasParaConferir,
   validarRotas,
@@ -88,7 +96,12 @@ export const options = {
       ? { 'http_req_duration{cenario:ssr_logado}': ['p(95)<500'] }
       : {}),
     ...(rotas.escrita
-      ? { 'http_req_duration{cenario:escrita_logada}': ['p(95)<600'] }
+      ? {
+          'http_req_duration{cenario:escrita_logada}': ['p(95)<600'],
+          // O servidor responde 200 até quando recusa os campos (o erro vai no
+          // corpo): sem esta meta, uma escrita que nunca grava passaria batida.
+          'checks{cenario:escrita_logada}': ['rate>0.99'],
+        }
       : {}),
     // Falha = qualquer status fora do esperado de cada requisição (o 429 da
     // rajada é esperado e não entra na conta).
@@ -104,13 +117,17 @@ const OK_OU_429 = http.expectedStatuses(200, 429)
 
 // --- Descoberta das server functions ---------------------------------------
 // O navegador chama a função de criar (`escrita.criar.funcao`) por POST em /_serverFn/<id>. O id vem do
-// build e não é fixo:
-//  - no `vite dev` é um base64 do arquivo, legível em `escrita.arquivoDev`;
-//  - em produção é um hash que só existe nos JS da página. Achamos o trecho
-//    `await X({data:{<campo>:...` no JS da `escrita.pagina` e seguimos o import de
-//    X até o `.handler(fn(`<hash>`))` no arquivo que o define.
-// Se nada disso der certo, passe CRIAR_FN_ID e APAGAR_FN_ID. Sem ids, o
-// cenário escrita_logada cai para GET da `escrita.pagina` (veja o README).
+// build e não é fixo. Três jeitos, nesta ordem (o primeiro que der certo vale):
+//  1. CRIAR_FN_ID e APAGAR_FN_ID, passados à mão;
+//  2. `vite dev`: o id é um base64 do arquivo, legível em `escrita.arquivoDev`;
+//  3. build (preview, staging, produção): o id é `sha256("<arquivo>--<função>_createServerFn_handler")`
+//     (load/ids.js). O roteiro CALCULA o id e CONFERE que ele aparece nos JS
+//     que o navegador recebe da `escrita.pagina` (`.handler(fn("<hash>"))`, seguindo
+//     os imports dos chunks). Se não aparecer (o TanStack mudou a conta), o plano B
+//     acha a chamada `await X({data:{<campo>:...` no JS da página e segue o
+//     import de X até a definição.
+// Nada disso deu certo? O cenário escrita_logada cai para GET da `escrita.pagina`
+// (veja o README).
 
 function baixar(caminho, cookie) {
   const r = http.get(BASE_URL + caminho, {
@@ -130,6 +147,38 @@ function descobrirNoDev(cookie, esc) {
     return m ? m[1] : null
   }
   return { criar: pega(esc.criar.funcao), apagar: pega(esc.apagar.funcao) }
+}
+
+// Baixa os JS que a página cita e, a partir deles, os chunks que importam (até
+// `limite` arquivos): é onde o id de uma server function pode estar.
+function jsDaPagina(cookie, pagina, limite = 80) {
+  const html = baixar(pagina, cookie)
+  const fila = urlsDeJs(html)
+  const vistos = {}
+  while (fila.length > 0 && Object.keys(vistos).length < limite) {
+    const url = fila.shift()
+    const caminho = url.startsWith('/') ? url : `/assets/${url}`
+    if (caminho in vistos) continue
+    const corpo = baixar(caminho, cookie)
+    vistos[caminho] = corpo
+    for (const nome of importsRelativos(corpo)) fila.push(`/assets/${nome}`)
+  }
+  return vistos
+}
+
+// O id calculado (load/ids.js) só vale se existir nos JS servidos.
+function descobrirPorHash(cookie, esc) {
+  const arquivos = jsDaPagina(cookie, esc.pagina)
+  const corpos = Object.keys(arquivos).map((k) => arquivos[k])
+  const achar = (funcao) => {
+    const id = idDeBuild(sha256Hex, esc.arquivoDev, funcao)
+    return corpos.some((js) => temIdDeServerFn(js, id)) ? id : null
+  }
+  return { criar: achar(esc.criar.funcao), apagar: achar(esc.apagar.funcao) }
+}
+
+function sha256Hex(texto) {
+  return sha256(texto, 'hex')
 }
 
 function descobrirNoBuild(cookie, esc) {
@@ -173,7 +222,9 @@ function descobrirNoBuild(cookie, esc) {
         }
         interno = interno.replace('$', '\\$')
         const def = new RegExp(
-          `[,;\\s]${interno}=[\\w$]+\\(\\{method:\`POST\`\\}\\).{0,400}?\\.handler\\([\\w$]+\\(\`([0-9a-f]{64})\`\\)\\)`,
+          // Até 6000 caracteres entre a definição e o `.handler(`: um validador
+          // escrito inline pode ser longo. Aceita os três tipos de aspas.
+          `[,;\\s]${interno}=[\\w$]+\\(\\{method:[\`'"]POST[\`'"]\\}\\).{0,6000}?\\.handler\\([\\w$]+\\([\`'"]([0-9a-f]{64})[\`'"]\\)\\)`,
         ).exec(fonte)
         return def ? def[1] : null
       }
@@ -231,7 +282,13 @@ export function setup() {
   }
 
   const esc = rotas.escrita
-  if (!esc) return { criar: null, apagar: null }
+  if (!esc) {
+    console.warn(
+      'escrita DESLIGADA em load/rotas.json: a gravação (a parte mais lenta do app) NÃO será medida. ' +
+        'Ligue a escrita com os campos que passam na validação do produto (veja load/README.md).',
+    )
+    return { criar: null, apagar: null }
+  }
   let ids = {
     criar: __ENV.CRIAR_FN_ID || null,
     apagar: __ENV.APAGAR_FN_ID || null,
@@ -240,12 +297,22 @@ export function setup() {
     const achados = isLocal()
       ? descobrirNoDev(cookie, esc)
       : { criar: null, apagar: null }
-    const viaBuild =
-      achados.criar && achados.apagar ? achados : descobrirNoBuild(cookie, esc)
+    let viaBuild = achados
+    let como = 'vite dev'
+    if (!(achados.criar && achados.apagar)) {
+      viaBuild = descobrirPorHash(cookie, esc)
+      como = 'sha256 do arquivo e da função, conferido nos JS servidos'
+      if (!(viaBuild.criar && viaBuild.apagar)) {
+        viaBuild = descobrirNoBuild(cookie, esc)
+        como = 'chamada achada no JS da página (plano B)'
+      }
+    }
     ids = {
       criar: ids.criar || viaBuild.criar,
       apagar: ids.apagar || viaBuild.apagar,
     }
+    if (ids.criar && ids.apagar)
+      console.log(`ids das server functions: ${como}`)
   }
   if (!ids.criar || !ids.apagar) {
     console.warn(
@@ -255,8 +322,55 @@ export function setup() {
     console.log(
       `server functions: criar=${ids.criar.slice(0, 12)}... apagar=${ids.apagar.slice(0, 12)}...`,
     )
+    conferirEscrita(ids, esc, cookie)
   }
   return ids
+}
+
+// Uma escrita de verdade ANTES de medir: os campos de `escrita.criar.campos`
+// passam na validação do produto? Se o produto recusa (telefone no formato
+// errado, e-mail inválido...), cada rodada mediria um erro. Cria um registro e
+// apaga em seguida; se criar falha, PARA com o que o servidor respondeu.
+function conferirEscrita(ids, esc, cookie) {
+  const r = http.post(
+    `${BASE_URL}/_serverFn/${ids.criar}`,
+    corpoServerFn(preencherCampos(esc.criar.campos, 'setup', '000000')),
+    {
+      headers: cabecalhos({
+        Cookie: cookie,
+        'content-type': 'application/json',
+        accept: 'application/json',
+        'x-tsr-serverFn': 'true',
+      }),
+      tags: { cenario: 'setup' },
+      // Qualquer status: quem decide é a conferência abaixo, com mensagem clara.
+      responseCallback: http.expectedStatuses({ min: 200, max: 599 }),
+    },
+  )
+  const id = /"s":"([0-9a-f-]{36})"/.exec(r.body)
+  if (r.status !== 200 || id === null) {
+    fail(
+      `A escrita falhou ANTES de medir (POST /_serverFn/${ids.criar.slice(0, 12)}... deu ${r.status}). ` +
+        `O produto recusou os campos de escrita.criar.campos em load/rotas.json (ou o id ${id === null ? 'não veio na resposta' : 'veio'}). ` +
+        'Eles têm de passar na validação do produto: ' +
+        'telefone no formato certo (ex.: "1198765{n}"), e-mail válido, texto dentro dos limites, e `{n}` vira "<VU>-<rodada>" (letras e hífen). ' +
+        `Resposta do servidor: ${String(r.body).slice(0, 300)}`,
+    )
+  }
+  http.post(
+    `${BASE_URL}/_serverFn/${ids.apagar}`,
+    corpoServerFn({ [esc.apagar.campo]: id[1] }),
+    {
+      headers: cabecalhos({
+        Cookie: cookie,
+        'content-type': 'application/json',
+        accept: 'application/json',
+        'x-tsr-serverFn': 'true',
+      }),
+      tags: { cenario: 'setup' },
+      responseCallback: http.expectedStatuses({ min: 200, max: 599 }),
+    },
+  )
 }
 
 // --- Cenários ---------------------------------------------------------------
@@ -340,7 +454,11 @@ export function escritaLogada(ids) {
   const n = `${__VU}-${__ITER}`
   const criado = chamarServerFn(
     ids.criar,
-    preencherCampos(rotas.escrita.criar.campos, n),
+    preencherCampos(
+      rotas.escrita.criar.campos,
+      n,
+      numeroDaRodada(__VU, __ITER),
+    ),
     cookie,
     {}, // herda cenario:escrita_logada: é este pedido que tem meta
   )

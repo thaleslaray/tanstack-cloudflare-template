@@ -22,9 +22,10 @@ Primeira vez: `npx playwright install chromium`.
 
 - `marketing.spec.ts`: home em pt-BR, links do header, redirecionamento de `/docs`, 404.
 - `helpers.ts`: portas, leitura do código no log e `loginWithCode()` (usado pelos specs de login).
-- `login.spec.ts`: o produto logado de ponta a ponta com UM login (para a rodada ficar curta): entra por código e chega em `/app`, navega pela barra lateral, troca a foto (R2), baixa os dados em JSON e encerra a conta.
+- `login.spec.ts`: o produto logado de ponta a ponta com UM login (para a rodada ficar curta): entra por código e chega em `/app`, navega pela barra lateral, passa o mouse em Clientes e confere que o pedido sai no hover e o clique não o repete (pré-carregamento), troca a foto (R2), baixa os dados em JSON e encerra a conta.
 - `guards.spec.ts`: `/app` anônimo redireciona para `/login?redirect=...`, e, depois do login, volta para a página pedida.
-- `security-headers.spec.ts`: cabeçalhos de segurança nas respostas do Worker (dev) e nos estáticos (preview: página pré-renderizada, `public/`, `/assets/`).
+- `security-headers.spec.ts`: cabeçalhos de segurança nas respostas do Worker (dev) e nos estáticos (preview: página pré-renderizada, `public/`, `/assets/`), e o cache: `/assets/*` com `public, max-age=31536000, immutable` (JS e CSS) sem vazar para o HTML nem para o que não tem hash.
+- `deploy-antigo.spec.ts`: o que acontece com uma aba aberta antes de um deploy (preview): `/assets/<arquivo que não existe>` responde 404 de verdade (nunca o HTML do app), e um chunk que não carrega (`vite:preloadError`) recarrega a página UMA vez, sem laço.
 
 ## Limite de login desligado no e2e
 
