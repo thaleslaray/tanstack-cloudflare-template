@@ -32,10 +32,12 @@ import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
 //
 // Aqui os dados moram em `useState`, de mentira, para a bancada /estilo
 // funcionar sem banco. Numa tela de verdade:
-//   - a lista vem do `loader` da rota, que chama uma server function com
-//     `getDb(env.DB)` (veja src/routes/demo/drizzle.tsx);
-//   - criar chama uma server function `method: 'POST'` e depois
-//     `router.invalidate()`;
+//   - a lista vem de uma server function (`getDb(env.DB)`) lida pelo TanStack
+//     Query com UMA `queryOptions` que o `loader` da rota (`ensureQueryData`) e
+//     a tela (`useSuspenseQuery`) compartilham: o hover no link já busca o dado
+//     (src/lib/clientes-queries.ts);
+//   - criar chama uma server function `method: 'POST'` e depois descarta o
+//     cache (`invalidarClientes(queryClient)`), nunca `router.invalidate()`;
 //   - a mesma tela ligada ao banco é src/routes/_app/app/clientes.tsx;
 //   - o passo a passo está na skill /tela (.claude/skills/tela/SKILL.md).
 //

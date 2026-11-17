@@ -88,8 +88,26 @@ Siga a ordem; cada passo tem um exemplo no projeto.
    `src/lib/<area>.ts`, sem bindings, para a tela e o servidor usarem a mesma
    (modelo: `src/lib/clientes.ts`). O erro de validação diz de qual campo é.
 3. **Ler**: `createServerFn({ method: 'GET' })` em `src/lib/<area>-fns.ts`.
-   Confira a sessão dentro dela e filtre SEMPRE pelo `user.id` (modelo:
-   `src/lib/clientes-fns.ts`). A rota chama no `loader`.
+   Confira a sessão dentro dela e filtre SEMPRE pelo `user.id`; o miolo (sessão
+   + consulta) fica numa função comum em `src/lib/<area>-server.ts`, que a server
+   function só chama e que um teste chama direto (modelo: `clientes-fns.ts` e
+   `clientes-server.ts`). Meta: no máximo 2 consultas em fila por rota de leitura
+   (`Promise.all` ou `db.batch` para o que é independente; sem N+1) e um teste
+   que prova, copiado de `src/lib/clientes-fila.test.ts`.
+   **O dado da tela vem pelo TanStack Query, com uma `queryOptions` só**
+   (`src/lib/<area>-queries.ts`, modelo `clientes-queries.ts`): a chave leva tudo
+   o que muda o resultado (a conta, os filtros, a página; nunca o texto da
+   função) e há um `staleTime` escolhido (30 s para lista da própria pessoa).
+   A rota busca no `loader` com `context.queryClient.ensureQueryData(<area>Query(...))`
+   e a tela lê com `useSuspenseQuery(<area>Query(...))`, a MESMA definição:
+   assim passar o mouse no link já traz o dado (`defaultPreload: 'intent'`) e o
+   clique abre a tela com ele, sem pedir de novo dentro do `staleTime`. Com
+   chaves diferentes no `loader` e na tela são dois pedidos. Não use
+   `Route.useLoaderData()` para dado de servidor nem `router.invalidate()`.
+   Não pré-carregue (não ponha no `loader`) leitura que chama serviço externo
+   (tem custo ou efeito colateral) nem o que o papel da pessoa não pode ler; e
+   não mude a ordem das checagens: o guard do `_app` e a sessão da server
+   function continuam barrando antes do dado.
 4. **Gravar e apagar**: `createServerFn({ method: 'POST' })` com
    `.validator(...)`. Valide no servidor, confira a sessão de novo e ponha o
    `userId` no `where` de todo update e delete: é o que impede mexer no dado
@@ -98,8 +116,11 @@ Siga a ordem; cada passo tem um exemplo no projeto.
    limite, 5 por minuto por IP, é para endpoint sem login e travaria o sexto
    cadastro seguido). O que protege é a sessão e um teto por pessoa
    (`CLIENTES_MAX`). Endpoint público de escrita, esse sim, usa `isRateLimited`.
-6. **Atualizar a tela**: depois de gravar, `await router.invalidate()` e um
-   `toast.success('...')`.
+6. **Atualizar a tela**: toda escrita descarta o cache do que ela muda, num
+   lugar só (`invalidarClientes(queryClient)` em `<area>-queries.ts`, que a tela
+   aguarda com `await`), e depois um `toast.success('...')`. Esqueceu? A lista
+   fica velha até o `staleTime` passar. Prove com contraprova: tire o descarte e
+   veja o teste de criar falhar.
 7. **Erros**: cada campo tem o seu estado de erro e a mensagem aparece no
    `Field` daquele campo. Erro que não é de campo (limite atingido, sessão
    vencida, rede) vira `toast.error(...)`, nunca a linha de erro de um campo
@@ -122,7 +143,7 @@ de mexer na plataforma" no `AGENTS.md`: consulte a skill da Cloudflare ou a
 doc viva antes de escrever. Tabela, server function e tela no padrão acima
 não precisam disso.
 
-Na tela, troque o `useState` do exemplo de lista por `Route.useLoaderData()`
+Na tela, troque o `useState` do exemplo de lista por `useSuspenseQuery(<area>Query(...))`
 e as funções locais pelas server functions. O resto do JSX fica igual.
 
 ## 4. Todo estado tem tela
@@ -180,7 +201,9 @@ npm run e2e           # com o `npm run dev` desligado: ele usa a mesma porta
 
 Tela com dados ganha um teste em `e2e/login.spec.ts`, dentro do fluxo que já
 está logado (um login só deixa a rodada curta; o limite de login fica desligado no e2e): criar, ver na
-lista, apagar.
+lista, apagar. E, se ela tem link no menu, o teste do pré-carregamento (modelo:
+"passar o mouse em Clientes já busca a lista"): o hover dispara o pedido e o
+clique logo depois não o repete.
 
 Depois abra a tela no navegador (`npm run dev`) e olhe de verdade:
 

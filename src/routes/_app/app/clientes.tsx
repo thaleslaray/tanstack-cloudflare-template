@@ -1,4 +1,5 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
 import { PlusIcon, SearchIcon, Trash2Icon, UsersIcon } from 'lucide-react'
 import { useReducer, useState } from 'react'
 import { toast } from 'sonner'
@@ -35,16 +36,16 @@ import {
 } from '#/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import { CampoInvalido, type Situacao, validarCliente } from '#/lib/clientes'
-import {
-  createClienteFn,
-  deleteClienteFn,
-  listClientesFn,
-} from '#/lib/clientes-fns'
+import { createClienteFn, deleteClienteFn } from '#/lib/clientes-fns'
+import { clientesQuery, invalidarClientes } from '#/lib/clientes-queries'
 import { seo } from '#/lib/seo'
 
 // Clientes da pessoa logada, no D1. Molde: src/components/app/exemplo-lista.tsx.
+// O `loader` enche o cache do Query com a MESMA chave que a tela lê (`clientesQuery`):
+// passar o mouse no link já busca o dado e o clique abre a tela com ele.
 export const Route = createFileRoute('/_app/app/clientes')({
-  loader: () => listClientesFn(),
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(clientesQuery(context.session.user.id)),
   head: () => ({ meta: seo({ title: 'Clientes', noindex: true }) }),
   component: ClientesPage,
 })
@@ -157,8 +158,9 @@ function reducer(estado: Estado, acao: Acao): Estado {
 }
 
 function ClientesPage() {
-  const clientes = Route.useLoaderData()
-  const router = useRouter()
+  const { session } = Route.useRouteContext()
+  const queryClient = useQueryClient()
+  const { data: clientes } = useSuspenseQuery(clientesQuery(session.user.id))
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [busca, setBusca] = useState('')
 
@@ -220,7 +222,7 @@ function ClientesPage() {
     dispatch({ t: 'comecou' })
     try {
       await createClienteFn({ data: { nome, email, situacao } })
-      await router.invalidate()
+      await invalidarClientes(queryClient)
       dispatch({ t: 'concluir' })
       toast.success('Cliente adicionado')
     } catch (e) {
@@ -234,7 +236,7 @@ function ClientesPage() {
     dispatch({ t: 'comecou' })
     try {
       await deleteClienteFn({ data: { id } })
-      await router.invalidate()
+      await invalidarClientes(queryClient)
       dispatch({ t: 'concluir' })
       toast.success('Cliente apagado')
     } catch (e) {

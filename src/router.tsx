@@ -13,7 +13,14 @@ export function getRouter() {
     routeTree,
     context,
     scrollRestoration: true,
+    // Passar o mouse (ou tocar) num link já roda o `loader` da rota.
     defaultPreload: 'intent',
+    // 0 DE PROPÓSITO: o router não guarda cache próprio do `loader`; quem decide
+    // se o dado ainda é fresco é o TanStack Query (`staleTime` de cada
+    // `queryOptions`, ex.: 30 s em src/lib/clientes-queries.ts). Assim há um
+    // relógio só: o `loader` roda de novo no clique, mas `ensureQueryData` devolve
+    // o cache sem pedir (o que o hover trouxe vale até o `staleTime`). Subir este
+    // número aqui criaria um segundo cache e dado velho sem aviso.
     defaultPreloadStaleTime: 0,
   })
 

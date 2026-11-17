@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page, type Request, test } from '@playwright/test'
 import { loginWithCode, waitForHydration } from './helpers'
 
 // O produto logado de ponta a ponta, com UM login só: entrar, navegar pela
@@ -69,6 +69,44 @@ test('logado, /login?redirect=/.//evil.com não dá 500 nem sai do site', async 
       .getByRole('navigation', { name: 'Área logada' })
       .getByRole('link', { name: 'Clientes' }),
   )
+})
+
+test('passar o mouse em Clientes já busca a lista; o clique não pede de novo', async () => {
+  // Pré-carregamento: o `loader` da rota enche o cache do Query (mesma chave da
+  // tela) quando o mouse chega ao link; o clique logo depois cai dentro do
+  // `staleTime` (30 s, src/lib/clientes-queries.ts) e não refaz o pedido.
+  const pedidos: string[] = []
+  const ouvir = (req: Request) => {
+    if (req.url().includes('/_serverFn/')) pedidos.push(req.url())
+  }
+  page.on('request', ouvir)
+  try {
+    const nav = page.getByRole('navigation', { name: 'Área logada' })
+    const link = nav.getByRole('link', { name: 'Clientes' })
+    await expect(page).toHaveURL(/\/app$/)
+    expect(pedidos).toHaveLength(0)
+
+    await link.hover()
+    // O pedido sai sem clique algum, e a URL continua em /app.
+    await expect.poll(() => pedidos.length).toBeGreaterThan(0)
+    await page.waitForTimeout(800)
+    await expect(page).toHaveURL(/\/app$/)
+    const depoDoHover = pedidos.length
+
+    await link.click()
+    await expect(page).toHaveURL(/\/app\/clientes$/)
+    await expect(page.getByText('Nenhum cliente por aqui')).toBeVisible()
+    await page.waitForTimeout(800)
+    expect(pedidos).toHaveLength(depoDoHover)
+  } finally {
+    page.off('request', ouvir)
+  }
+  // Volta ao painel: o teste seguinte clica em Clientes a partir de lá.
+  await page
+    .getByRole('navigation', { name: 'Área logada' })
+    .getByRole('link', { name: 'Painel' })
+    .click()
+  await expect(page).toHaveURL(/\/app$/)
 })
 
 test('clientes: lista vazia, cria um cliente e ele aparece na tabela', async () => {
