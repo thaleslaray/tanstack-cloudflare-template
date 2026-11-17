@@ -1,13 +1,14 @@
-// Rastreio das idas ao D1, SÓ para desenvolvimento. Serve para contar quantas
-// consultas uma página faz e quantas ficam em fila (cada ida em fila custa uma
-// viagem de rede até o banco). Sem bindings aqui; quem liga é `src/server.ts`,
-// atrás de `import.meta.env.DEV` e do header de pedido `x-d1-trace: 1`.
-// Em produção o `if (import.meta.env.DEV)` some do bundle: custo zero.
+// Rastreio das idas ao D1. Serve para contar quantas consultas uma página faz e
+// quantas ficam em fila (cada ida em fila custa uma viagem de rede até o banco).
+// Sem bindings aqui; quem liga é `src/server.ts`, de dois jeitos:
+// - em dev, com o header de pedido `x-d1-trace: 1` (uma linha `[d1]` por ida);
+// - em qualquer ambiente, com a variável `PERF_LOG` (`src/lib/perf-log.ts`, uma
+//   linha JSON por pedido). Desligado, nada é embrulhado: custo zero.
 import type { RequestD1Session } from './d1-session'
 
 export const D1_TRACE_HEADER = 'x-d1-trace'
 
-type Ida = { sql: string; start: number; end: number }
+export type Ida = { sql: string; start: number; end: number }
 
 /** Quantas idas e qual a fila mais longa (idas que esperam a anterior acabar). */
 export function resumirIdas(idas: Pick<Ida, 'start' | 'end'>[]) {
@@ -41,7 +42,11 @@ type Rastreado = D1PreparedStatement & { __real: D1PreparedStatement }
  * Envolve a sessão D1 do pedido: cada `all/run/raw/first` e cada `batch` vira
  * uma linha `[d1]` no terminal. `fim()` imprime o resumo do pedido.
  */
-export function rastrearD1(session: RequestD1Session, rotulo: string) {
+export function rastrearD1(
+  session: RequestD1Session,
+  rotulo: string,
+  { log = true }: { log?: boolean } = {},
+) {
   const inicio = performance.now()
   const idas: Ida[] = []
 
@@ -52,9 +57,10 @@ export function rastrearD1(session: RequestD1Session, rotulo: string) {
     } finally {
       const end = performance.now() - inicio
       idas.push({ sql, start, end })
-      console.log(
-        `[d1] ${rotulo} +${start.toFixed(0)}ms (${(end - start).toFixed(0)}ms) ${sql}`,
-      )
+      if (log)
+        console.log(
+          `[d1] ${rotulo} +${start.toFixed(0)}ms (${(end - start).toFixed(0)}ms) ${sql}`,
+        )
     }
   }
 
@@ -87,7 +93,10 @@ export function rastrearD1(session: RequestD1Session, rotulo: string) {
 
   return {
     sessao: rastreada,
+    /** As idas feitas até agora (consulta resumida e tempos em ms desde o início). */
+    idas: () => idas,
     fim() {
+      if (!log) return
       const { idas: total, emFila } = resumirIdas(idas)
       console.log(
         `[d1] ${rotulo} RESUMO: ${total} ida(s) ao D1, ${emFila} em fila`,

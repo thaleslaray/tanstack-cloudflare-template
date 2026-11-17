@@ -41,3 +41,8 @@ GOOGLE_CLIENT_SECRET=
 # Redirect URI a cadastrar no provedor: <BETTER_AUTH_URL>/api/auth/callback/github
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+
+# Registro de desempenho (opcional). `1` liga: o Worker escreve UMA linha JSON por pedido em console.log
+# (caminho, status, tempo, onde rodou, e cada ida ao D1 com a fila). Vazio = desligado, sem custo.
+# Em produção só durante a medição: `wrangler tail` mostra as linhas; desligue depois. Veja AGENTS.md.
+PERF_LOG=

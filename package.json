@@ -39,6 +39,9 @@
       },
       "PASSWORD_LOGIN_ENABLED": {
         "description": "Opcional: `true` liga o login com senha (vem desligado)."
+      },
+      "PERF_LOG": {
+        "description": "Opcional: `1` escreve uma linha JSON de desempenho por pedido nos logs (só durante a medição; vazio = desligado)."
       }
     }
   },

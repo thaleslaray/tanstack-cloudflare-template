@@ -11,6 +11,7 @@ import {
 } from '#/db/d1-session'
 import { D1_TRACE_HEADER, rastrearD1 } from '#/db/d1-trace'
 import { runJobs } from '#/lib/jobs'
+import { linhaDeDesempenho, perfLogLigado } from '#/lib/perf-log'
 import { isCrossSiteServerFnCall } from '#/lib/same-origin'
 import { withSecurityHeaders } from '#/lib/security-headers'
 
@@ -37,18 +38,37 @@ export default {
     const session = env.DB.withSession(
       bookmarkFromRequest(request) ?? 'first-unconstrained',
     )
-    // Só em dev e com o header `x-d1-trace: 1`: conta as idas ao D1 do pedido.
-    const trace =
+    // Registro de desempenho (`PERF_LOG`, src/lib/perf-log.ts): desligado, não
+    // embrulha nada e só custa esta comparação.
+    const perf = perfLogLigado(env.PERF_LOG)
+    const inicio = perf ? performance.now() : 0
+    // Só em dev e com o header `x-d1-trace: 1`: imprime cada ida ao D1.
+    const devTrace =
       import.meta.env.DEV && request.headers.get(D1_TRACE_HEADER) === '1'
+    const trace =
+      perf || devTrace
         ? rastrearD1(
             session,
             `${request.method} ${new URL(request.url).pathname}`,
+            { log: devTrace },
           )
         : null
     const res = await runWithD1Session(trace?.sessao ?? session, () =>
       handler.fetch(request),
     )
     trace?.fim()
+    if (perf && trace) {
+      console.log(
+        linhaDeDesempenho({
+          method: request.method,
+          url: request.url,
+          status: res.status,
+          ms: performance.now() - inicio,
+          colo: (request as { cf?: { colo?: string } }).cf?.colo,
+          idas: trace.idas(),
+        }),
+      )
+    }
     return withSecurityHeaders(withD1Bookmark(res, session, request), request)
   },
   async scheduled(event, env, ctx) {
