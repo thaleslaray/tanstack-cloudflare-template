@@ -60,10 +60,10 @@ escapar.
 
 Os marcadores que tornam cada registro único:
 
-| Marcador | Vira | Serve para |
-| --- | --- | --- |
-| `{n}` | `<VU>-<rodada>`, ex.: `2-5` (letras, dígitos e **hífen**) | nome, e-mail: `"Cliente k6 {n}"`, `"k6-{n}@exemplo.test"` |
-| `{num}` | 6 dígitos, ex.: `020005` (VU e rodada juntos, com zeros) | campo **só de dígitos**: `"telefone": "11987{num}"` vira `11987020005` (11 dígitos, DDD 11 + celular válido) |
+| Marcador | Vira                                                      | Serve para                                                                                                   |
+| -------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `{n}`    | `<VU>-<rodada>`, ex.: `2-5` (letras, dígitos e **hífen**) | nome, e-mail: `"Cliente k6 {n}"`, `"k6-{n}@exemplo.test"`                                                    |
+| `{num}`  | 6 dígitos, ex.: `020005` (VU e rodada juntos, com zeros)  | campo **só de dígitos**: `"telefone": "11987{num}"` vira `11987020005` (11 dígitos, DDD 11 + celular válido) |
 
 O `{n}` leva hífen: num telefone ele seria recusado (foi o que aconteceu num
 produto real). Para telefone, CPF ou qualquer campo numérico, use `{num}` e

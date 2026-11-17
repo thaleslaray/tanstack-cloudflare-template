@@ -131,9 +131,16 @@ banco D1 e o bucket R2 no primeiro deploy (provisionamento automático).
    (cria banco e bucket), depois `npm run db:migrate:remote`.
 5. Deploys seguintes: `npm run deploy` (o `predeploy` aplica as migrações antes de publicar).
 6. Uma vez por app, ligue a réplica de leitura do D1: painel → D1 → o banco →
-   Settings → Enable Read Replication (o passo pela API está na skill `/deploy`).
-   O resto da performance já vem no código: Smart Placement, cache da sessão e
-   menos consultas por página (por que e números em `load/README.md`).
+   Settings → Enable Read Replication (o passo pela API está na skill `/deploy`;
+   não há réplica na América do Sul). O resto da performance já vem no código:
+   cache da sessão, menos consultas por página, pré-carregamento ao passar o mouse,
+   cache imutável dos arquivos com hash e 404 de verdade para arquivo antigo.
+7. Confira **onde o Worker roda** (`curl -sI <url>/login | grep -i cf-placement`):
+   o `smart` não move o Worker se o público é de uma região só. Para medir, ligue
+   `PERF_LOG=1` (uma linha JSON por pedido no `wrangler tail`, com a fila de
+   consultas ao D1 e a região que respondeu) e, se o Worker estiver longe do banco,
+   fixe `placement.region`. Passo a passo na skill `/deploy` ("Onde o Worker roda");
+   números em `load/README.md`.
 
 `BETTER_AUTH_URL` é opcional: a URL vem da requisição.
 

@@ -29,6 +29,16 @@ test('rota que não é arquivo segue com a página própria de 404', async ({
   expect(res.headers()['content-type']).toContain('text/html')
 })
 
+// Durante a recarga o contexto da página é destruído; ler o sessionStorage nesse
+// instante lança erro. Aqui isso vira "ainda não", e o poll tenta de novo.
+const gravouAHora = async (page: import('@playwright/test').Page) => {
+  try {
+    return await page.evaluate(() => 'chunk-reload-at' in sessionStorage)
+  } catch {
+    return false
+  }
+}
+
 const disparaErroDeChunk = (page: import('@playwright/test').Page) =>
   page.evaluate(() => {
     // O mesmo evento que o Vite dispara quando um chunk não carrega.
@@ -48,9 +58,7 @@ test('vite:preloadError recarrega a página UMA vez, sem laço', async ({
   // 1º erro: recarrega (2ª carga) e grava a hora no sessionStorage.
   await disparaErroDeChunk(page)
   await expect.poll(() => cargas).toBe(2)
-  await expect
-    .poll(() => page.evaluate(() => 'chunk-reload-at' in sessionStorage))
-    .toBe(true)
+  await expect.poll(() => gravouAHora(page)).toBe(true)
 
   // 2º erro, dentro da janela: o evento segue o caminho normal, sem recarregar.
   await disparaErroDeChunk(page)
@@ -77,9 +85,7 @@ test('chunk de rota que sumiu depois do deploy: a tela recarrega e para (sem la�
   // guardada à parte), mas cada uma só acontece uma vez: o número de cargas
   // para de crescer, mesmo com novos cliques no link que continua quebrado.
   await page.locator('a[href="/login"]').first().click({ noWaitAfter: true })
-  await expect
-    .poll(() => page.evaluate(() => 'chunk-reload-at' in sessionStorage))
-    .toBe(true)
+  await expect.poll(() => gravouAHora(page)).toBe(true)
   await page.waitForTimeout(3_000)
   const estavel = cargas
   expect(estavel).toBeGreaterThanOrEqual(2)
