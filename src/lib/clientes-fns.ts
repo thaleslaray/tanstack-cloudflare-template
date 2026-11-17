@@ -7,39 +7,16 @@
 // um minuto daria erro.
 import { env, waitUntil } from 'cloudflare:workers'
 import { createServerFn } from '@tanstack/react-start'
-import { getRequest } from '@tanstack/react-start/server'
-import { and, count, desc, eq } from 'drizzle-orm'
+import { and, count, eq } from 'drizzle-orm'
 
 import { getDb } from '#/db/index'
 import { clientes } from '#/db/schema'
 import { audit, requestMeta } from '#/lib/audit'
 import { CLIENTES_MAX, linhaDoCliente, validarCliente } from '#/lib/clientes'
-import { limitarUsuario, type UserLimitScope } from '#/lib/rate-limit'
-import { getRequestSession } from '#/lib/request-session'
+import { listarClientes, requireUser } from '#/lib/clientes-server'
 
-async function requireUser(scope: UserLimitScope) {
-  const current = await getRequestSession()
-  if (!current) throw new Error('Entre na sua conta primeiro.')
-  await limitarUsuario(current.user.id, scope)
-  return { user: current.user, headers: getRequest().headers }
-}
-
-export const listClientesFn = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    const { user } = await requireUser('leitura')
-    return getDb(env.DB)
-      .select({
-        id: clientes.id,
-        nome: clientes.nome,
-        email: clientes.email,
-        situacao: clientes.situacao,
-        createdAt: clientes.createdAt,
-      })
-      .from(clientes)
-      .where(eq(clientes.userId, user.id))
-      .orderBy(desc(clientes.createdAt))
-      .limit(CLIENTES_MAX)
-  },
+export const listClientesFn = createServerFn({ method: 'GET' }).handler(() =>
+  listarClientes(),
 )
 
 export const createClienteFn = createServerFn({ method: 'POST' })
