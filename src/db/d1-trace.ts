@@ -8,7 +8,36 @@ import type { RequestD1Session } from './d1-session'
 
 export const D1_TRACE_HEADER = 'x-d1-trace'
 
-export type Ida = { sql: string; start: number; end: number }
+export type Ida = {
+  sql: string
+  start: number
+  end: number
+  /** Região do D1 que respondeu (`meta.served_by_region`, ex.: `ENAM`); só no D1 remoto. */
+  regiao?: string
+  /** Se quem respondeu foi o primário (`meta.served_by_primary`): `false` = uma réplica. */
+  primario?: boolean
+}
+
+/**
+ * De onde o D1 respondeu, lido do `meta` do resultado (`all`, `run`, `batch`).
+ * `first` e `raw` não trazem `meta`; no D1 local (`vite dev`) os campos não existem.
+ */
+export function origemDoResultado(
+  resultado: unknown,
+): Pick<Ida, 'regiao' | 'primario'> {
+  const r = Array.isArray(resultado) ? resultado[0] : resultado
+  const meta = (r as { meta?: Record<string, unknown> } | null | undefined)
+    ?.meta
+  const regiao =
+    typeof meta?.served_by_region === 'string'
+      ? meta.served_by_region
+      : undefined
+  const primario =
+    typeof meta?.served_by_primary === 'boolean'
+      ? meta.served_by_primary
+      : undefined
+  return { regiao, primario }
+}
 
 /** Quantas idas e qual a fila mais longa (idas que esperam a anterior acabar). */
 export function resumirIdas(idas: Pick<Ida, 'start' | 'end'>[]) {
@@ -52,11 +81,14 @@ export function rastrearD1(
 
   async function medir<T>(sql: string, fn: () => Promise<T>): Promise<T> {
     const start = performance.now() - inicio
+    let origem: Pick<Ida, 'regiao' | 'primario'> = {}
     try {
-      return await fn()
+      const resultado = await fn()
+      origem = origemDoResultado(resultado)
+      return resultado
     } finally {
       const end = performance.now() - inicio
-      idas.push({ sql, start, end })
+      idas.push({ sql, start, end, ...origem })
       if (log)
         console.log(
           `[d1] ${rotulo} +${start.toFixed(0)}ms (${(end - start).toFixed(0)}ms) ${sql}`,

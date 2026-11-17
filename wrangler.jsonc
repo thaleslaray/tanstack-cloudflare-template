@@ -14,12 +14,27 @@
   },
   // Sobe os source maps no deploy: erros em produção apontam para o código-fonte.
   "upload_source_maps": true,
-  // Smart Placement: o D1 fica numa região só (a primária). Sem isso o Worker roda
-  // perto do visitante e cada consulta ao banco atravessa o continente (uma página
-  // com várias consultas leva mais de 1 s). Com `smart`, a Cloudflare analisa o
-  // tráfego e, se compensar, roda o Worker perto do banco: só a resposta final
-  // viaja até o visitante. A análise leva até 15 min depois do deploy para valer.
-  // O cabeçalho de resposta `cf-placement` mostra onde rodou (remote-XXX/local-XXX).
+  // Colocação do Worker (docs: developers.cloudflare.com/workers/configuration/placement/).
+  // O D1 tem UM primário, numa região só; se o Worker roda longe dele, cada
+  // consulta atravessa o continente (uma página com várias leva mais de 1 s).
+  // Estratégias que se excluem (use uma):
+  //   "mode": "smart"  : a Cloudflare analisa o tráfego e, se compensar, move o
+  //                      Worker para perto do banco (leva até 15 min). Bom com
+  //                      visitantes de vários lugares, mas SÓ considera locais
+  //                      onde o Worker já rodou: com tráfego de uma região só
+  //                      (ex.: só Brasil) ele não move nada (medido: 56 min em
+  //                      `local-GIG` com o D1 em ENAM). Este é o padrão.
+  //   "region": "aws:us-east-1" : fixa o Worker perto de uma região de nuvem
+  //                      (formato provedor:região; aws, gcp ou azure). Use quando
+  //                      souber onde o D1 está (`d1[].r` no PERF_LOG) e o público
+  //                      estiver longe dele: troque a linha `placement` abaixo por
+  //                      `"placement": { "region": "aws:us-east-1" }` (D1 em ENAM)
+  //                      e confira com `cf-placement` (skill /deploy, "Onde o
+  //                      Worker roda"). Custo: as páginas públicas SSR também
+  //                      passam a rodar lá (medido: /login de 70 para 235 ms);
+  //                      o que é pré-renderizado e os arquivos de /assets/ saem
+  //                      sempre do ponto mais perto do visitante.
+  // O cabeçalho de resposta `cf-placement` (remote-XXX/local-XXX) mostra onde rodou.
   "placement": { "mode": "smart" },
   // Arquivos estáticos (o plugin do Vite preenche a pasta sozinho).
   // Páginas pré-renderizadas saem como `/blog/index.html`; sem barra final na URL.

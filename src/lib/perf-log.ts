@@ -19,6 +19,11 @@
 //   da outra (`Promise.all` e `db.batch` contam como UMA). Cada nível custa uma
 //   viagem de rede até o banco.
 // - `d1[].at`/`ms`: quando a ida começou e quanto durou, em ms desde o início.
+// - `d1[].r`/`p`: de onde o D1 respondeu (`meta.served_by_region`, ex.: "ENAM", e
+//   se foi o primário), quando o resultado traz (`all`, `run` e `batch` trazem;
+//   `first` e `raw` não; no D1 local não existe). `d1_regioes` junta as regiões
+//   vistas no pedido. Compare com `colo`: Worker no Rio e D1 em ENAM = cada ida
+//   atravessa o continente (veja a skill /deploy, "Onde o Worker roda").
 import type { Ida } from '#/db/d1-trace'
 import { resumirIdas } from '#/db/d1-trace'
 
@@ -34,7 +39,7 @@ type EntradaDaLinha = {
   status: number
   ms: number
   colo?: string
-  idas: Pick<Ida, 'sql' | 'start' | 'end'>[]
+  idas: Pick<Ida, 'sql' | 'start' | 'end' | 'regiao' | 'primario'>[]
 }
 
 /** A linha JSON de um pedido. */
@@ -49,10 +54,15 @@ export function linhaDeDesempenho(e: EntradaDaLinha): string {
     colo: e.colo ?? null,
     idas,
     fila: emFila,
+    d1_regioes: [
+      ...new Set(e.idas.flatMap((i) => (i.regiao ? [i.regiao] : []))),
+    ],
     d1: e.idas.map((i) => ({
       q: i.sql,
       at: Math.round(i.start),
       ms: Math.round(i.end - i.start),
+      ...(i.regiao ? { r: i.regiao } : {}),
+      ...(i.primario === undefined ? {} : { p: i.primario }),
     })),
   })
 }

@@ -44,6 +44,7 @@ describe('linhaDeDesempenho', () => {
       colo: 'GIG',
       idas: 2,
       fila: 2,
+      d1_regioes: [],
       d1: [
         { q: 'select session', at: 0, ms: 180 },
         { q: 'select clientes', at: 182, ms: 210 },
@@ -74,5 +75,35 @@ describe('linhaDeDesempenho', () => {
       linhaDeDesempenho({ ...base, url: 'http://localhost/', idas: [] }),
     )
     expect(j).toMatchObject({ idas: 0, fila: 0, d1: [] })
+  })
+
+  it('traz a região do D1 que respondeu e se foi o primário', () => {
+    const j = JSON.parse(
+      linhaDeDesempenho({
+        ...base,
+        url: 'http://localhost/app',
+        idas: [
+          {
+            sql: 'select a',
+            start: 0,
+            end: 10,
+            regiao: 'ENAM',
+            primario: false,
+          },
+          {
+            sql: 'insert b',
+            start: 12,
+            end: 30,
+            regiao: 'ENAM',
+            primario: true,
+          },
+          { sql: 'select c', start: 31, end: 40 },
+        ],
+      }),
+    )
+    expect(j.d1_regioes).toEqual(['ENAM'])
+    expect(j.d1[0]).toMatchObject({ r: 'ENAM', p: false })
+    expect(j.d1[1]).toMatchObject({ r: 'ENAM', p: true })
+    expect(j.d1[2]).not.toHaveProperty('r')
   })
 })

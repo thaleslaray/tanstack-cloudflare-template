@@ -31,8 +31,27 @@ e fixe com `CLOUDFLARE_ACCOUNT_ID=<id>` na frente de CADA comando do Wrangler
 
 O `wrangler.jsonc` não tem `database_id` nem `bucket_name` de propósito: o
 Wrangler cria o D1 e o R2 no primeiro `wrangler deploy` (provisionamento
-automático, documentado pela Cloudflare). Não rode `d1 create` nem
-`r2 bucket create`. Se o usuário já tem um banco, acrescente `database_id`.
+automático, documentado pela Cloudflare). Se o usuário já tem um banco,
+acrescente `database_id`.
+
+**Onde o banco fica não muda depois de criado, e decide a velocidade do app.**
+Criado pelo provisionamento automático, o D1 nasce "perto de quem pediu a
+criação" (doc: developers.cloudflare.com/d1/configuration/data-location/).
+Pergunte ao usuário onde está o público. Se ele quer escolher o lugar (ou o
+público é de uma região só), crie o banco ANTES do primeiro deploy, com o sim
+dele, e ponha o id no `wrangler.jsonc`:
+
+```bash
+npx wrangler d1 create <database_name do wrangler.jsonc> --location=enam
+# copie o database_id que ele imprime para o d1_databases do wrangler.jsonc
+```
+
+Dicas aceitas: `wnam`, `enam`, `weur`, `eeur`, `apac`, `oc`. Não existe dica
+para América do Sul, África nem Oriente Médio (o D1 não roda lá): para o
+Brasil, `enam`. A dica é "o mais perto possível", não garantia. Dado que
+precisa ficar na UE, nos EUA ou em data center FedRAMP: `--jurisdiction=eu`
+(ou `us`, `fedramp`), que vale mais que a dica. Fora isso, não rode
+`d1 create` nem `r2 bucket create`.
 
 Troque `url` em `src/config/app.ts` pela URL pública ANTES do build
 (sitemap, canonical, og:url).
@@ -147,7 +166,8 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
 5. Réplica de leitura do D1 (deixa as páginas logadas mais rápidas longe do
    banco; sem custo extra). O código já usa a Sessions API; falta ligar no banco,
    uma vez por app. Pelo painel: D1 → o banco → Settings → Enable Read
-   Replication. Ou pela API (o Wrangler não tem comando para isso), com um token
+   Replication (limite: as réplicas ficam em ENAM, WNAM, WEUR, EEUR, APAC e OC;
+   não há na América do Sul). Ou pela API (o Wrangler não tem comando para isso), com um token
    que tenha `D1:Edit`. Peça para o usuário rodar `export CLOUDFLARE_API_TOKEN=...`
    no terminal dele; não cole o token no chat.
 
@@ -160,10 +180,50 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
 
    Confira com `npx wrangler d1 info <nome-do-banco>`: `read_replication.mode`
    deve aparecer `auto`.
-6. Smart Placement já vem ligado no `wrangler.jsonc` (`placement.mode: smart`):
-   nada a fazer. A Cloudflare leva até 15 min, e precisa de tráfego real, para
-   mover o Worker para perto do banco; o header `cf-placement` mostra
-   `remote-XXX` quando moveu.
+6. **Onde o Worker roda** (a conferência que mais pesa na velocidade; faça logo
+   depois do deploy e de novo uns 15 min depois, tempo do Smart Placement).
+   O D1 tem um primário numa região só; se o Worker roda longe dele, cada
+   consulta em fila atravessa o continente. O template vem com
+   `placement.mode: smart` (a Cloudflare move o Worker para perto do banco se
+   compensar), mas ele só considera locais onde o Worker já rodou: com público de
+   uma região só ele não move nada (medido: `local-GIG` por 56 min, D1 em ENAM).
+   Confira, nesta ordem:
+
+   a. O cabeçalho de resposta (`remote-XXX` = o Worker foi movido; `local-XXX` =
+      rodou perto de quem pediu; XXX é o código de aeroporto do data center):
+
+      ```bash
+      curl -sI https://<domínio>/login | grep -i cf-placement
+      ```
+
+   b. Onde o Worker rodou e de onde o D1 respondeu, de verdade. Com o sim do
+      usuário, ligue o registro de desempenho só para esta conferência, pegue uns
+      pedidos logados e desligue:
+
+      ```bash
+      npx wrangler secret put PERF_LOG        # digite 1
+      npx wrangler tail --format json         # em outro terminal: abra /app e /app/clientes logado
+      npx wrangler secret delete PERF_LOG     # ao terminar (o registro gera uma linha por pedido)
+      ```
+
+      Em cada linha `{"perf":1,...}` compare `colo` (onde o Worker rodou) com
+      `d1_regioes` / `d1[].r` (de onde o D1 respondeu, ex.: `ENAM`) e olhe `fila`
+      (idas em fila) e `ms`. Worker no Rio (`GIG`) e D1 em `ENAM` = cada ida paga
+      a viagem; com `fila` 2 ou mais, a página sente.
+   c. Longe e `ms` alto? Fixe a dica no `wrangler.jsonc`, com o sim do usuário
+      (as estratégias `mode`, `region`, `host` e `hostname` se excluem: troque a
+      linha, não some): `"placement": { "region": "aws:us-east-1" }` para D1 em
+      ENAM (formato `provedor:região`; outras: `gcp:us-east4`, `azure:eastus`;
+      lista em developers.cloudflare.com/workers/configuration/placement/).
+      Rode `npm run test` (confere o formato), publique e repita a, b e a medição
+      do passo 7. Custo da dica: a página pública SSR também roda lá (no
+      staging, `/login` foi de 70 para 235 ms); pré-renderizadas e `/assets/`
+      saem do ponto mais perto do visitante. Se o ganho logado não compensar,
+      volte a `smart` (comando de reverter: o mesmo, com a linha antiga).
+   d. Réplica de leitura ligada (item 5)? Em `d1[].p`, `false` = uma réplica
+      respondeu. Lembrete: não há réplica na América do Sul (ENAM, WNAM, WEUR,
+      EEUR, APAC, OC), então para público só do Brasil a réplica não aproxima o
+      dado.
 
 ## 7. Passo final: medir a performance
 
@@ -197,9 +257,10 @@ Detalhes em `load/README.md`.
 4. O CPU por pedido não sai no k6: veja em Cloudflare → Workers → o Worker →
    Observability (campo `cpuTime`, p99 abaixo de 10 ms no plano Free).
 5. Compare com os números de referência em `load/README.md`. SSR logado bem
-   acima de 500 ms? Confira: réplica ligada (`npx wrangler d1 info`),
-   `cf-placement: remote-XXX` na resposta, e quantas consultas a página faz
-   (rastreio `x-d1-trace: 1` no `npm run dev`, veja o AGENTS.md).
+   acima de 500 ms? Confira, nesta ordem: onde o Worker roda (seção 6, item 6: `colo`
+   contra `d1[].r`, `cf-placement`), as consultas em fila (`fila` no `PERF_LOG`,
+   ou o rastreio `x-d1-trace: 1` no `npm run dev`; veja o AGENTS.md) e a réplica
+   ligada (`npx wrangler d1 info`).
 6. Anote a data e a tabela em `load/README.md`, para comparar no próximo deploy.
 
 Botão Deploy to Cloudflare (Workers Builds): publica a cada push na `main`.

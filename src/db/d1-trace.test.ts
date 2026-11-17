@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { resumirIdas } from './d1-trace'
+import { origemDoResultado, resumirIdas } from './d1-trace'
 
 describe('resumirIdas', () => {
   it('conta idas em fila uma atrás da outra', () => {
@@ -25,5 +25,34 @@ describe('resumirIdas', () => {
 
   it('sem idas', () => {
     expect(resumirIdas([])).toEqual({ idas: 0, emFila: 0 })
+  })
+})
+
+describe('origemDoResultado', () => {
+  it('lê a região e o primário do meta (all/run) ou do primeiro do batch', () => {
+    const meta = { served_by_region: 'WEUR', served_by_primary: false }
+    expect(origemDoResultado({ meta })).toEqual({
+      regiao: 'WEUR',
+      primario: false,
+    })
+    expect(origemDoResultado([{ meta }, { meta: {} }])).toEqual({
+      regiao: 'WEUR',
+      primario: false,
+    })
+  })
+
+  it('sem meta (first, raw, D1 local) não inventa nada', () => {
+    expect(origemDoResultado({ id: 1 })).toEqual({
+      regiao: undefined,
+      primario: undefined,
+    })
+    expect(origemDoResultado(null)).toEqual({
+      regiao: undefined,
+      primario: undefined,
+    })
+    expect(origemDoResultado([])).toEqual({
+      regiao: undefined,
+      primario: undefined,
+    })
   })
 })
