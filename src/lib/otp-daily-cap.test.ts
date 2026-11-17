@@ -8,6 +8,16 @@ const state = vi.hoisted(() => ({
 // Banco de mentira: o upsert devolve o `total` combinado e registra o que foi pedido.
 vi.mock('#/db/index', () => ({
   getDb: () => ({
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          limit: async () => {
+            state.calls.push(['select'])
+            return state.total instanceof Error ? [] : [{ total: state.total }]
+          },
+        }),
+      }),
+    }),
     insert: () => ({
       values: (v: unknown) => {
         state.calls.push(['values', v])
@@ -65,6 +75,15 @@ describe('otpDailyCapReached', () => {
     expect(await otpDailyCapReached()).toBe(false)
     state.total = 11
     expect(await otpDailyCapReached()).toBe(true)
+  })
+
+  it('count: false só lê: não grava e recusa quando o próximo pedido estouraria', async () => {
+    stubEnv.OTP_DAILY_LIMIT = '10'
+    state.total = 9
+    expect(await otpDailyCapReached(new Date(), { count: false })).toBe(false)
+    state.total = 10
+    expect(await otpDailyCapReached(new Date(), { count: false })).toBe(true)
+    expect(state.calls.every(([kind]) => kind === 'select')).toBe(true)
   })
 
   it('OTP_DAILY_LIMIT=0 desliga e nem consulta o banco', async () => {

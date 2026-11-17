@@ -70,7 +70,17 @@ GOOGLE_CLIENT_SECRET=
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 PASSWORD_LOGIN_ENABLED=   # opcional; true liga o login com senha
+ACCESS_ALLOWLIST=         # só com accessMode 'allowlist' em src/config/app.ts: e-mails que entram, separados por vírgula
 ```
+
+**Cadastro só para e-mails liberados.** Se `accessMode` em `src/config/app.ts`
+for `'allowlist'`, grave a lista como segredo (vazia = ninguém entra, nem você),
+com o sim do usuário: `npx wrangler secret put ACCESS_ALLOWLIST` (cole os
+e-mails separados por vírgula; ou a linha no `.prod.vars`). Nunca no
+`wrangler.jsonc`. Mudar a lista é gravar o segredo de novo; quem sai dela perde
+a sessão no próximo pedido. Para o teste de carga (passo 7), as contas de
+carga (`load-1@exemplo.test` em diante, uma por `CONTAS`) entram na lista antes
+de rodar e saem depois.
 
 Nunca reaproveite o segredo do dev (mínimo de 32 caracteres).
 

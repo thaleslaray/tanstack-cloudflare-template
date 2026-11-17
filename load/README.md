@@ -74,7 +74,7 @@ antes de rodar. O smoke gasta umas 30 requisições.
    npx vite dev --port 3000 > /tmp/dev.log 2>&1 &
    ```
 
-2. Gere as sessões de teste (5 contas `load-<n>@exemplo.test`):
+2. Gere as sessões de teste (5 contas `load-<n>@exemplo.test`; com `accessMode: 'allowlist'`, coloque-as antes em `ACCESS_ALLOWLIST` do `.dev.vars`):
 
    ```bash
    LOG_FILE=/tmp/dev.log npm run load:sessoes

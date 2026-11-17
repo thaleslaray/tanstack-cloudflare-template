@@ -26,15 +26,27 @@ export async function createAuthHarness(vars: Record<string, string> = {}) {
       if (statement.trim()) await db.prepare(statement).run()
     }
   }
+  // Lista de acesso (só vale no modo 'allowlist' de `appConfig.accessMode`):
+  // `allow` libera e-mails e `signIn` libera o que vai usar.
+  // `vars.ACCESS_ALLOWLIST` fixa a lista e `signIn` deixa de mexer nela.
+  const fixedList = 'ACCESS_ALLOWLIST' in vars
+  const allowed = new Set<string>()
   const env = Object.assign(proxy.env, {
     BETTER_AUTH_SECRET: 'x'.repeat(40),
+    ACCESS_ALLOWLIST: '',
     ...vars,
   }) as Env
   Object.assign(testEnv, env)
+  const allow = (...emails: string[]) => {
+    for (const email of emails) allowed.add(email.trim().toLowerCase())
+    env.ACCESS_ALLOWLIST = [...allowed].join(',')
+    Object.assign(testEnv, { ACCESS_ALLOWLIST: env.ACCESS_ALLOWLIST })
+  }
 
   return {
     env,
     db,
+    allow,
     getAuth: (request?: Request) => getAuth(env, request),
     /** POST JSON em /api/auth/<path> pelo handler, como o navegador faria. */
     async post(
@@ -58,6 +70,7 @@ export async function createAuthHarness(vars: Record<string, string> = {}) {
      * `cookie` da sessão e o usuário criado.
      */
     async signIn(email: string, headers: Record<string, string> = {}) {
+      if (!fixedList) allow(email)
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       try {
         const sent = await this.post(

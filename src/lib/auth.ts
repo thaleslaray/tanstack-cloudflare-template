@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm'
 
 import { user as userTable } from '#/db/auth-schema'
 import { getDb } from '#/db/index'
+import { hasAccess } from '#/lib/allowlist'
 import { auditAfterHook, auditDatabaseHooks } from '#/lib/auth-audit-hook'
 import {
   assertAuthSecret,
@@ -19,7 +20,14 @@ import {
   resolveBaseURL,
   resolveTrustedOrigins,
 } from '#/lib/auth-config'
-import { assertEmailConfigured, deliverOtp } from '#/lib/auth-otp'
+import {
+  assertEmailConfigured,
+  deliverOtp,
+  OTP_EXPIRES_IN_SECONDS,
+  OTP_REQUEST_TYPES,
+  SEND_OTP_PATH,
+  simulateOtpWork,
+} from '#/lib/auth-otp'
 import { assertPasswordNotCommon } from '#/lib/password-policy'
 import { sanitizeProfileUpdate } from '#/lib/profile'
 
@@ -33,6 +41,8 @@ export function githubEnabled(env: Env) {
   return present(env.GITHUB_CLIENT_ID) && present(env.GITHUB_CLIENT_SECRET)
 }
 
+const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 const SEVEN_DAYS = 60 * 60 * 24 * 7
 const ONE_DAY = 60 * 60 * 24
 
@@ -45,6 +55,9 @@ export function getAuth(env: Env, request?: Request) {
   assertAuthSecret(env.BETTER_AUTH_SECRET)
   const baseURL = resolveBaseURL(env.BETTER_AUTH_URL, request)
   const password = passwordEnabled(env)
+  // Modo lista (`appConfig.accessMode`, src/lib/allowlist.ts): falha fechada.
+  // No modo 'open' devolve sempre true.
+  const canEnter = (email: unknown) => hasAccess(email, env.ACCESS_ALLOWLIST)
   const auditHooks = auditDatabaseHooks(async (userId) => {
     const [row] = await getDb(env.DB)
       .select({ email: userTable.email })
@@ -152,6 +165,36 @@ export function getAuth(env: Env, request?: Request) {
       // Senha da lista das mais comuns é recusada (só com senha ligada).
       before: createAuthMiddleware(async (ctx) => {
         assertEmailConfigured(ctx.path, password)
+        // Depois de recusar o envio sem provedor (vale para todos): no modo
+        // lista, e-mail fora dela pede código e responde IGUAL ao caminho de
+        // sucesso (200, `{ success: true }`), sem gerar nem enviar código.
+        if (ctx.path === SEND_OTP_PATH) {
+          const body = ctx.body as
+            | { email?: unknown; type?: unknown }
+            | undefined
+          const email = body?.email
+          const type = body?.type
+          // Formato inválido (inclui espaços) segue para o Better Auth e dá 400
+          // para todos: responder 200 só para quem está fora da lista deixaria
+          // alguém sondar a lista com e-mails com espaço.
+          if (
+            typeof email === 'string' &&
+            LOOKS_LIKE_EMAIL.test(email) &&
+            typeof type === 'string' &&
+            OTP_REQUEST_TYPES.has(type) &&
+            !canEnter(email)
+          ) {
+            // Mesmo trabalho de banco e de hash do caminho liberado, para o
+            // tempo de resposta não revelar quem está na lista.
+            await simulateOtpWork(
+              getDb(env.DB),
+              otpHasher(env.BETTER_AUTH_SECRET),
+              email,
+              type,
+            )
+            return ctx.json({ success: true })
+          }
+        }
         assertPasswordNotCommon(ctx.path, ctx.body, password)
       }),
       after: auditAfterHook,
@@ -167,7 +210,10 @@ export function getAuth(env: Env, request?: Request) {
         create: {
           before: async (newSession) => {
             const [owner] = await getDb(env.DB)
-              .select({ deletedAt: userTable.deletedAt })
+              .select({
+                deletedAt: userTable.deletedAt,
+                email: userTable.email,
+              })
               .from(userTable)
               .where(eq(userTable.id, newSession.userId))
               .limit(1)
@@ -175,6 +221,13 @@ export function getAuth(env: Env, request?: Request) {
               throw new APIError('FORBIDDEN', {
                 message: 'Esta conta foi encerrada.',
                 code: 'ACCOUNT_CLOSED',
+              })
+            }
+            // Modo lista: quem saiu da lista não entra mais, nem com conta antiga.
+            if (!owner || !canEnter(owner.email)) {
+              throw new APIError('FORBIDDEN', {
+                message: 'Este e-mail não tem acesso.',
+                code: 'ACCESS_DENIED',
               })
             }
           },
@@ -189,6 +242,13 @@ export function getAuth(env: Env, request?: Request) {
         create: {
           // Login por código não traz nome: usa a parte local do e-mail.
           before: async (user) => {
+            // Modo lista: só e-mail da lista cria conta (falha fechada).
+            if (!canEnter(user.email)) {
+              throw new APIError('FORBIDDEN', {
+                message: 'Este e-mail não tem acesso.',
+                code: 'ACCESS_DENIED',
+              })
+            }
             if (user.name?.trim()) return
             return { data: { ...user, name: user.email.split('@')[0] } }
           },
@@ -211,7 +271,7 @@ export function getAuth(env: Env, request?: Request) {
     plugins: [
       emailOTP({
         otpLength: 6,
-        expiresIn: 600,
+        expiresIn: OTP_EXPIRES_IN_SECONDS,
         allowedAttempts: 3,
         // Só o hash do código fica no banco (tabela `verification`), e é um
         // HMAC com o segredo do app (src/lib/auth-config.ts, `otpHasher`):

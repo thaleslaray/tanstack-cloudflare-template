@@ -10,6 +10,7 @@ import { env } from 'cloudflare:workers'
 import { getRequest } from '@tanstack/react-start/server'
 
 import { getAuth } from '#/lib/auth'
+import { enforceAccess } from '#/lib/session-access'
 
 const porPedido = new WeakMap<
   Request,
@@ -20,7 +21,10 @@ export function getRequestSession() {
   const request = getRequest()
   let sessao = porPedido.get(request)
   if (!sessao) {
-    sessao = getAuth(env, request).api.getSession({ headers: request.headers })
+    // `enforceAccess`: no modo lista, quem saiu da lista perde a sessão aqui.
+    sessao = getAuth(env, request)
+      .api.getSession({ headers: request.headers })
+      .then((current) => enforceAccess(env, current))
     porPedido.set(request, sessao)
   }
   return sessao

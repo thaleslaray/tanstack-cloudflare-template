@@ -4,7 +4,7 @@
 // provedor. O binding de rate limit só aceita períodos de 10 ou 60 segundos,
 // então o contador diário fica no D1 (tabela `otp_diario`, uma linha por dia UTC).
 import { env } from 'cloudflare:workers'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 import { getDb } from '#/db/index'
 import { otpDiario } from '#/db/schema'
@@ -28,14 +28,29 @@ export function otpDay(now = new Date()): string {
  * Conta este pedido e devolve true se o teto do dia já foi atingido (o
  * pedido acima do teto não deve mandar e-mail). Falha ABERTA: sem D1 ou com
  * erro, passa (um contador com defeito não pode derrubar o login).
+ * `count: false` só LÊ o contador (não gasta o teto): é o caso do e-mail fora da
+ * lista de acesso, que não manda e-mail mas precisa ver o mesmo 429 de quem
+ * está na lista quando o teto já estourou.
  */
-export async function otpDailyCapReached(now = new Date()): Promise<boolean> {
+export async function otpDailyCapReached(
+  now = new Date(),
+  { count = true }: { count?: boolean } = {},
+): Promise<boolean> {
   // Mesmo desligamento só-do-Playwright dos outros limites (some do build de produção).
   if (import.meta.env.DEV && import.meta.env.VITE_E2E_SEM_LIMITE === '1')
     return false
   const limit = otpDailyLimit()
   if (limit === 0 || !env.DB) return false
   try {
+    if (!count) {
+      const [atual] = await getDb(env.DB)
+        .select({ total: otpDiario.total })
+        .from(otpDiario)
+        .where(eq(otpDiario.dia, otpDay(now)))
+        .limit(1)
+      // O próximo pedido contado passaria do teto quando total >= limite.
+      return (atual?.total ?? 0) >= limit
+    }
     const [row] = await getDb(env.DB)
       .insert(otpDiario)
       .values({ dia: otpDay(now), total: 1 })

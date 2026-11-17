@@ -15,6 +15,7 @@ import {
 } from '#/lib/avatar'
 import { isRateLimited, tooManyRequests } from '#/lib/rate-limit'
 import { isCrossSiteRequest } from '#/lib/same-origin'
+import { enforceAccess } from '#/lib/session-access'
 
 const text = (message: string, status: number) =>
   new Response(message, {
@@ -34,10 +35,13 @@ export const Route = createFileRoute('/api/avatar')({
           return text('Requisição cross-site recusada.', 403)
         }
         // `disableCookieCache`: escrita em nome do usuário, lê a sessão no banco.
-        const session = await getAuth(env, request).api.getSession({
-          headers: request.headers,
-          query: { disableCookieCache: true },
-        })
+        const session = await enforceAccess(
+          env,
+          await getAuth(env, request).api.getSession({
+            headers: request.headers,
+            query: { disableCookieCache: true },
+          }),
+        )
         if (!session) return text('Entre na sua conta primeiro.', 401)
         // Depois da sessão: um anônimo não consegue gastar a cota de alguém.
         if (await isRateLimited('avatar', { headers: request.headers })) {

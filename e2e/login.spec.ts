@@ -15,7 +15,7 @@ const PNG = Buffer.from(
 )
 
 let page: Page
-const email = `e2e-${Date.now()}@exemplo.test`
+const email = `qa-e2e-${Date.now()}@exemplo.test`
 
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage()
@@ -87,7 +87,7 @@ test('clientes: lista vazia, cria um cliente e ele aparece na tabela', async () 
   await expect(dialog.getByText('Escreva o nome do cliente.')).toBeVisible()
 
   await dialog.getByLabel('Nome').fill('Cliente E2E')
-  await dialog.getByLabel('E-mail').fill('cliente-e2e@exemplo.test')
+  await dialog.getByLabel('E-mail').fill('qa-cliente-e2e@exemplo.test')
   await dialog.getByRole('button', { name: 'Adicionar' }).click()
 
   await expect(page.getByText('Cliente adicionado')).toBeVisible()

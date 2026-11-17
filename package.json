@@ -31,6 +31,9 @@
       "GITHUB_CLIENT_SECRET": {
         "description": "Opcional: login com GitHub (precisa do par id + segredo)."
       },
+      "ACCESS_ALLOWLIST": {
+        "description": "Só com accessMode 'allowlist' (src/config/app.ts): e-mails que podem entrar, separados por vírgula (vazio = ninguém entra)."
+      },
       "OTP_DAILY_LIMIT": {
         "description": "Opcional: teto diário global de e-mails com código (padrão 500; `0` desliga). Ajuste à cota do seu provedor de e-mail."
       },

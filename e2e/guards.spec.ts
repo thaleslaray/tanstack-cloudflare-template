@@ -19,7 +19,7 @@ test('depois do login, volta para a página que pediu', async ({ page }) => {
     /\/login\?redirect=%2Fapp%2Fconfiguracoes%3Fde%3De2e$/,
   )
 
-  const email = `e2e-volta-${Date.now()}@exemplo.test`
+  const email = `qa-volta-${Date.now()}@exemplo.test`
   await loginWithCode(page, email)
 
   await expect(page).toHaveURL(/\/app\/configuracoes\?de=e2e$/)

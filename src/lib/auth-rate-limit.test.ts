@@ -1,6 +1,8 @@
 import { env } from 'cloudflare:workers'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { appConfig } from '#/config/app'
+
 import { authRateLimit, emailFromBody } from './auth-rate-limit'
 
 vi.mock('@tanstack/react-start/server', () => ({
@@ -8,10 +10,15 @@ vi.mock('@tanstack/react-start/server', () => ({
 }))
 
 // O teto diário vai ao D1; aqui é testado em otp-daily-cap.test.ts.
-const capState = vi.hoisted(() => ({ reached: false, calls: 0 }))
+const capState = vi.hoisted(() => ({
+  reached: false,
+  calls: 0,
+  counts: [] as boolean[],
+}))
 vi.mock('#/lib/otp-daily-cap', () => ({
-  otpDailyCapReached: async () => {
+  otpDailyCapReached: async (_now?: Date, opts?: { count?: boolean }) => {
     capState.calls++
+    capState.counts.push(opts?.count ?? true)
     return capState.reached
   },
 }))
@@ -38,6 +45,8 @@ function limiterBlocking(...blocked: string[]) {
 beforeEach(() => {
   capState.reached = false
   capState.calls = 0
+  capState.counts = []
+  appConfig.accessMode = 'open'
   for (const key of Object.keys(stubEnv)) delete stubEnv[key]
 })
 
@@ -205,6 +214,31 @@ describe('authRateLimit', () => {
           }),
         ),
       ).toBeNull()
+    })
+
+    it('modo lista: e-mail fora da lista só lê o teto (não gasta) e vê o mesmo 429; o da lista gasta', async () => {
+      appConfig.accessMode = 'allowlist'
+      Object.assign(stubEnv, {
+        PUBLIC_RATE_LIMIT: limiterBlocking(),
+        ACCESS_ALLOWLIST: 'Dentro@b.com',
+      })
+      const pedido = (email: string) =>
+        post('/email-otp/send-verification-otp', { email, type: 'sign-in' })
+      await authRateLimit(pedido('dentro@b.com'))
+      await authRateLimit(pedido('fora@b.com'))
+      expect(capState.counts).toEqual([true, false])
+      capState.reached = true
+      expect((await authRateLimit(pedido('dentro@b.com')))?.status).toBe(429)
+      expect((await authRateLimit(pedido('fora@b.com')))?.status).toBe(429)
+    })
+
+    it('modo aberto: todo e-mail gasta o teto', async () => {
+      Object.assign(stubEnv, { PUBLIC_RATE_LIMIT: limiterBlocking() })
+      const pedido = (email: string) =>
+        post('/email-otp/send-verification-otp', { email, type: 'sign-in' })
+      await authRateLimit(pedido('a@b.com'))
+      await authRateLimit(pedido('c@d.com'))
+      expect(capState.counts).toEqual([true, true])
     })
 
     it('verificação do código e pedido já recusado por IP não gastam o teto', async () => {

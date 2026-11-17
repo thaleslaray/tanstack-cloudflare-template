@@ -20,16 +20,20 @@ import { getAuth } from '#/lib/auth'
 import { sendEmailSafely } from '#/lib/email'
 import { accountClosedEmail } from '#/lib/email-templates'
 import { limitarUsuario } from '#/lib/rate-limit'
+import { enforceAccess } from '#/lib/session-access'
 
 async function requireSession() {
   const request = getRequest()
   const headers = request.headers
   // `disableCookieCache`: ação sensível, confere no banco (o cache da sessão em
   // cookie pode estar até 60 s atrasado, ex.: sessão já revogada).
-  const current = await getAuth(env, request).api.getSession({
-    headers,
-    query: { disableCookieCache: true },
-  })
+  const current = await enforceAccess(
+    env,
+    await getAuth(env, request).api.getSession({
+      headers,
+      query: { disableCookieCache: true },
+    }),
+  )
   if (!current) throw new Error('Entre na sua conta primeiro.')
   await limitarUsuario(current.user.id, 'escrita')
   return { current, headers }

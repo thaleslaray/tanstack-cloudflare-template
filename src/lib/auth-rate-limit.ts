@@ -1,6 +1,9 @@
 // Rate limit de todo POST em /api/auth/* (somente servidor).
 // O limitador interno do Better Auth está desligado (src/lib/auth.ts): quem
 // limita é esta função, chamada por src/routes/api/auth/$.ts.
+import { env } from 'cloudflare:workers'
+
+import { hasAccess } from '#/lib/allowlist'
 import { otpDailyCapReached } from '#/lib/otp-daily-cap'
 import { isRateLimited, tooManyRequests } from '#/lib/rate-limit'
 
@@ -140,9 +143,14 @@ export async function authRateLimit(
 
   // Teto diário global de e-mails de código (src/lib/otp-daily-cap.ts): por
   // último, para pedido já recusado acima não gastar o teto.
+  // No modo lista, e-mail fora dela não recebe código, então não gasta o teto;
+  // mas o teto é LIDO para ele também (`count: false`), para o 429 de teto
+  // estourado ser igual ao de quem está na lista. No modo 'open' todo mundo conta.
   if (
     endsWithAny(path, DAILY_CAPPED_SUFFIXES) &&
-    (await otpDailyCapReached())
+    (await otpDailyCapReached(new Date(), {
+      count: hasAccess(email, env.ACCESS_ALLOWLIST),
+    }))
   ) {
     return tooManyRequests()
   }

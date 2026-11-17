@@ -17,6 +17,12 @@ BETTER_AUTH_URL=
 # `true` ou `1` liga: quem cria conta com senha confirma o e-mail por código antes de entrar.
 PASSWORD_LOGIN_ENABLED=
 
+# Lista de acesso (só vale com `accessMode: 'allowlist'` em src/config/app.ts; no 'open', padrão, é ignorada).
+# E-mails que podem receber código e criar conta, separados por vírgula (ex.: ana@exemplo.com,bia@exemplo.com).
+# Maiúsculas e espaços não importam. Vazio = NINGUÉM entra (falha fechada). Em produção é segredo do
+# Worker (`wrangler secret put ACCESS_ALLOWLIST` ou no .prod.vars), nunca vai no wrangler.jsonc.
+ACCESS_ALLOWLIST=
+
 # Teto diário GLOBAL de e-mails com código de login/cadastro (opcional). Vazio = 500 por dia (UTC).
 # `0` desliga. Ajuste à cota do seu provedor (Resend gratuito: 100 por dia).
 OTP_DAILY_LIMIT=
