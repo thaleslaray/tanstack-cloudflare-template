@@ -11,6 +11,7 @@ import {
 } from '#/db/d1-session'
 import { D1_TRACE_HEADER, rastrearD1 } from '#/db/d1-trace'
 import { runJobs } from '#/lib/jobs'
+import { isAssetPath, missingAssetResponse } from '#/lib/missing-asset'
 import { linhaDeDesempenho, perfLogLigado } from '#/lib/perf-log'
 import { isCrossSiteServerFnCall } from '#/lib/same-origin'
 import { withSecurityHeaders } from '#/lib/security-headers'
@@ -31,6 +32,11 @@ export default {
         new Response('Requisição cross-site recusada.', { status: 403 }),
         request,
       )
+    }
+    // /assets/<arquivo> que a camada de assets não achou (um arquivo de antes do
+    // último deploy): 404 de verdade, nunca o HTML do app. Veja missing-asset.ts.
+    if (isAssetPath(new URL(request.url).pathname)) {
+      return withSecurityHeaders(missingAssetResponse(), request)
     }
     // Uma sessão D1 por pedido (Sessions API), compartilhada por todo `getDb`
     // chamado durante ele. O cookie `d1-bookmark` do pedido anterior garante que
