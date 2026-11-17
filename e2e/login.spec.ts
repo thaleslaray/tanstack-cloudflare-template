@@ -42,7 +42,10 @@ test('entra com o código enviado por e-mail e chega em /app', async () => {
   await waitForHydration(dispensar)
   await dispensar.click()
   await expect(page.getByText('Primeiros passos')).toHaveCount(0)
-  await page.reload()
+  const recarga = await page.reload()
+  // Área logada: dado de uma pessoa só, nenhum cache guarda (e o `immutable` do
+  // /assets/ não pode ter vazado para cá).
+  expect(recarga?.headers()['cache-control']).toBe('no-store')
   await expect(page.getByRole('heading', { name: /^Olá,/ })).toBeVisible()
   await expect(page.getByText('Primeiros passos')).toHaveCount(0)
   // Sem esperar a hidratação, o próximo clique viraria navegação de documento.

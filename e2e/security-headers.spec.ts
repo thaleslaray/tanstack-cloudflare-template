@@ -34,15 +34,38 @@ test('estático: página pré-renderizada e arquivos de public/', async ({
   }
 })
 
-test('estático: arquivo com hash em /assets/ (e cache imutável)', async ({
+// Cache dos arquivos com hash (public/_headers): imutável por um ano, só em /assets/.
+const IMUTAVEL = 'public, max-age=31536000, immutable'
+
+test('estático: arquivos com hash em /assets/ (JS e CSS) têm cache imutável', async ({
   request,
 }) => {
   const html = await (await request.get(`${previewURL}/`)).text()
-  const asset = /\/assets\/[^"']+\.js/.exec(html)?.[0]
-  expect(asset, 'a home deveria citar um /assets/*.js').toBeTruthy()
+  const js = /\/assets\/[^"']+\.js/.exec(html)?.[0]
+  const css = /\/assets\/[^"']+\.css/.exec(html)?.[0]
+  expect(js, 'a home deveria citar um /assets/*.js').toBeTruthy()
+  expect(css, 'a home deveria citar um /assets/*.css').toBeTruthy()
 
-  const res = await request.get(previewURL + asset)
-  expect(res.status()).toBe(200)
-  expectSecurityHeaders(res)
-  expect(res.headers()['cache-control']).toContain('immutable')
+  for (const asset of [js, css]) {
+    const res = await request.get(previewURL + asset)
+    expect(res.status(), String(asset)).toBe(200)
+    expectSecurityHeaders(res)
+    expect(res.headers()['cache-control'], String(asset)).toBe(IMUTAVEL)
+  }
+})
+
+test('o cache imutável NÃO vaza para o HTML nem para o que não tem hash', async ({
+  request,
+}) => {
+  // Páginas pré-renderizadas e arquivos de public/ sem hash: revalidam sempre.
+  for (const path of ['/', '/blog', '/og.png', '/robots.txt']) {
+    const res = await request.get(previewURL + path)
+    expect(res.status(), path).toBe(200)
+    const cache = res.headers()['cache-control'] ?? ''
+    expect(cache, path).not.toContain('immutable')
+    expect(cache, path).not.toContain('max-age=31536000')
+  }
+  // Rota dinâmica (Worker): a de erro também não herda o cache imutável.
+  const naoAchou = await request.get(`${previewURL}/nao-existe`)
+  expect(naoAchou.headers()['cache-control'] ?? '').not.toContain('immutable')
 })
