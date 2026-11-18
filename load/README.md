@@ -291,8 +291,8 @@ Leitura:
   locais, só a resposta viaja Rio-EUA uma vez.
 - A página pública piorou (70 para 235 ms): com a dica de região, até a página
   que não consulta o banco vai aos EUA. A colocação automática (`smart`) não
-  tem esse custo para público no Brasil: o Worker fica no Rio. A medição de
-  17/11/2026 (rodada 4, abaixo) confirmou a troca.
+  tem esse custo, porque o Worker fica no Rio. Mas a rodada 4 (abaixo) mostrou
+  que, medida direito (18/11/2026), a região fixa ganha no logado e na gravação.
 - `ssr_logado` ainda passa da meta no p95 (546 ms). Próximos passos: ligar a
   Read Replication (réplica perto do usuário) e conferir quantas consultas uma
   página logada faz em sequência.
@@ -318,24 +318,37 @@ Todas as metas de p95 passam. O `ssr_publico` maior que na primeira rodada é
 efeito da região forçada no staging (até a página sem banco vai aos EUA); em
 produção o template usa `mode: "smart"`.
 
-### Rodada 4: colocação automática contra região fixa (2026-11-17)
+### Rodada 4: colocação automática contra região fixa (17 e 18/11/2026)
 
 Worker de teste, D1 em `ENAM`, k6 vindo do Brasil (entrada pelo Rio, `GIG`),
-escada com gravação, cerca de 9.400 pedidos por rodada. p95 em ms:
+escada com gravação. p95 em ms.
 
-| Cenário          | `main` (auto) | `desempenho` (auto) | `desempenho` + região | Meta |
-| ---------------- | ------------- | ------------------- | --------------------- | ---- |
-| `estatico`       | 40            | 31                  | 35                    | 100  |
-| `ssr_publico`    | 171           | 122                 | **708**               | 300  |
-| `ssr_logado`     | 450           | 408                 | **741**               | 500  |
-| `escrita_logada` | 613           | 594                 | **444**               | 600  |
+**A medição de 17/11 com região fixa está errada**: foi feita antes de a
+colocação ficar ativa (o cabeçalho `cf-placement` não apareceu). Por isso deu
+login 708 e logado 741 ms. Vale a de 18/11, com `cf-placement: remote-IAD`
+confirmado (região fixa `aws:us-east-1`) e 40 contas. Na automática o Worker
+ficou no Rio (`local-GIG`).
 
-Dentro do Worker (mediana): GET /app 262 ms (2 idas em fila) com colocação
-automática e 65 ms com a região fixa. Cada ida ao D1 custa 130 a 190 ms com o
-Worker no Rio e uns 30 ms perto do banco. Regra: fixar a região compensa com
-várias idas em fila ou público perto do banco; para público só no Brasil e telas
-com 1 ou 2 consultas, a colocação automática entrega páginas mais rápidas. Os
-pedidos com falha (1,02% na rodada `desempenho` automática) provavelmente eram o limite por
-usuário de 60 leituras por minuto estourado com 20 contas (reproduzido no
-`vite dev`; não confirmado no ar) (veja "Contas de
-teste", acima).
+| Cenário          | Meta | auto 17/11 | auto 18/11 | região 17/11 (errada) | região 18/11 |
+| ---------------- | ---- | ---------- | ---------- | --------------------- | ------------ |
+| `estatico`       | 100  | 31         | 28         | 35                    | 22           |
+| `ssr_publico`    | 300  | 122        | 103        | 708                   | 198          |
+| `ssr_logado`     | 500  | 408        | 378        | 741                   | **248**      |
+| `escrita_logada` | 600  | 594        | 507        | 444                   | **278**      |
+| Falhas           | < 1% | 1,02%      | 0%         | 0,06%                 | 0%           |
+
+Dentro do Worker (mediana), 18/11: GET /app 246 ms com a automática e 19 ms com
+a região fixa. Cada ida ao D1 custa 130 a 190 ms com o Worker no Rio e uns
+30 ms perto do banco.
+
+Regra: a colocação automática só move o Worker se ele já rodou perto do banco;
+com público só no Brasil ele fica no Rio. Fixar `placement.region` perto do D1
+ganhou em tudo, menos na página pública renderizada no servidor (103 para
+198 ms, as duas dentro da meta de 300). O template segue com `smart` e
+recomenda a região quando o banco está longe do público. Sempre confira
+`cf-placement` antes de medir.
+
+As falhas de 17/11 (1,02% na automática) eram o limite por usuário de 60
+leituras por minuto estourado com 20 contas (reproduzido no `vite dev`; com 40
+contas, em 18/11, sumiram) (veja "Contas de teste", acima). Cada número é uma
+rodada só.

@@ -137,15 +137,17 @@ banco D1 e o bucket R2 no primeiro deploy (provisionamento automático).
    cache imutável dos arquivos com hash e 404 de verdade para arquivo antigo.
 7. Confira **onde o Worker roda** (`curl -sI <url>/login | grep -i cf-placement`).
    Ligue `PERF_LOG=1` (uma linha JSON por pedido no `wrangler tail`, com a fila de
-   consultas ao D1 e a região que respondeu) para medir. **Fixar `placement.region`
-   não é a solução padrão.** Medido em 17/11/2026 com o D1 em ENAM e público no
-   Brasil: o servidor fica 3 a 5 vezes mais rápido (GET /app de 262 para 65 ms,
-   gravação de 594 para 444 ms no p95), mas as páginas renderizadas no servidor
-   pioram (`/login` de 122 para 708 ms, área logada de 408 para 741 ms), porque
-   cada pedido cruza o oceano. Fixe a região se a tela faz várias idas ao D1 em
-   fila ou se o público está perto do banco. Para público só no Brasil e telas com
-   1 ou 2 consultas, a colocação automática é melhor. Passo a passo na skill
-   `/deploy` ("Onde o Worker roda"); números em `load/README.md`.
+   consultas ao D1 e a região que respondeu) para medir. **Com o banco longe do público, fixe
+   `placement.region` perto do D1** (o padrão do template segue `smart`). A
+   colocação automática só move o Worker se ele já rodou perto do banco; com
+   público só no Brasil ele fica no Rio e cada ida ao D1 custa 130 a 190 ms.
+   Medido em 18/11/2026 (D1 em ENAM, cliente no Brasil, p95): região fixa contra
+   automática, estático 22 / 28 ms, login 198 / 103, logado 248 / 378,
+   gravação 278 / 507. Só a página pública renderizada no servidor piorou, e
+   as duas ficam dentro da meta de 300 ms. **Antes de medir, confira
+   `cf-placement` (deve mostrar `remote-<local perto do banco>`) e espere a
+   colocação ficar ativa**: a medição de 17/11 errou por isso. Passo a passo na
+   skill `/deploy` ("Onde o Worker roda"); números em `load/README.md`.
 
 `BETTER_AUTH_URL` é opcional: a URL vem da requisição.
 
