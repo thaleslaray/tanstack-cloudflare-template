@@ -249,7 +249,7 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
 ## 7. Passo final: medir a performance
 
 Rode depois que o app estiver no ar, com a réplica ligada e com `cf-placement`
-conferido (deve mostrar `remote-IAD` ou o local da sua região). Use o k6 (`brew install k6` no Mac).
+conferido (deve mostrar `remote-IAD` ou o local da sua região). Use o k6 pelo `npm run load` (não precisa instalar: `scripts/k6.mjs` baixa a versão fixa e confere a soma; `K6_BIN` usa outro).
 
 **Antes de rodar, ajuste `load/rotas.json` às telas do produto.** O padrão mede
 a tela de clientes de exemplo (no template; num produto, use as telas do próprio produto) e cria/apaga um cliente; se o produto trocou ou

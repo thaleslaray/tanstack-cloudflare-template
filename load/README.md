@@ -1,7 +1,20 @@
 # Teste de carga (k6) com metas de p95
 
 Mede o tempo de resposta do app em cinco situações (as rotas vêm de `rotas.json`, veja abaixo; a tabela mostra o padrão do template) e falha se alguma meta de
-p95 estourar. Precisa do [k6](https://k6.io) instalado (`k6 version`).
+p95 estourar. Não precisa instalar nada: o `npm run load` usa o [k6](https://k6.io) que o
+script `scripts/k6.mjs` baixa sozinho (Windows, Mac e Linux).
+
+### Como o k6 chega na sua máquina
+
+- Na primeira vez, o script baixa a versão fixa do k6 (2.4.0) do site oficial
+  (github.com/grafana/k6/releases), confere a soma SHA-256 com o arquivo de
+  somas da mesma versão e guarda em `node_modules/.cache/k6/`. Soma diferente:
+  apaga e para, sem rodar nada. Nas próximas vezes não baixa de novo.
+- Já tem o k6 instalado (`k6 version` funciona)? O script usa o seu.
+- `K6_BIN=/caminho/do/k6 npm run load` usa outro programa.
+- Outro comando do k6: `npm run k6 -- inspect load/p95.js` (igual a `k6 inspect ...`).
+- Sem k6 avulso para o seu sistema (ex.: Windows em ARM)? O script diz e mostra
+  o link das [formas oficiais de instalar](https://grafana.com/docs/k6/latest/set-up/install-k6/).
 
 | Cenário          | O que faz                                               | Meta                                |
 | ---------------- | ------------------------------------------------------- | ----------------------------------- |
@@ -166,7 +179,7 @@ rodar. Dois caminhos:
 
   ```bash
   SESSOES_JSON='[{"email":"a@exemplo.test","cookie":"better-auth.session_token=..."}]' \
-  BASE_URL=https://staging.exemplo.com PROFILE=escada k6 run load/p95.js
+  BASE_URL=https://staging.exemplo.com PROFILE=escada npm run load
   ```
 
   Formato: lista de `{ "email": "...", "cookie": "nome=valor; outro=valor" }`.

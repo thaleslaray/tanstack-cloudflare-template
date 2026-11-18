@@ -102,7 +102,7 @@ liga o login com Google, `/tela` cria uma tela nova no visual do app (peça
 | `npm run test:cold` | Sobe um servidor de dev à parte e confere que ele continua respondendo depois de um primeiro pedido abandonado |
 | `npm run e2e` | Playwright contra o servidor de dev (ele sobe o servidor sozinho) |
 | `npm run e2e:ui` | o mesmo Playwright, na interface gráfica dele |
-| `npm run load` / `load:sessoes` | teste de carga com k6 (veja `load/README.md`); gasta cota, rode só de propósito |
+| `npm run load` / `load:sessoes` | teste de carga com k6, que o script baixa sozinho (veja `load/README.md`); gasta cota, rode só de propósito |
 | `npm run db:generate` | gera a migração a partir de `src/db/*.ts` |
 | `npm run db:migrate:local` / `:remote` | aplica as migrações no D1 local / remoto |
 

@@ -65,7 +65,8 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "load:sessoes": "tsx load/sessoes.ts",
-    "load": "k6 run load/p95.js"
+    "load": "node scripts/k6.mjs run load/p95.js",
+    "k6": "node scripts/k6.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
