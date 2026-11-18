@@ -98,8 +98,8 @@ renderizada no servidor responde **HTTP 500** (o erro "Muitas requisições" vir
 500 no loader; o log agora traz a linha `[rate-limit] usuário ... passou do
 limite` e `[500] GET /app`). No degrau de 50 req/s, 30% dos pedidos são da área
 logada: 15 por segundo repartidos entre as contas. Com 20 contas dá uns 45 por
-minuto por conta, perto do teto de 60, e as rajadas passam dele (foi o 1% de
-500 sem causa na medição de 17/11/2026). **Use pelo menos 40 contas no degrau de
+minuto por conta, perto do teto de 60, e as rajadas passam dele (a causa mais provável do 1% de
+500 sem log na medição de 17/11/2026; reproduzido local, não confirmado no ar). **Use pelo menos 40 contas no degrau de
 50 req/s** (30 por minuto cada), ou conte que parte dos 500 é o limite, não o app.
 
 ### Orçamento de pedidos
@@ -335,6 +335,7 @@ automática e 65 ms com a região fixa. Cada ida ao D1 custa 130 a 190 ms com o
 Worker no Rio e uns 30 ms perto do banco. Regra: fixar a região compensa com
 várias idas em fila ou público perto do banco; para público só no Brasil e telas
 com 1 ou 2 consultas, a colocação automática entrega páginas mais rápidas. Os
-pedidos com falha (1,02% na rodada `desempenho` automática) eram o limite por
-usuário de 60 leituras por minuto estourado com 20 contas (veja "Contas de
+pedidos com falha (1,02% na rodada `desempenho` automática) provavelmente eram o limite por
+usuário de 60 leituras por minuto estourado com 20 contas (reproduzido no
+`vite dev`; não confirmado no ar) (veja "Contas de
 teste", acima).
