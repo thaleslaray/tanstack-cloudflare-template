@@ -15,43 +15,45 @@
   // Sobe os source maps no deploy: erros em produção apontam para o código-fonte.
   "upload_source_maps": true,
   // Colocação do Worker (docs: developers.cloudflare.com/workers/configuration/placement/).
-  // O D1 tem UM primário, numa região só (ENAM, por exemplo). Se o Worker roda
-  // longe dele, cada consulta em fila atravessa o continente (130 a 190 ms cada,
-  // medido do Rio). Estratégias que se excluem (use uma):
-  //   "mode": "smart"  : colocação automática. Só move o Worker se ele já
-  //                      rodou perto do banco. Com público só no Brasil ele
-  //                      fica no Rio (`local-GIG`) e cada ida ao D1 custa
-  //                      130 a 190 ms. Este é o padrão do template.
-  //   "region": "aws:us-east-1" : fixa o Worker perto de uma região de nuvem
-  //                      (formato provedor:região; aws, gcp ou azure). Troque a
-  //                      linha `placement` abaixo por
-  //                      `"placement": { "region": "aws:us-east-1" }` (D1 em ENAM).
+  // O template tem banco (D1), então a região vem FIXA, perto dele. O D1 tem UM
+  // primário, numa região só (ENAM, por exemplo). Worker longe dele paga uma
+  // viagem por consulta em fila (130 a 190 ms cada, medido do Rio).
+  // Regra:
+  //   - Com banco (o normal): região fixa perto do D1. Banco e Worker são
+  //     criados juntos, no mesmo lugar (o `/deploy` cria o banco com
+  //     `--location enam` antes do primeiro deploy). Aqui: `aws:us-east-1`.
+  //   - Sem banco: TIRE a região (apague a linha `placement`). Sem nada parado
+  //     num lugar para consultar, o Worker perto do usuário é melhor.
+  //   - Público fora das Américas: mude banco e região juntos. Exemplo, Europa:
+  //     `wrangler d1 create <nome> --location weur` e `aws:eu-west-1`.
+  // A região usa o formato provedor:região (aws, gcp ou azure). As estratégias
+  // `mode`, `region`, `host` e `hostname` se excluem: use uma só.
   // Medido em 18/11/2026 (Worker de teste, D1 em ENAM, k6 vindo do Brasil,
-  // `cf-placement: remote-IAD` confirmado). p95 em ms, auto contra região:
+  // `cf-placement: remote-IAD` confirmado). p95 em ms, `mode: "smart"` contra
+  // região fixa:
   //   estático 28 / 22; login 103 / 198; logado 378 / 248; gravação 507 / 278.
-  //   Dentro do Worker, GET /app: 246 ms (auto) contra 19 ms (região).
-  // Regra: com o banco longe do público, RECOMENDAMOS fixar a região perto do
-  // D1. Ganhou em tudo, menos na página pública renderizada no servidor
-  // (103 para 198 ms; as duas dentro da meta de 300). O padrão segue `smart`
-  // porque cada projeto tem o banco numa região diferente.
+  //   Dentro do Worker, GET /app: 246 ms (smart) contra 19 ms (região).
+  // Só a página pública renderizada no servidor piorou (103 para 198 ms; as
+  // duas dentro da meta de 300). O `smart` não ajudou: ficou em `local-GIG`
+  // (Rio) por 56 min com o banco em ENAM e não moveu.
   // ANTES de medir, confira `cf-placement` (deve mostrar `remote-<local perto
-  // do banco>`) e espere a colocação ficar ativa: a medição de 17/11 foi feita
-  // antes disso e errou (login 708 ms, logado 741 ms).
+  // do banco>`, aqui `remote-IAD`) e espere a colocação ficar ativa: a medição
+  // de 17/11 foi feita antes disso e errou (login 708 ms, logado 741 ms).
   // O que é pré-renderizado e os arquivos de /assets/ saem sempre do ponto mais
   // perto do visitante.
-  // O que é pré-renderizado e os arquivos de /assets/ saem sempre do ponto mais
-  // perto do visitante. O cabeçalho `cf-placement` (remote-XXX/local-XXX) mostra
-  // onde o Worker rodou.
-  "placement": { "mode": "smart" },
+  "placement": { "region": "aws:us-east-1" },
   // Arquivos estáticos (o plugin do Vite preenche a pasta sozinho).
   // Páginas pré-renderizadas saem como `/blog/index.html`; sem barra final na URL.
   "assets": {
     "html_handling": "drop-trailing-slash"
   },
   // Banco D1, acessado via Drizzle (src/db). Sem `database_id` de propósito: o
-  // Wrangler cria o banco no primeiro `wrangler deploy` (provisionamento
-  // automático, docs da Cloudflare) e o botão Deploy também. No dev, o banco é
-  // local e se cria sozinho. Já tem um banco? Acrescente "database_id": "<id>".
+  // `/deploy` cria o banco com `--location` (perto da região do `placement`)
+  // antes do primeiro deploy e grava o `database_id` aqui. Quem usar o botão
+  // Deploy ou o `wrangler deploy` direto, sem `database_id`, recebe o banco
+  // onde a Cloudflare escolher (perto de quem rodou). Confira com
+  // `npx wrangler d1 info <nome>` se ficou perto da região. O local não muda
+  // depois de criado. No dev, o banco é local e se cria sozinho.
   "d1_databases": [
     {
       "binding": "DB",

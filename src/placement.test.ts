@@ -38,4 +38,9 @@ describe('placement do wrangler.jsonc', () => {
       expect(String(placement.region)).toMatch(/^(aws|gcp|azure):[a-z0-9-]+$/)
     }
   })
+
+  it('o padrão é region: o template tem banco (D1), então o Worker fica fixo perto dele', () => {
+    expect(placement).toHaveProperty('region')
+    expect(placement).not.toHaveProperty('mode')
+  })
 })

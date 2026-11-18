@@ -275,8 +275,8 @@ O Smart Placement (`mode: "smart"`) ficou em `cf-placement: local-GIG` depois
 de 15 min de aquecimento: todo o tráfego do teste sai do Rio, e o modo
 automático só decide com tráfego de vários lugares. Para medir o ganho de rodar
 perto do banco, esta rodada usou a dica explícita `placement.region:
-"aws:us-east-1"` SÓ no staging (`cf-placement: remote-IAD`). O template segue
-com `mode: "smart"`: cada aluno terá o banco numa região diferente.
+"aws:us-east-1"` SÓ no staging (`cf-placement: remote-IAD`). Na época o template
+usava `mode: "smart"`; desde 18/11 vem com a região fixa (rodada 4).
 
 | Cenário          | p95 antes | p95 depois | Mediana depois | Meta     |
 | ---------------- | --------- | ---------- | -------------- | -------- |
@@ -316,7 +316,7 @@ banco em vez de 5 (sessão e usuário num JOIN, sessão lida uma vez por pedido)
 
 Todas as metas de p95 passam. O `ssr_publico` maior que na primeira rodada é
 efeito da região forçada no staging (até a página sem banco vai aos EUA); em
-produção o template usa `mode: "smart"`.
+produção o template usava `mode: "smart"`; desde 18/11 usa a região fixa.
 
 ### Rodada 4: colocação automática contra região fixa (17 e 18/11/2026)
 
@@ -344,9 +344,10 @@ a região fixa. Cada ida ao D1 custa 130 a 190 ms com o Worker no Rio e uns
 Regra: a colocação automática só move o Worker se ele já rodou perto do banco;
 com público só no Brasil ele fica no Rio. Fixar `placement.region` perto do D1
 ganhou em tudo, menos na página pública renderizada no servidor (103 para
-198 ms, as duas dentro da meta de 300). O template segue com `smart` e
-recomenda a região quando o banco está longe do público. Sempre confira
-`cf-placement` antes de medir.
+198 ms, as duas dentro da meta de 300). Por isso o template tem banco e vem com a região fixa perto dele (`aws:us-east-1`,
+D1 em ENAM), com banco e Worker criados juntos. Sem banco, tire a região;
+público fora das Américas, mude os dois juntos. Sempre confira `cf-placement`
+antes de medir.
 
 As falhas de 17/11 (1,02% na automática) eram o limite por usuário de 60
 leituras por minuto estourado com 20 contas (reproduzido no `vite dev`; com 40

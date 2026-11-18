@@ -62,7 +62,7 @@ O `predeploy` aplica as migrações no banco remoto **antes** do build e da publ
 
 ## Banco rápido, em qualquer lugar do mundo
 
-O banco D1 fica numa região só, e cada consulta de um Worker distante atravessa o caminho até ela. O template já liga o **Smart Placement** (o Worker roda perto do banco) e usa a **Sessions API** do D1. Para leituras ainda mais rápidas, ligue a **Read Replication** no painel da Cloudflare: **D1, o seu banco, Settings, Enable Read Replication**. É opcional: sem ligar, tudo continua funcionando, só vai ao banco principal.
+O banco D1 fica numa região só, e cada consulta de um Worker distante atravessa o caminho até ela. O template tem banco, então já fixa a **região do Worker** perto dele (`placement.region`, `aws:us-east-1` para o D1 em ENAM); crie o banco e o Worker juntos, no mesmo lugar (`wrangler d1 create <nome> --location enam`, antes do primeiro deploy). Sem banco, tire a região fixa. Público fora das Américas: mude os dois juntos. Ele também usa a **Sessions API** do D1. Para leituras ainda mais rápidas, ligue a **Read Replication** no painel da Cloudflare: **D1, o seu banco, Settings, Enable Read Replication**. É opcional: sem ligar, tudo continua funcionando, só vai ao banco principal.
 
 ## O botão Deploy to Cloudflare
 

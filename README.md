@@ -127,8 +127,10 @@ banco D1 e o bucket R2 no primeiro deploy (provisionamento automático).
 2. `npx wrangler login`
 3. Crie `.prod.vars` com os segredos de produção (nomes do `.dev.vars.example`;
    inclua `RESEND_API_KEY` e `EMAIL_FROM`, senão o login recusa enviar).
-4. Primeiro deploy: `npm run build && npx wrangler deploy --secrets-file .prod.vars`
-   (cria banco e bucket), depois `npm run db:migrate:remote`.
+4. Primeiro deploy: crie o banco perto da região do Worker
+   (`npx wrangler d1 create <nome> --location enam`, e grave o `database_id` no
+   `wrangler.jsonc`), depois `npm run build && npx wrangler deploy --secrets-file .prod.vars`
+   (cria o bucket), depois `npm run db:migrate:remote`.
 5. Deploys seguintes: `npm run deploy` (o `predeploy` aplica as migrações antes de publicar).
 6. Uma vez por app, ligue a réplica de leitura do D1: painel → D1 → o banco →
    Settings → Enable Read Replication (o passo pela API está na skill `/deploy`;
@@ -136,18 +138,21 @@ banco D1 e o bucket R2 no primeiro deploy (provisionamento automático).
    cache da sessão, menos consultas por página, pré-carregamento ao passar o mouse,
    cache imutável dos arquivos com hash e 404 de verdade para arquivo antigo.
 7. Confira **onde o Worker roda** (`curl -sI <url>/login | grep -i cf-placement`).
-   Ligue `PERF_LOG=1` (uma linha JSON por pedido no `wrangler tail`, com a fila de
-   consultas ao D1 e a região que respondeu) para medir. **Com o banco longe do público, fixe
-   `placement.region` perto do D1** (o padrão do template segue `smart`). A
-   colocação automática só move o Worker se ele já rodou perto do banco; com
-   público só no Brasil ele fica no Rio e cada ida ao D1 custa 130 a 190 ms.
-   Medido em 18/11/2026 (D1 em ENAM, cliente no Brasil, p95): região fixa contra
-   automática, estático 22 / 28 ms, login 198 / 103, logado 248 / 378,
-   gravação 278 / 507. Só a página pública renderizada no servidor piorou, e
-   as duas ficam dentro da meta de 300 ms. **Antes de medir, confira
-   `cf-placement` (deve mostrar `remote-<local perto do banco>`) e espere a
-   colocação ficar ativa**: a medição de 17/11 errou por isso. Passo a passo na
-   skill `/deploy` ("Onde o Worker roda"); números em `load/README.md`.
+   O template tem banco, por isso a região do Worker vem **fixa** perto dele
+   (`placement.region: aws:us-east-1`, D1 em ENAM), e banco e Worker são criados
+   juntos no mesmo lugar (a skill `/deploy` cria o D1 com `--location enam` antes
+   do primeiro deploy). O local do banco não muda depois de criado. **Produto sem
+   banco: tire a região fixa.** **Público fora das Américas: mude banco e região
+   juntos** (ex.: `--location weur` e `aws:eu-west-1`). Ligue `PERF_LOG=1` (uma
+   linha JSON por pedido no `wrangler tail`, com a fila de consultas ao D1 e a
+   região que respondeu) para medir. Medido em 18/11/2026 (D1 em ENAM, cliente no
+   Brasil, p95): região fixa contra automática (`smart`), estático 22 / 28 ms,
+   login 198 / 103, logado 248 / 378, gravação 278 / 507. Só a página pública
+   renderizada no servidor piorou, e as duas ficam dentro da meta de 300 ms.
+   **Antes de medir, confira `cf-placement` (deve mostrar `remote-<local perto do
+   banco>`) e espere a colocação ficar ativa**: a medição de 17/11 errou por isso.
+   Passo a passo na skill `/deploy` ("Onde o Worker roda"); números em
+   `load/README.md`.
 
 `BETTER_AUTH_URL` é opcional: a URL vem da requisição.
 

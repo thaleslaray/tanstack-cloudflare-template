@@ -27,31 +27,40 @@ comando (e trava num terminal sem pergunta). Pegue o id no `npx wrangler whoami`
 e fixe com `CLOUDFLARE_ACCOUNT_ID=<id>` na frente de CADA comando do Wrangler
 (`deploy`, `secret put`, `d1`, `tail`, `npm run deploy` e `db:migrate:remote`).
 
-## 1. Banco e bucket (criados sozinhos)
+## 1. Banco e bucket
 
-O `wrangler.jsonc` não tem `database_id` nem `bucket_name` de propósito: o
-Wrangler cria o D1 e o R2 no primeiro `wrangler deploy` (provisionamento
-automático, documentado pela Cloudflare). Se o usuário já tem um banco,
-acrescente `database_id`.
+O template tem banco, por isso o `wrangler.jsonc` fixa a região do Worker
+(`"placement": { "region": "aws:us-east-1" }`, perto do D1 em ENAM). **Banco e
+Worker são criados juntos, no mesmo lugar.** O local do D1 só se escolhe na
+criação e não muda depois (doc: developers.cloudflare.com/d1/configuration/data-location/).
+A criação automática do primeiro deploy (sem `database_id`) põe o banco perto de
+quem rodou o comando e não aceita local. Por isso, ANTES do primeiro deploy, com
+o sim do usuário:
 
-**Onde o banco fica não muda depois de criado, e decide a velocidade do app.**
-Criado pelo provisionamento automático, o D1 nasce "perto de quem pediu a
-criação" (doc: developers.cloudflare.com/d1/configuration/data-location/).
-Pergunte ao usuário onde está o público. Se ele quer escolher o lugar (ou o
-público é de uma região só), crie o banco ANTES do primeiro deploy, com o sim
-dele, e ponha o id no `wrangler.jsonc`:
+1. Se o `d1_databases` do `wrangler.jsonc` já tem `database_id`, pule este passo.
+2. Senão, crie o banco com o local que casa com a região escolhida:
 
 ```bash
-npx wrangler d1 create <database_name do wrangler.jsonc> --location=enam
+npx wrangler d1 create <database_name do wrangler.jsonc> --location enam
 # copie o database_id que ele imprime para o d1_databases do wrangler.jsonc
 ```
 
-Dicas aceitas: `wnam`, `enam`, `weur`, `eeur`, `apac`, `oc`. Não existe dica
+O R2 continua sem `bucket_name`: o Wrangler cria o bucket no primeiro deploy.
+
+Locais aceitos: `wnam`, `enam`, `weur`, `eeur`, `apac`, `oc`. Não existe local
 para América do Sul, África nem Oriente Médio (o D1 não roda lá): para o
-Brasil, `enam`. A dica é "o mais perto possível", não garantia. Dado que
-precisa ficar na UE, nos EUA ou em data center FedRAMP: `--jurisdiction=eu`
-(ou `us`, `fedramp`), que vale mais que a dica. Fora isso, não rode
-`d1 create` nem `r2 bucket create`.
+Brasil, `enam`. O local é uma dica ("o mais perto possível"), não garantia.
+Dado que precisa ficar na UE, nos EUA ou em data center FedRAMP:
+`--jurisdiction=eu` (ou `us`, `fedramp`), que vale mais que a dica.
+
+**Público fora das Américas:** banco e região mudam juntos. Europa, por
+exemplo: `--location weur` e `aws:eu-west-1` no `placement`.
+**Produto sem banco:** tire a região fixa do `wrangler.jsonc` (apague a linha
+`placement`): sem nada parado num lugar, o Worker perto do usuário é melhor.
+
+Botão Deploy ou `wrangler deploy` direto sem `database_id`: o banco nasce onde a
+Cloudflare escolher. Confira com `npx wrangler d1 info <database_name>` se ficou
+perto da região.
 
 Troque `url` em `src/config/app.ts` pela URL pública ANTES do build
 (sitemap, canonical, og:url).
@@ -181,13 +190,12 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
    Confira com `npx wrangler d1 info <nome-do-banco>`: `read_replication.mode`
    deve aparecer `auto`.
 6. **Onde o Worker roda** (a conferência que mais pesa na velocidade; faça logo
-   depois do deploy e de novo uns 15 min depois, tempo do Smart Placement).
-   O D1 tem um primário numa região só; se o Worker roda longe dele, cada
-   consulta em fila atravessa o continente. O template vem com
-   `placement.mode: smart` (colocação automática), mas ela só move o Worker se
-   ele já rodou perto do banco. Com público só no Brasil ele fica no Rio
-   (`local-GIG`) e cada ida ao D1 custa 130 a 190 ms.
-   **Com o banco longe do público, recomendamos fixar a região perto do D1.**
+   depois do deploy). O D1 tem um primário numa região só; se o Worker roda
+   longe dele, cada consulta em fila atravessa o continente. O template tem
+   banco e vem com a região fixa perto dele (`placement.region: aws:us-east-1`,
+   D1 em ENAM). Com `mode: smart` (colocação automática) o Worker só se move se
+   já rodou perto do banco; com público só no Brasil ele ficou no Rio
+   (`local-GIG`) por 56 min com o banco em ENAM e cada ida ao D1 custa 130 a 190 ms.
    Medido em 18/11/2026 (D1 em ENAM, cliente no Brasil, `cf-placement:
    remote-IAD` confirmado), p95 de região fixa contra automática: estático
    22 / 28 ms, login 198 / 103, logado 248 / 378, gravação 278 / 507. Dentro do
@@ -195,10 +203,9 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
    servidor piorou (103 para 198 ms), as duas dentro da meta de 300 ms. Não há
    região do D1 na América do Sul.
    **Antes de medir, confira `cf-placement` (deve mostrar `remote-<local perto
-   do banco>`) e espere a colocação ficar ativa.** A medição de 17/11 foi feita
+   do banco>`, aqui `remote-IAD`) e espere a colocação ficar ativa.** A medição de 17/11 foi feita
    antes disso (o cabeçalho não apareceu) e deu login 708 ms e logado 741 ms,
    números errados.
-   Confira, nesta ordem:
    Confira, nesta ordem:
 
    a. O cabeçalho de resposta (`remote-XXX` = o Worker foi movido; `local-XXX` =
@@ -222,15 +229,18 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
       `d1_regioes` / `d1[].r` (de onde o D1 respondeu, ex.: `ENAM`) e olhe `fila`
       (idas em fila) e `ms`. Worker no Rio (`GIG`) e D1 em `ENAM` = cada ida paga
       a viagem; com `fila` 2 ou mais, a página sente.
-   c. Longe do banco e `ms` alto? Fixe a dica no `wrangler.jsonc`, com o sim do
-      usuário (as estratégias `mode`, `region`, `host` e `hostname` se excluem:
-      troque a linha, não some): `"placement": { "region": "aws:us-east-1" }`
-      para D1 em ENAM (formato `provedor:região`; outras: `gcp:us-east4`,
-      `azure:eastus`; lista em developers.cloudflare.com/workers/configuration/placement/).
+   c. Longe do banco e `ms` alto? Primeiro confira se banco e região estão no
+      mesmo lugar: `npx wrangler d1 info <database_name>` (onde o banco ficou) e
+      `cf-placement` (onde o Worker rodou). Se não casam, a região do
+      `wrangler.jsonc` está errada para o banco que existe (o banco não muda;
+      troque a região, formato `provedor:região`, como `aws:us-east-1`,
+      `gcp:us-east4` ou `azure:eastus`; lista em
+      developers.cloudflare.com/workers/configuration/placement/). As estratégias
+      `mode`, `region`, `host` e `hostname` se excluem: troque a linha, não some.
       Rode `npm run test` (confere o formato), publique e repita a, b e a medição
-      do passo 7, **olhando também o p95 das páginas públicas e logadas**: se
-      piorarem além da meta para o seu público, volte a `smart` (o mesmo comando, com a linha
-      antiga). Pré-renderizadas e `/assets/` saem do ponto mais perto do visitante.
+      do passo 7, **olhando também o p95 das páginas públicas e logadas**.
+      Produto sem banco: tire a região (apague a linha `placement`).
+      Pré-renderizadas e `/assets/` saem do ponto mais perto do visitante.
    d. Réplica de leitura ligada (item 5)? Em `d1[].p`, `false` = uma réplica
       respondeu. Lembrete: não há réplica na América do Sul (ENAM, WNAM, WEUR,
       EEUR, APAC, OC), então para público só do Brasil a réplica não aproxima o
@@ -238,8 +248,8 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
 
 ## 7. Passo final: medir a performance
 
-Rode depois que o app estiver no ar, com a réplica ligada e uns 15 min depois
-do deploy (tempo do Smart Placement). Use o k6 (`brew install k6` no Mac).
+Rode depois que o app estiver no ar, com a réplica ligada e com `cf-placement`
+conferido (deve mostrar `remote-IAD` ou o local da sua região). Use o k6 (`brew install k6` no Mac).
 
 **Antes de rodar, ajuste `load/rotas.json` às telas do produto.** O padrão mede
 a tela de clientes de exemplo (no template; num produto, use as telas do próprio produto) e cria/apaga um cliente; se o produto trocou ou
