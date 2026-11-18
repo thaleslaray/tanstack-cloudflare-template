@@ -1,3 +1,4 @@
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, type LinkProps } from '@tanstack/react-router'
 import {
   ArrowRightIcon,
@@ -8,15 +9,17 @@ import {
 import { useState } from 'react'
 
 import { PageHeader, StatCard, StatStrip } from '#/components/page-header'
-import { getDashboardStatsFn } from '#/lib/app-fns'
 import { writeChecklistDismissedCookie } from '#/lib/checklist'
+import { painelQuery } from '#/lib/painel-queries'
 import { seo } from '#/lib/seo'
 
 // Painel: saudação, um número por área (cada um leva à sua área) e um
 // checklist de primeiro uso que some quando completo ou dispensado. Área nova?
 // Dê a ela um StatCard e, se tiver um primeiro passo, uma linha no checklist.
 export const Route = createFileRoute('/_app/app/')({
-  loader: () => getDashboardStatsFn(),
+  // MESMA `queryOptions` do loader e da tela: o hover no link já busca o painel.
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(painelQuery(context.session.user.id)),
   head: () => ({ meta: seo({ title: 'Painel', noindex: true }) }),
   component: DashboardPage,
 })
@@ -34,10 +37,13 @@ type SetupStep = {
 function SetupChecklist({
   steps,
   initiallyDismissed,
+  userId,
 }: {
   steps: SetupStep[]
   initiallyDismissed: boolean
+  userId: string
 }) {
+  const queryClient = useQueryClient()
   const [dismissed, setDismissed] = useState(initiallyDismissed)
 
   const done = steps.filter((step) => step.done).length
@@ -46,6 +52,11 @@ function SetupChecklist({
   function dismiss() {
     setDismissed(true)
     writeChecklistDismissedCookie()
+    // O painel vem do cache do Query: sem isto, voltar a /app dentro da janela
+    // de 30 s traria o checklist de volta (o cache ainda diz "não dispensado").
+    queryClient.setQueryData(painelQuery(userId).queryKey, (antes) =>
+      antes ? { ...antes, checklistDismissed: true } : antes,
+    )
   }
 
   return (
@@ -111,8 +122,9 @@ function SetupChecklist({
 
 function DashboardPage() {
   const { session } = Route.useRouteContext()
-  const { activity, clients, checklistDismissed } = Route.useLoaderData()
   const user = session.user
+  const { data } = useSuspenseQuery(painelQuery(user.id))
+  const { activity, clients, checklistDismissed } = data
   const firstName = user.name.split(' ')[0] || user.name
   // Fuso fixo: o servidor (UTC) e o navegador formatam a mesma data, sem
   // diferença de hidratação perto da meia-noite.
@@ -153,6 +165,7 @@ function DashboardPage() {
 
       <SetupChecklist
         initiallyDismissed={checklistDismissed}
+        userId={user.id}
         steps={[
           {
             done: Boolean(user.image),

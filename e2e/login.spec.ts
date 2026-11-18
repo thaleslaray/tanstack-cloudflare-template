@@ -109,6 +109,39 @@ test('passar o mouse em Clientes já busca a lista; o clique não pede de novo',
   await expect(page).toHaveURL(/\/app$/)
 })
 
+test('passar o mouse em Painel já busca os números; o clique não pede de novo', async () => {
+  // Mesmo molde do teste de Clientes, para o painel (src/lib/painel-queries.ts).
+  // Entra por uma tela de carga completa (configurações), assim o cache do painel
+  // está vazio e o hover precisa buscar.
+  await page.goto('/app/configuracoes')
+  const nav = page.getByRole('navigation', { name: 'Área logada' })
+  const link = nav.getByRole('link', { name: 'Painel' })
+  await waitForHydration(link)
+  const pedidos: string[] = []
+  const ouvir = (req: Request) => {
+    if (req.url().includes('/_serverFn/')) pedidos.push(req.url())
+  }
+  page.on('request', ouvir)
+  try {
+    await expect(page).toHaveURL(/\/app\/configuracoes$/)
+    expect(pedidos).toHaveLength(0)
+
+    await link.hover()
+    await expect.poll(() => pedidos.length).toBeGreaterThan(0)
+    await page.waitForTimeout(800)
+    await expect(page).toHaveURL(/\/app\/configuracoes$/)
+    const depoisDoHover = pedidos.length
+
+    await link.click()
+    await expect(page).toHaveURL(/\/app$/)
+    await expect(page.getByRole('heading', { name: /^Olá,/ })).toBeVisible()
+    await page.waitForTimeout(800)
+    expect(pedidos).toHaveLength(depoisDoHover)
+  } finally {
+    page.off('request', ouvir)
+  }
+})
+
 test('clientes: lista vazia, cria um cliente e ele aparece na tabela', async () => {
   await page
     .getByRole('navigation', { name: 'Área logada' })

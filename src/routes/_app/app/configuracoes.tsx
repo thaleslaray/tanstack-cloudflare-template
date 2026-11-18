@@ -13,6 +13,7 @@ import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { authClient } from '#/lib/auth-client'
 import { sessionQuery } from '#/lib/auth-queries'
+import { invalidarPainel } from '#/lib/painel-queries'
 import { NAME_MAX_LENGTH } from '#/lib/profile'
 import { seo } from '#/lib/seo'
 
@@ -68,6 +69,8 @@ function SettingsPage() {
       return
     }
     await queryClient.invalidateQueries({ queryKey: ['session'] })
+    // O painel conta as atividades registradas (trocar o nome é uma).
+    void invalidarPainel(queryClient)
     toast.success('Nome atualizado')
   }
 

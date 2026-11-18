@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import { Button } from '#/components/ui/button'
 import { Label } from '#/components/ui/label'
 import { AVATAR_ACCEPT, checkAvatarFile } from '#/lib/avatar'
+import { invalidarPainel } from '#/lib/painel-queries'
 
 export function initials(name: string, email: string) {
   const source = name.trim() || email
@@ -79,6 +80,8 @@ export function AvatarUpload({
     cancel()
     // Atualiza a sessão nesta página e no avatar do cabeçalho.
     await queryClient.invalidateQueries({ queryKey: ['session'] })
+    // O painel conta as atividades registradas e o checklist olha a foto.
+    void invalidarPainel(queryClient)
     toast.success('Foto atualizada')
   }
 

@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { DownloadIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -18,9 +19,11 @@ import { Label } from '#/components/ui/label'
 import { ACCOUNT_RETENTION_DAYS } from '#/lib/account'
 import { closeAccountFn, exportMyDataFn } from '#/lib/account-fns'
 import { authClient } from '#/lib/auth-client'
+import { invalidarPainel } from '#/lib/painel-queries'
 
 // "Baixar meus dados": o JSON montado pelo onAccountExport de cada módulo.
 export function DownloadMyData() {
+  const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
 
   async function download() {
@@ -36,6 +39,8 @@ export function DownloadMyData() {
       link.download = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`
       link.click()
       URL.revokeObjectURL(url)
+      // Baixar os dados é uma atividade registrada: o painel a conta.
+      void invalidarPainel(queryClient)
     } catch (err) {
       // A recusa por sessão antiga traz a mensagem pedindo para sair e entrar.
       toast.error(

@@ -8,6 +8,7 @@
 import { type QueryClient, queryOptions } from '@tanstack/react-query'
 
 import { listClientesFn } from '#/lib/clientes-fns'
+import { invalidarPainel } from '#/lib/painel-queries'
 
 /**
  * Por quanto tempo o dado conta como fresco: 30 s. Dentro da janela, abrir a
@@ -33,8 +34,12 @@ export const clientesQuery = (userId: string) =>
 /**
  * O descarte de cache de toda escrita em clientes, num lugar só: criar e
  * apagar chamam isto (e aguardam) antes de a tela seguir. Prefixo `['clientes']`
- * pega a lista de qualquer conta aberta.
+ * pega a lista de qualquer conta aberta. Descarta também o painel, que mostra o
+ * número de clientes e de atividades (src/lib/painel-queries.ts).
  */
 export function invalidarClientes(queryClient: QueryClient) {
-  return queryClient.invalidateQueries({ queryKey: ['clientes'] })
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['clientes'] }),
+    invalidarPainel(queryClient),
+  ])
 }
