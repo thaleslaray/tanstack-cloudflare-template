@@ -90,6 +90,18 @@ entre os cenários (35% estático, 20% login, 30% área logada, 15% escrita).
 - `escada`: 30 s de aquecimento a 2 req/s, depois 5, 20 e 50 req/s, 2 min em
   cada degrau.
 
+### Contas de teste: o limite por usuário dá 500
+
+Toda leitura de quem está logado passa por `limitarUsuario` (`USER_RATE_LIMIT`,
+60 por minuto por conta, em `wrangler.jsonc`). Passou disso, a página
+renderizada no servidor responde **HTTP 500** (o erro "Muitas requisições" vira
+500 no loader; o log agora traz a linha `[rate-limit] usuário ... passou do
+limite` e `[500] GET /app`). No degrau de 50 req/s, 30% dos pedidos são da área
+logada: 15 por segundo repartidos entre as contas. Com 20 contas dá uns 45 por
+minuto por conta, perto do teto de 60, e as rajadas passam dele (foi o 1% de
+500 sem causa na medição de 17/11/2026). **Use pelo menos 40 contas no degrau de
+50 req/s** (30 por minuto cada), ou conte que parte dos 500 é o limite, não o app.
+
 ### Orçamento de pedidos
 
 Escada: 2 x 30 + 5 x 120 + 20 x 120 + 50 x 120 = 9.060 pedidos, mais a

@@ -197,6 +197,17 @@ describe('limite por usuário', () => {
     expect(publico).not.toHaveBeenCalled()
   })
 
+  it('estourou: registra no log quem estourou e em qual escopo (o 500 da página não fica mudo)', async () => {
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {})
+    Object.assign(stubEnv, {
+      USER_RATE_LIMIT: { limit: async () => ({ success: false }) },
+    })
+    await expect(limitarUsuario('u1', 'leitura')).rejects.toThrow()
+    expect(erro).toHaveBeenCalledTimes(1)
+    expect(String(erro.mock.calls[0]?.[0])).toContain('u1')
+    expect(String(erro.mock.calls[0]?.[0])).toContain('leitura')
+  })
+
   it('estourou: limitarUsuario lança erro em pt-BR', async () => {
     Object.assign(stubEnv, {
       USER_RATE_LIMIT: { limit: vi.fn(async () => ({ success: false })) },

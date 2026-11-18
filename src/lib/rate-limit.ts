@@ -125,6 +125,12 @@ export async function limitarUsuario(
   scope: UserLimitScope,
 ): Promise<void> {
   if (await isUserRateLimited(userId, scope)) {
+    // Registra quem estourou: numa página renderizada no servidor este erro
+    // vira um HTTP 500 sem nenhuma outra pista (carga de teste, ou uma conta
+    // abrindo mais de 60 telas por minuto).
+    console.error(
+      `[rate-limit] usuário ${userId} passou do limite de ${scope} (USER_RATE_LIMIT, 60 por minuto): pedido recusado`,
+    )
     throw new Error('Muitas requisições. Tente de novo em um minuto.')
   }
 }

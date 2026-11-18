@@ -11,6 +11,7 @@ import {
 } from '#/db/d1-session'
 import { D1_TRACE_HEADER, rastrearD1 } from '#/db/d1-trace'
 import { runJobs } from '#/lib/jobs'
+import { registrarErro } from '#/lib/log-erro'
 import { isAssetPath, missingAssetResponse } from '#/lib/missing-asset'
 import { linhaDeDesempenho, perfLogLigado } from '#/lib/perf-log'
 import { isCrossSiteServerFnCall } from '#/lib/same-origin'
@@ -59,9 +60,20 @@ export default {
             { log: devTrace },
           )
         : null
-    const res = await runWithD1Session(trace?.sessao ?? session, () =>
-      handler.fetch(request),
-    )
+    const rotulo = `${request.method} ${new URL(request.url).pathname}`
+    let res: Response
+    try {
+      res = await runWithD1Session(trace?.sessao ?? session, () =>
+        handler.fetch(request),
+      )
+    } catch (erro) {
+      // Exceção que escapou do handler: sem isto o Worker devolve um 500 mudo.
+      registrarErro(rotulo, erro)
+      throw erro
+    }
+    // O TanStack responde 500 sem escrever nada quando um loader falha. A causa
+    // sai do middleware de src/start.ts; esta linha garante o rastro do pedido.
+    if (res.status >= 500) console.error(`[500] ${rotulo}`)
     trace?.fim()
     if (perf && trace) {
       console.log(
