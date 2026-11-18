@@ -184,9 +184,18 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
    depois do deploy e de novo uns 15 min depois, tempo do Smart Placement).
    O D1 tem um primário numa região só; se o Worker roda longe dele, cada
    consulta em fila atravessa o continente. O template vem com
-   `placement.mode: smart` (a Cloudflare move o Worker para perto do banco se
-   compensar), mas ele só considera locais onde o Worker já rodou: com público de
-   uma região só ele não move nada (medido: `local-GIG` por 56 min, D1 em ENAM).
+   `placement.mode: smart` (colocação automática). Com público de uma região só
+   ele não move o Worker (medido: `local-GIG` por 56 min, D1 em ENAM).
+   **Fixar a região é uma troca, não a solução.** Medido em 17/11/2026 (D1 em
+   ENAM, público no Brasil): com a região fixa o servidor fica 3 a 5 vezes mais
+   rápido (GET /app de 262 para 65 ms dentro do Worker; gravação de 594 para
+   444 ms no p95), mas as páginas renderizadas no servidor pioram (p95 do
+   `/login` de 122 para 708 ms; área logada de 408 para 741 ms), porque cada
+   pedido cruza o oceano. Não há região do D1 na América do Sul.
+   Regra: fixar a região compensa quando a tela faz várias idas ao D1 em fila
+   (gravação, telas com 3 ou mais consultas) ou quando o público está perto do
+   banco. Para público só no Brasil e telas com 1 ou 2 consultas, a colocação
+   automática é melhor.
    Confira, nesta ordem:
 
    a. O cabeçalho de resposta (`remote-XXX` = o Worker foi movido; `local-XXX` =
@@ -210,16 +219,16 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<domínio>/app       # 307 → 
       `d1_regioes` / `d1[].r` (de onde o D1 respondeu, ex.: `ENAM`) e olhe `fila`
       (idas em fila) e `ms`. Worker no Rio (`GIG`) e D1 em `ENAM` = cada ida paga
       a viagem; com `fila` 2 ou mais, a página sente.
-   c. Longe e `ms` alto? Fixe a dica no `wrangler.jsonc`, com o sim do usuário
-      (as estratégias `mode`, `region`, `host` e `hostname` se excluem: troque a
-      linha, não some): `"placement": { "region": "aws:us-east-1" }` para D1 em
-      ENAM (formato `provedor:região`; outras: `gcp:us-east4`, `azure:eastus`;
-      lista em developers.cloudflare.com/workers/configuration/placement/).
+   c. Longe, `ms` alto e a regra acima favorece fixar (várias idas em fila ou
+      público perto do banco)? Fixe a dica no `wrangler.jsonc`, com o sim do
+      usuário (as estratégias `mode`, `region`, `host` e `hostname` se excluem:
+      troque a linha, não some): `"placement": { "region": "aws:us-east-1" }`
+      para D1 em ENAM (formato `provedor:região`; outras: `gcp:us-east4`,
+      `azure:eastus`; lista em developers.cloudflare.com/workers/configuration/placement/).
       Rode `npm run test` (confere o formato), publique e repita a, b e a medição
-      do passo 7. Custo da dica: a página pública SSR também roda lá (no
-      staging, `/login` foi de 70 para 235 ms); pré-renderizadas e `/assets/`
-      saem do ponto mais perto do visitante. Se o ganho logado não compensar,
-      volte a `smart` (comando de reverter: o mesmo, com a linha antiga).
+      do passo 7, **olhando também o p95 das páginas públicas e logadas**: se
+      piorarem para o seu público, volte a `smart` (o mesmo comando, com a linha
+      antiga). Pré-renderizadas e `/assets/` saem do ponto mais perto do visitante.
    d. Réplica de leitura ligada (item 5)? Em `d1[].p`, `false` = uma réplica
       respondeu. Lembrete: não há réplica na América do Sul (ENAM, WNAM, WEUR,
       EEUR, APAC, OC), então para público só do Brasil a réplica não aproxima o

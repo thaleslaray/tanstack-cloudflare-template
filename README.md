@@ -135,12 +135,17 @@ banco D1 e o bucket R2 no primeiro deploy (provisionamento automático).
    não há réplica na América do Sul). O resto da performance já vem no código:
    cache da sessão, menos consultas por página, pré-carregamento ao passar o mouse,
    cache imutável dos arquivos com hash e 404 de verdade para arquivo antigo.
-7. Confira **onde o Worker roda** (`curl -sI <url>/login | grep -i cf-placement`):
-   o `smart` não move o Worker se o público é de uma região só. Para medir, ligue
-   `PERF_LOG=1` (uma linha JSON por pedido no `wrangler tail`, com a fila de
-   consultas ao D1 e a região que respondeu) e, se o Worker estiver longe do banco,
-   fixe `placement.region`. Passo a passo na skill `/deploy` ("Onde o Worker roda");
-   números em `load/README.md`.
+7. Confira **onde o Worker roda** (`curl -sI <url>/login | grep -i cf-placement`).
+   Ligue `PERF_LOG=1` (uma linha JSON por pedido no `wrangler tail`, com a fila de
+   consultas ao D1 e a região que respondeu) para medir. **Fixar `placement.region`
+   não é a solução padrão.** Medido em 17/11/2026 com o D1 em ENAM e público no
+   Brasil: o servidor fica 3 a 5 vezes mais rápido (GET /app de 262 para 65 ms,
+   gravação de 594 para 444 ms no p95), mas as páginas renderizadas no servidor
+   pioram (`/login` de 122 para 708 ms, área logada de 408 para 741 ms), porque
+   cada pedido cruza o oceano. Fixe a região se a tela faz várias idas ao D1 em
+   fila ou se o público está perto do banco. Para público só no Brasil e telas com
+   1 ou 2 consultas, a colocação automática é melhor. Passo a passo na skill
+   `/deploy` ("Onde o Worker roda"); números em `load/README.md`.
 
 `BETTER_AUTH_URL` é opcional: a URL vem da requisição.
 

@@ -290,8 +290,9 @@ Leitura:
 - Página logada e escrita caíram pela metade: as consultas ao D1 agora são
   locais, só a resposta viaja Rio-EUA uma vez.
 - A página pública piorou (70 para 235 ms): com a dica de região, até a página
-  que não consulta o banco vai aos EUA. O modo `smart` evita isso em produção,
-  porque decide por rota de tráfego real; a dica fixa não.
+  que não consulta o banco vai aos EUA. A colocação automática (`smart`) não
+  tem esse custo para público no Brasil: o Worker fica no Rio. A medição de
+  17/11/2026 (rodada 4, abaixo) confirmou a troca.
 - `ssr_logado` ainda passa da meta no p95 (546 ms). Próximos passos: ligar a
   Read Replication (réplica perto do usuário) e conferir quantas consultas uma
   página logada faz em sequência.
@@ -316,3 +317,24 @@ banco em vez de 5 (sessão e usuário num JOIN, sessão lida uma vez por pedido)
 Todas as metas de p95 passam. O `ssr_publico` maior que na primeira rodada é
 efeito da região forçada no staging (até a página sem banco vai aos EUA); em
 produção o template usa `mode: "smart"`.
+
+### Rodada 4: colocação automática contra região fixa (2026-11-17)
+
+Worker de teste, D1 em `ENAM`, k6 vindo do Brasil (entrada pelo Rio, `GIG`),
+escada com gravação, cerca de 9.400 pedidos por rodada. p95 em ms:
+
+| Cenário          | `main` (auto) | `desempenho` (auto) | `desempenho` + região | Meta |
+| ---------------- | ------------- | ------------------- | --------------------- | ---- |
+| `estatico`       | 40            | 31                  | 35                    | 100  |
+| `ssr_publico`    | 171           | 122                 | **708**               | 300  |
+| `ssr_logado`     | 450           | 408                 | **741**               | 500  |
+| `escrita_logada` | 613           | 594                 | **444**               | 600  |
+
+Dentro do Worker (mediana): GET /app 262 ms (2 idas em fila) com colocação
+automática e 65 ms com a região fixa. Cada ida ao D1 custa 130 a 190 ms com o
+Worker no Rio e uns 30 ms perto do banco. Regra: fixar a região compensa com
+várias idas em fila ou público perto do banco; para público só no Brasil e telas
+com 1 ou 2 consultas, a colocação automática entrega páginas mais rápidas. Os
+pedidos com falha (1,02% na rodada `desempenho` automática) eram o limite por
+usuário de 60 leituras por minuto estourado com 20 contas (veja "Contas de
+teste", acima).

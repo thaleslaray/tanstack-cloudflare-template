@@ -15,26 +15,31 @@
   // Sobe os source maps no deploy: erros em produção apontam para o código-fonte.
   "upload_source_maps": true,
   // Colocação do Worker (docs: developers.cloudflare.com/workers/configuration/placement/).
-  // O D1 tem UM primário, numa região só; se o Worker roda longe dele, cada
-  // consulta atravessa o continente (uma página com várias leva mais de 1 s).
-  // Estratégias que se excluem (use uma):
-  //   "mode": "smart"  : a Cloudflare analisa o tráfego e, se compensar, move o
-  //                      Worker para perto do banco (leva até 15 min). Bom com
-  //                      visitantes de vários lugares, mas SÓ considera locais
-  //                      onde o Worker já rodou: com tráfego de uma região só
-  //                      (ex.: só Brasil) ele não move nada (medido: 56 min em
-  //                      `local-GIG` com o D1 em ENAM). Este é o padrão.
+  // O D1 tem UM primário, numa região só (ENAM, por exemplo). Se o Worker roda
+  // longe dele, cada consulta em fila atravessa o continente (130 a 190 ms cada,
+  // medido do Rio). Estratégias que se excluem (use uma):
+  //   "mode": "smart"  : colocação automática. Com público de uma região só (ex.:
+  //                      só Brasil) o Worker fica perto do visitante e não é
+  //                      movido (medido: 56 min em `local-GIG` com o D1 em ENAM).
+  //                      Este é o padrão.
   //   "region": "aws:us-east-1" : fixa o Worker perto de uma região de nuvem
-  //                      (formato provedor:região; aws, gcp ou azure). Use quando
-  //                      souber onde o D1 está (`d1[].r` no PERF_LOG) e o público
-  //                      estiver longe dele: troque a linha `placement` abaixo por
+  //                      (formato provedor:região; aws, gcp ou azure). Troque a
+  //                      linha `placement` abaixo por
   //                      `"placement": { "region": "aws:us-east-1" }` (D1 em ENAM)
   //                      e confira com `cf-placement` (skill /deploy, "Onde o
-  //                      Worker roda"). Custo: as páginas públicas SSR também
-  //                      passam a rodar lá (medido: /login de 70 para 235 ms);
-  //                      o que é pré-renderizado e os arquivos de /assets/ saem
-  //                      sempre do ponto mais perto do visitante.
-  // O cabeçalho de resposta `cf-placement` (remote-XXX/local-XXX) mostra onde rodou.
+  //                      Worker roda").
+  // Medido em 17/11/2026 (Worker de teste, D1 em ENAM, k6 vindo do Brasil):
+  //   - Com a região fixa o servidor fica 3 a 5 vezes mais rápido: GET /app
+  //     de 262 para 65 ms dentro do Worker; gravação de 594 para 444 ms (p95).
+  //   - Mas para público no Brasil as páginas renderizadas no servidor pioram,
+  //     porque cada pedido cruza o oceano: /login de 122 para 708 ms (p95) e
+  //     área logada de 408 para 741 ms. O D1 não tem região na América do Sul.
+  // Regra: fixar a região compensa quando a tela faz várias idas ao D1 em fila
+  // (gravação, telas com 3 ou mais consultas) ou quando o público está perto do
+  // banco. Para público só no Brasil e telas com 1 ou 2 consultas, deixe `smart`.
+  // O que é pré-renderizado e os arquivos de /assets/ saem sempre do ponto mais
+  // perto do visitante. O cabeçalho `cf-placement` (remote-XXX/local-XXX) mostra
+  // onde o Worker rodou.
   "placement": { "mode": "smart" },
   // Arquivos estáticos (o plugin do Vite preenche a pasta sozinho).
   // Páginas pré-renderizadas saem como `/blog/index.html`; sem barra final na URL.
