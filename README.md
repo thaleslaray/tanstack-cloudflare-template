@@ -129,8 +129,8 @@ banco D1 e o bucket R2 no primeiro deploy (provisionamento automático).
    inclua `RESEND_API_KEY` e `EMAIL_FROM`, senão o login recusa enviar).
 4. Primeiro deploy: crie o banco perto da região do Worker
    (`npx wrangler d1 create <nome> --location enam`, e grave o `database_id` no
-   `wrangler.jsonc`), depois `npm run build && npx wrangler deploy --secrets-file .prod.vars`
-   (cria o bucket), depois `npm run db:migrate:remote`.
+   `wrangler.jsonc`), depois `npm run db:migrate:remote` (as tabelas antes do app) e
+   `npm run build && npx wrangler deploy --secrets-file .prod.vars` (cria o bucket).
 5. Deploys seguintes: `npm run deploy` (o `predeploy` aplica as migrações antes de publicar).
 6. Uma vez por app, ligue a réplica de leitura do D1: painel → D1 → o banco →
    Settings → Enable Read Replication (o passo pela API está na skill `/deploy`;

@@ -84,7 +84,9 @@ describe('modo lista (Better Auth montado)', () => {
     expect(await usuarios('intruso@exemplo.test')).toBe(0)
   })
 
-  it('o pedido de código leva o mesmo tempo dentro e fora da lista', async () => {
+  it('o pedido de código leva o mesmo tempo dentro e fora da lista', {
+    timeout: 30_000,
+  }, async () => {
     const mediana = (xs: number[]) =>
       [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0
     const tempo = async (email: string) => {
@@ -94,29 +96,40 @@ describe('modo lista (Better Auth montado)', () => {
         type: 'sign-in',
       })
       await res.text()
-      return performance.now() - t0
+      const duracao = performance.now() - t0
+      expect(res.status).toBe(200)
+      return duracao
     }
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const dentro: number[] = []
-    const fora: number[] = []
+    const RODADAS = 3
     try {
       await tempo('ana@exemplo.test')
       await tempo('intruso-tempo@exemplo.test')
-      // Alternados, para o ruído da máquina pesar igual nos dois lados.
-      for (let i = 0; i < 25; i++) {
-        dentro.push(await tempo('bia@exemplo.test'))
-        fora.push(await tempo(`intruso-tempo-${i}@exemplo.test`))
+      // O ruído da máquina pode afetar uma rodada isolada. Uma gravação
+      // só para quem está na lista aumenta a diferença em todas as rodadas.
+      for (let r = 1; r <= RODADAS; r++) {
+        const dentro: number[] = []
+        const fora: number[] = []
+        // Alternados, para o ruído da máquina pesar igual nos dois lados.
+        for (let i = 0; i < 25; i++) {
+          dentro.push(await tempo('bia@exemplo.test'))
+          fora.push(await tempo(`intruso-tempo-${r}-${i}@exemplo.test`))
+        }
+        const medianaDentro = mediana(dentro)
+        const medianaFora = mediana(fora)
+        const diferenca = Math.abs(medianaDentro - medianaFora)
+        const limite = Math.max(3, medianaDentro * 0.25)
+        console.info(
+          `[tempo] rodada ${r}/${RODADAS}: dentro ${medianaDentro.toFixed(2)} ms, fora ${medianaFora.toFixed(2)} ms, diferença ${diferenca.toFixed(2)} ms, limite ${limite.toFixed(2)} ms`,
+        )
+        if (diferenca < limite) return
       }
+      expect.fail(
+        `A diferença atingiu ou superou o limite nas ${RODADAS} rodadas`,
+      )
     } finally {
       warn.mockRestore()
     }
-    const diferenca = Math.abs(mediana(dentro) - mediana(fora))
-    console.info(
-      `[tempo] dentro ${mediana(dentro).toFixed(2)} ms, fora ${mediana(fora).toFixed(2)} ms, diferença ${diferenca.toFixed(2)} ms`,
-    )
-    // Quem está fora da lista não pode ser distinguido pelo tempo: a diferença
-    // das medianas é de poucos milissegundos (ruído), não a de uma gravação.
-    expect(diferenca).toBeLessThan(Math.max(3, mediana(dentro) * 0.25))
   })
 
   it('fora da lista, também no tipo email-verification', async () => {

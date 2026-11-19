@@ -134,9 +134,13 @@ Depois:
 ```bash
 npm run build
 npx wrangler deploy --dry-run
-npx wrangler deploy --secrets-file .prod.vars   # cria banco e bucket e publica
-npm run db:migrate:remote                       # só depois do primeiro deploy
+npm run db:migrate:remote                       # o banco do passo 1 já existe: tabelas antes do app
+npx wrangler deploy --secrets-file .prod.vars   # cria o bucket e publica
 ```
+
+A migração vem antes porque o banco foi criado no passo 1: publicar primeiro
+deixa o app no ar sem tabela até ela rodar. Só fica para depois do deploy quando
+é o próprio deploy que cria o banco (o botão Deploy to Cloudflare, abaixo).
 
 ## 5. Deploys seguintes
 

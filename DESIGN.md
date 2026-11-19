@@ -263,7 +263,9 @@ escada de 50ms); telas da área logada não têm animação de entrada.
 - **Carregando:** botão desligado com o verbo no gerúndio ("Salvando...").
 - **Erro:** diz o que fazer ("Digite um e-mail válido, como..."), nunca só
   "Erro". Erro de campo aparece no campo; o resto vira aviso.
-- **Sucesso:** aviso curto, no passado ("Cliente adicionado").
+- **Sucesso:** aviso curto, no passado ("Cliente adicionado"), e o próximo
+  passo à vista. Formulário de configuração recolhe depois de salvo e mostra o
+  que ficou gravado.
 - **Apagar:** a confirmação diz o que some e se dá para desfazer.
 - **Dados:** tela de verdade não mostra dado inventado; lista sem dado mostra
   o estado vazio.
