@@ -84,7 +84,7 @@ liga o login com Google, `/tela` cria uma tela nova no visual do app (peça
 | UI | Tailwind v4 + shadcn/ui, landing montada de `src/content/landing.ts` com 13 formatos de bloco (catálogo em `/blocos`), kit de peças de tela (bancada em `/estilo`), quatro temas em claro e escuro |
 | Proteções | Rate limit por IP, cabeçalhos de segurança, cron diário limpando sessões vencidas e apagando contas encerradas |
 | Qualidade | Biome, Vitest (com as regras do `AGENTS.md` como teste), Playwright (4 specs) |
-| Agentes | `AGENTS.md` (as regras; o `CLAUDE.md` aponta para ele), `src/CLAUDE.md` (visual) e skills em `.claude/skills/` |
+| Agentes | `AGENTS.md` (as regras; o `CLAUDE.md` aponta para ele), `DESIGN.md` (a aparência, no formato aberto do Google), `src/CLAUDE.md` (regras visuais do código) e skills em `.claude/skills/` |
 
 ## Scripts
 

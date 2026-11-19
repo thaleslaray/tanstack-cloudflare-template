@@ -54,7 +54,6 @@
   --terminal: #171717;
   --terminal-foreground: #fafafa;
   --terminal-muted: #8a8a8a;
-  --hero-dot: rgba(0, 0, 0, 0.12);
   --chart-1: #ff4d00;
   --chart-2: #00b464;
   --chart-3: #f5a623;
@@ -72,11 +71,8 @@
   --sidebar: #fafafa;
   --sidebar-foreground: #171717;
   --sidebar-primary: #171717;
-  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f0f0f0;
-  --sidebar-accent-foreground: #171717;
   --sidebar-border: rgba(0, 0, 0, 0.08);
-  --sidebar-ring: #ff4d00;
 }
 
 .dark {
@@ -106,16 +102,13 @@
   --terminal: #1f1f1f;
   --terminal-foreground: #f5f5f5;
   --terminal-muted: #8a8a8a;
-  --hero-dot: rgba(255, 255, 255, 0.1);
   --chart-4: #f5f5f5;
   --shadow-btn: none;
   --shadow-card: none;
   --sidebar: #171717;
   --sidebar-foreground: #f5f5f5;
   --sidebar-primary: #f5f5f5;
-  --sidebar-primary-foreground: #121212;
   --sidebar-accent: #262626;
-  --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: rgba(255, 255, 255, 0.1);
 }
 
@@ -146,7 +139,6 @@
   --terminal: oklch(0.2 0 0);
   --terminal-foreground: oklch(0.96 0 0);
   --terminal-muted: oklch(0.6 0 0);
-  --hero-dot: oklch(0.85 0 0);
   --chart-1: oklch(0.54 0.17 255);
   --chart-4: oklch(0.18 0 0);
   --radius: 8px;
@@ -159,7 +151,6 @@
   --sidebar: oklch(0.975 0 0);
   --sidebar-primary: oklch(0.54 0.17 255);
   --sidebar-border: oklch(0.9 0 0);
-  --sidebar-ring: oklch(0.54 0.17 255);
 }
 
 .dark[data-theme='neutro'] {
@@ -184,7 +175,6 @@
   --brand: oklch(0.52 0.17 255);
   --brand-hover: oklch(0.47 0.17 255);
   --terminal: oklch(0.1 0 0);
-  --hero-dot: oklch(0.3 0 0);
   --chart-4: oklch(0.97 0 0);
   --sidebar: oklch(0.19 0 0);
   --sidebar-border: oklch(0.28 0 0);
@@ -217,7 +207,6 @@
   --terminal: oklch(0.24 0.014 60);
   --terminal-foreground: oklch(0.96 0.01 85);
   --terminal-muted: oklch(0.65 0.02 70);
-  --hero-dot: oklch(0.82 0.015 80);
   --chart-1: oklch(0.47 0.15 32);
   --chart-4: oklch(0.2 0.012 60);
   --radius: 4px;
@@ -231,7 +220,6 @@
   --sidebar: oklch(0.945 0.012 85);
   --sidebar-primary: oklch(0.47 0.15 32);
   --sidebar-border: oklch(0.86 0.015 80);
-  --sidebar-ring: oklch(0.47 0.15 32);
 }
 
 .dark[data-theme='editorial'] {
@@ -256,7 +244,6 @@
   --brand-hover: oklch(0.62 0.14 40);
   --brand-foreground: oklch(0.15 0.01 60);
   --terminal: oklch(0.12 0.01 60);
-  --hero-dot: oklch(0.3 0.012 60);
   --chart-4: oklch(0.95 0.01 85);
   --sidebar: oklch(0.21 0.012 60);
   --sidebar-border: oklch(0.3 0.012 60);
@@ -289,7 +276,6 @@
   --terminal: #111111;
   --terminal-foreground: #ffffff;
   --terminal-muted: #999999;
-  --hero-dot: #cfcfcf;
   --chart-1: oklch(0.86 0.17 95);
   --chart-4: #111111;
   --radius: 0px;
@@ -302,7 +288,6 @@
   --sidebar: #f6f6f6;
   --sidebar-primary: #111111;
   --sidebar-border: #111111;
-  --sidebar-ring: #111111;
 }
 
 .dark[data-theme='brutal'] {
@@ -325,14 +310,12 @@
   --ring: #ffffff;
   --surface: #1a1a1a;
   --terminal: #000000;
-  --hero-dot: #3a3a3a;
   --chart-4: #ffffff;
   --shadow-btn: 4px 4px 0 #ffffff;
   --shadow-card: 4px 4px 0 #ffffff;
   --sidebar: #1a1a1a;
   --sidebar-primary: #ffffff;
   --sidebar-border: #ffffff;
-  --sidebar-ring: #ffffff;
 }
 
 /* Liga os tokens às utilities do Tailwind (bg-brand, text-muted-foreground,
@@ -381,11 +364,8 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {

@@ -11,16 +11,18 @@ projeto é a que parece ter nascido junto com as outras.
 
 ## 0. Antes de escrever
 
-1. Leia `src/CLAUDE.md` (a direção visual e as sete regras). Várias são
-   testadas: `npm run test` fica vermelho se uma for quebrada.
-2. Leia os três moldes (no template; num produto, `/estilo`, `/blocos` e a tela
-   de clientes costumam estar apagados: use as telas do próprio produto como molde):
-   - `src/routes/estilo.tsx`: todas as peças, uma de cada, com as classes certas;
-   - `src/components/app/exemplo-lista.tsx`: a tela de lista completa (abas,
-     busca, tabela, vazio, diálogo de criar), com dados de mentira;
-   - `src/routes/_app/app/clientes.tsx` + `src/lib/clientes-fns.ts` +
-     `src/lib/clientes.ts`: a MESMA tela ligada ao banco, com apagar. É o
-     exemplo completo de tudo que a seção 3 pede.
+1. Leia o `DESIGN.md` da raiz inteiro: é a fonte única da aparência
+   (direção, tokens, peças, texto e o que não entra). Várias regras são
+   testadas: `npm run test` fica vermelho se uma for quebrada
+   (`src/CLAUDE.md` lista quais).
+2. Leia os moldes que a seção Components do `DESIGN.md` aponta: o arquivo de
+   cada peça que for usar e a tela pronta mais parecida com a que vai criar.
+   No template são três: `src/routes/estilo.tsx` (todas as peças),
+   `src/components/app/exemplo-lista.tsx` (a lista completa, com dados de
+   mentira) e `src/routes/_app/app/clientes.tsx` + `src/lib/clientes-fns.ts` +
+   `src/lib/clientes.ts` (a MESMA lista ligada ao banco, com apagar: o exemplo
+   completo de tudo que a seção 3 pede). Num produto, eles costumam estar
+   apagados: valem as telas que o `DESIGN.md` do produto aponta.
 3. Se o pedido estiver vago ("uma tela de clientes"), decida o mínimo que
    resolve e diga o que assumiu: quais campos, o que a lista mostra, qual é a
    ação principal. Não pergunte o que dá para decidir.
@@ -39,27 +41,10 @@ Página pública que lê sessão ou banco NÃO entra em `PUBLIC_PATTERNS`.
 
 ## 2. Monte com as peças
 
-| Preciso de | Peça | Arquivo |
-| --- | --- | --- |
-| Título da página + ações | `PageHeader` | `src/components/page-header.tsx` |
-| Números em destaque | `StatStrip` + `StatCard` | `src/components/page-header.tsx` |
-| Um assunto por bloco (ajustes, detalhes) | `PageSection` | `src/components/app/page-section.tsx` |
-| Faixa de busca/filtros + ação | `Toolbar` | `src/components/app/data-list.tsx` |
-| Tabela | `TableFrame` + `Table` | `data-list.tsx` + `src/components/ui/table.tsx` |
-| Lista sem nada | `EmptyState` | `src/components/app/empty-state.tsx` |
-| Campo de formulário | `Field` + `Input`/`Select`/`Textarea` | `src/components/app/field.tsx` + `ui/` |
-| Liga/desliga, marcar | `Switch`, `Checkbox` | `src/components/ui/` |
-| Estado de um item (ativo, pendente...) | `StatusDot` | `src/components/app/status.tsx` |
-| Etiqueta | `Badge` | `src/components/ui/badge.tsx` |
-| Criar/editar sem sair da tela | `Dialog` | `src/components/ui/dialog.tsx` |
-| Filtro por grupo | `Tabs` | `src/components/ui/tabs.tsx` |
-| Esperando dados | `Skeleton` | `src/components/ui/skeleton.tsx` |
-| Aviso depois de uma ação | `toast.success` / `toast.error` | `sonner` |
-| Botões | `Button` | `src/components/ui/button.tsx` |
+As peças, o arquivo de cada uma e as regras de uso (um botão da marca por
+tela, lista vazia, ajustes) estão na seção Components do `DESIGN.md`. Use só
+as de lá; não escreva à mão uma peça que já existe.
 
-Botões: **um** `variant="brand"` por tela, na ação principal ("Salvar",
-"Novo cliente"). O resto é `outline` (secundário), `ghost` (discreto) ou
-`destructive` (apaga). Dentro de um diálogo, o `brand` é o do diálogo.
 Lista sem nenhum item: a `Toolbar` inteira some (não há o que filtrar) e o
 único `brand` é o do `EmptyState`. Para os dois botões abrirem o mesmo
 diálogo, ele fica fora da `Toolbar`. O molde é `src/routes/_app/app/clientes.tsx`:
@@ -74,7 +59,8 @@ gerador erra neste projeto:
 - troque `transition-all` por `transition-colors`;
 - tire `rounded-md` fixo de botão e use os tokens (`--radius-btn`, `--radius-card`);
 - estado ligado/selecionado usa `bg-brand` + `text-brand-foreground`;
-- acrescente a peça nova em `src/routes/estilo.tsx`, na seção que fizer sentido.
+- acrescente a peça nova em `src/routes/estilo.tsx`, na seção que fizer sentido,
+  e na tabela da seção Components do `DESIGN.md`.
 
 ## 3. Dados (tela que lê ou grava)
 
@@ -148,16 +134,13 @@ e as funções locais pelas server functions. O resto do JSX fica igual.
 
 ## 4. Todo estado tem tela
 
-Antes de dizer que terminou, a tela precisa ter resposta para:
+Antes de dizer que terminou:
 
-- **Vazio**: `EmptyState` com a frase do que vai aparecer ali e o botão que
-  cria o primeiro item. Filtro sem resultado é outro vazio: oferece "Limpar filtros".
-- **Carregando**: botão desligado com o verbo no gerúndio ("Salvando...");
-  conteúdo que demora ganha `Skeleton`.
-- **Erro**: frase que diz o que fazer ("Digite um e-mail válido, como..."),
-  nunca só "Erro".
-- **Sucesso**: `toast.success` curto, no passado ("Cliente adicionado").
-- **Apagar**: confirmação num `Dialog` dizendo o que some e se dá para desfazer.
+A tela precisa ter resposta para vazio, filtro sem resultado, carregando,
+erro, sucesso e apagar. O texto de cada um está na seção Voice & Content
+Strategy do `DESIGN.md` e a peça de cada um, na seção Components
+(`EmptyState`, `Skeleton`, `toast`, `Dialog`).
+
 - **Celular**: tabela não pode precisar rolar de lado para alcançar uma ação.
   Colunas secundárias levam `hidden md:table-cell` e o dado que importa desce
   para baixo do nome, num `<span className="block truncate ... md:hidden">`.
@@ -167,27 +150,18 @@ Antes de dizer que terminou, a tela precisa ter resposta para:
 
 ## 5. Texto
 
-pt-BR, direto, do jeito que se fala. Botão é verbo ("Salvar", "Adicionar
-cliente"), não "OK" nem "Enviar". Título de página é o nome da coisa
-("Clientes"), com uma linha de apoio que diz para que serve. Sem ponto de
-exclamação, sem emoji, sem CAIXA ALTA.
+Seção Voice & Content Strategy do `DESIGN.md`.
 
 ## 6. O que não entra
 
-Estas saídas são as que denunciam tela gerada. Várias quebram teste.
+Seção Do's and Don'ts do `DESIGN.md`: são as saídas que denunciam tela
+gerada, e várias quebram teste. Mais três, de código:
 
-- cor escrita no componente (`#ff0000`, `rgb(...)`): só classes de token;
-- texto colorido (`text-brand`, verde, vermelho): cor de estado vai na
-  bolinha do `StatusDot` ou num preenchimento;
-- gradiente, brilho, sombra, vidro fosco;
-- `font-bold` ou mais pesado; tamanho fora da escala (`text-[15px]`);
-- elemento que sobe ou cresce no hover, `transition-all`, animação de entrada
-  nova (a única da casa é o `rise-in` do hero);
-- cartão dentro de cartão; cartão em volta de uma seção de ajustes (use `PageSection`);
+- tamanho fora da escala (`text-[15px]`) e animação de entrada nova (a única
+  da casa é o `rise-in` do hero);
+- cartão em volta de uma seção de ajustes (use `PageSection`);
 - página logada com `mx-auto max-w-*` no conteúdo: ela ocupa a largura toda,
-  alinhada à esquerda;
-- dado inventado numa tela de verdade (nomes, números de exemplo): lista sem
-  dado mostra o `EmptyState`.
+  alinhada à esquerda.
 
 ## 7. Confira antes de entregar
 

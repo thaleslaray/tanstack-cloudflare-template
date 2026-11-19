@@ -66,7 +66,8 @@
     "e2e:ui": "playwright test --ui",
     "load:sessoes": "tsx load/sessoes.ts",
     "load": "node scripts/k6.mjs run load/p95.js",
-    "k6": "node scripts/k6.mjs"
+    "k6": "node scripts/k6.mjs",
+    "design:lint": "designmd lint DESIGN.md"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -91,6 +92,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
     "@cloudflare/vite-plugin": "^1.67.0",
+    "@google/design.md": "0.4.0",
     "@mdx-js/rollup": "^3.1.1",
     "@playwright/test": "^1.65.1",
     "@tailwindcss/typography": "^0.5.16",

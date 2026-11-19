@@ -1,25 +1,16 @@
 # Linguagem visual (src/)
 
-Vale para tudo em `src/`: componentes, rotas, estilos. O `CLAUDE.md` da raiz
-diz como o app funciona; este diz como ele parece. Quando um pedido de design
-chegar, leia este arquivo antes de abrir qualquer componente.
+**A aparência do tema padrão está no `DESIGN.md` da raiz:** direção, tokens,
+peças, texto e o que não entra, no formato aberto do Google
+(`npx designmd spec --rules` mostra as regras do formato). Leia-o antes de
+abrir qualquer componente. Este arquivo guarda o que é do código: as sete
+regras numeradas (os comentários e os testes as citam pelo número), o
+mecanismo de temas, o hero, as exceções e o histórico da direção.
 
-## Direção atual (decidida em 2026-11-08)
-
-**Chão neutro, uma cor de marca, e ela só em preenchimento.** A base é
-branco, cinza e tinta, sem matiz nenhum. O laranja `#ff4d00` é a marca e
-aparece em exatamente três lugares: o botão principal, o anel de foco e o
-estado selecionado. Nunca como cor de letra. A página não tem cor própria;
-o contraste faz o trabalho.
-
-O que isso inverteu, e por quê: o tema padrão nasceu bege (`#f5f2ed`) com
-rótulos laranja.
-Comparado lado a lado com interfaces que lemos como "bonitas" (o painel do
-ShipKit foi a referência), a diferença estava toda em duas coisas: o fundo
-tinha tom, e o texto tinha cor. Numa página de quatro telas, qualquer tom
-deixa de ser detalhe e vira a página; e rótulo colorido é a marca registrada
-de interface feita por quem programa. O laranja ficou, porque é a marca.
-O bege e o rótulo laranja saíram.
+`DESIGN.md` e `src/styles.css` andam juntos. **(teste)** `src/design.test.ts`
+falha se uma cor, um canto ou uma sombra tiver valor diferente nos dois, se
+uma variável de cor nova não estiver documentada ou se o `DESIGN.md` apontar
+para um arquivo que não existe.
 
 ## Este documento descreve UM tema
 
@@ -42,7 +33,7 @@ todo tema deve as duas faces.
    estado (sucesso, alerta, erro) vai em preenchimento ou ícone, com texto
    neutro ao lado. **(teste)** `text-brand` sozinho falha em `src/rules.test.ts`.
 2. **O chão é neutro, ponto.** Fundo, cartão, borda e preenchimento secundário
-   sem matiz (`#fff`, `#f4f4f4`, `#f7f7f7`, `rgba(0,0,0,.1)`). Superfície
+   sem matiz (os valores estão na seção Colors do `DESIGN.md`). Superfície
    elevada é MAIS CLARA que a página no escuro e igual ou mais clara no claro.
    Se for tingir, tinja o bastante para ver; "cinza meio bege" é o pior dos
    dois mundos.
@@ -71,47 +62,20 @@ todo tema deve as duas faces.
    **(teste)** `hover:-translate-y-*`, `hover:scale-*`, `transition-all` e
    `animate-bounce` falham.
 
-## Peças de tela (2026-11-10)
+## Peças de tela
 
-Tela nova se MONTA, não se desenha. As peças já estão no visual certo:
+A tabela de peças, o arquivo de cada uma e as regras de uso estão na seção
+Components do `DESIGN.md`; o passo a passo de montar uma tela é a skill
+`/tela` (`.claude/skills/tela/SKILL.md`). Uma regra das peças tem teste:
+**(teste)** a receita do botão da marca (`bg-brand` + `text-brand-foreground`
 
-- **Primitivas** em `components/ui/` (shadcn): `Button`, `Input`, `Select`,
-  `Textarea`, `Checkbox`, `Switch`, `Tabs`, `Table`, `Dialog`, `Badge`,
-  `Skeleton` e as demais.
-- **Kit da área logada** em `components/app/`: `PageSection` (um assunto por
-  bloco, sem cartão), `Toolbar` e `TableFrame` (tela de lista), `EmptyState`
-  (lista vazia), `Field` (rótulo + controle + ajuda ou erro) e `StatusDot`
-  (estado com a cor na bolinha e o texto neutro). `page-header.tsx` tem
-  `PageHeader`, `StatStrip` e `StatCard`.
-- **A bancada `/estilo`** (`routes/estilo.tsx`) mostra todas, uma de cada, e a
-  **tela de lista de referência** (`components/app/exemplo-lista.tsx`) mostra
-  como elas se juntam. São os moldes: copie de lá.
-- **A skill `/tela`** (`.claude/skills/tela/SKILL.md`) é o passo a passo:
-  tipo de tela, peças, dados, estados, texto e conferência.
-- **`/app/clientes`** (`routes/_app/app/clientes.tsx`) é a lista de referência
-  ligada ao banco. Foi criada por um agente só com a skill e o pedido "cria
-  uma tela de clientes"; o que ele errou virou regra na skill.
+- `hover:bg-brand-hover`) mora em `<Button variant="brand">`; escrevê-la à
+  mão num componente falha.
 
-Cinco decisões que as peças carregam:
-
-- **`<Button variant="brand">` é a ação principal, uma por tela.** A receita
-  (`bg-brand` + `text-brand-foreground` + `hover:bg-brand-hover`) mora na
-  variante. **(teste)** Escrevê-la à mão num componente falha.
-- **Ligado e marcado usam a marca.** `Checkbox` e `Switch` no estado ligado
-  são `bg-brand`: é o "estado selecionado" da regra 3. Item ativo de
-  navegação continua em tinta.
-- **Lista vazia tem um botão só.** Sem itens, a faixa de filtros some e o
-  botão da marca é o do `EmptyState`. Dois botões da marca na mesma tela é o
-  erro que o primeiro teste da skill produziu.
-- **No celular a ação fica à vista.** Colunas secundárias somem
-  (`hidden md:table-cell`) e o dado desce para baixo do nome; tabela não rola
-  de lado para alcançar o botão de apagar.
-- **O tamanho do botão não define o canto.** Os tamanhos `xs`, `sm` e `lg`
-  perderam o `rounded-md` que vem do shadcn: o canto é sempre
-  `--radius-btn`, senão um botão pequeno deixava de ser pílula.
-
-Peça nova entra pelo `npx shadcn@latest add`, é ajustada às regras (a lista
-do que consertar está na skill `/tela`) e ganha um exemplo em `/estilo`.
+A aparência mora nas peças (`.tsx`), em classes de token; os tokens, e as
+classes utilitárias que precisam ser globais, moram em `src/styles.css`.
+**(teste)** qualquer outro `.css`/`.scss` em `src/`, import de estilo que não
+seja `styles.css` e bloco `<style>` em `.tsx` falham.
 
 ## O hero (2026-11-08, passe unslop)
 
@@ -136,9 +100,11 @@ para quem tiver depoimento de verdade.
 
 ## Como mudar a direção
 
-Troque os valores em `:root`/`.dark` de `src/styles.css`, atualize este
-arquivo com a data e o motivo, e rode `npm run test`: as regras marcadas com
-(teste) vão acusar o que ficou fora da linha. Uma direção abandonada fica
+Troque os valores em `:root`/`.dark` de `src/styles.css` e os mesmos tokens
+no `DESIGN.md`, reescreva a prosa do `DESIGN.md` que mudou, registre aqui a
+data e o motivo, e rode `npm run test` e `npm run design:lint`: as regras
+marcadas com (teste) acusam o que ficou fora da linha e o que ficou diferente
+entre os dois arquivos. Uma direção abandonada fica
 registrada aqui em uma linha, para ninguém refazer o caminho:
 
 - 2026-11-10: proposta de tokens de "polimento" no estilo dos geradores de
@@ -147,7 +113,7 @@ registrada aqui em uma linha, para ninguém refazer o caminho:
   contraria as regras 4 e 7. O que deixa uma tela gerada com cara de pronta
   aqui é montar com as peças acima, não enfeitar.
 - 2026-11-05 → 2026-11-08: bege `#f5f2ed` + rótulos laranja + sombra laranja
-  no botão (do DESIGN.md). Substituída pela direção acima.
+  no botão (do DESIGN.md antigo). Substituída pela direção acima.
 - 2026-11-08 (noite): texto branco sobre o laranja (3,33:1) reprovava no
   WCAG AA; passou a tinta `#171717` (5,4:1), hover `#eb4800` (4,66:1). O azul
   do tema neutro no escuro desceu de L 0.6 para 0.52 pelo mesmo motivo. As

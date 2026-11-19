@@ -258,6 +258,45 @@ describe('regras do projeto (AGENTS.md e src/CLAUDE.md)', () => {
     ).toEqual([])
   })
 
+  it('a aparência mora nas peças: src/ não tem CSS além de styles.css', () => {
+    // Exceções NOMEADAS (caminho relativo a src/). Hoje só os tokens.
+    const ALLOWED_CSS = ['styles.css']
+    const cssFiles = (dir = SRC): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const path = join(dir, entry.name)
+        if (entry.isDirectory()) return cssFiles(path)
+        return /\.(?:css|scss)$/.test(entry.name) ? [relative(SRC, path)] : []
+      })
+    const FIX =
+      'Escreva a aparência nas próprias peças (.tsx), com classes de token do ' +
+      'Tailwind (bg-background, text-muted-foreground, bg-brand...). Token ' +
+      'novo vai em src/styles.css. Classe utilitária que precisa mesmo ser ' +
+      'global também vai em src/styles.css, não num arquivo ao lado. ' +
+      'Veja src/CLAUDE.md.'
+
+    const extra = cssFiles()
+      .filter((p) => !ALLOWED_CSS.includes(p))
+      .map((p) => `src/${p}  arquivo de estilo além de styles.css`)
+
+    const styleImport =
+      /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"][^'"]*\.(?:css|scss)(?:\?[^'"]*)?['"]/g
+    const imports = matches(styleImport, (f) => f.code).filter(
+      (hit) =>
+        !/['"](?:\.\.?\/)*(?:\.\.\/)?styles\.css(?:\?[^'"]*)?['"]/.test(hit),
+    )
+
+    const styleBlocks = matches(/<style\b/g, (f) =>
+      f.path.endsWith('.tsx') ? f.code : '',
+    )
+
+    expect(
+      [...extra, ...imports, ...styleBlocks],
+      'CSS escrito fora de src/styles.css (arquivo de estilo extra, import ' +
+        'de estilo ou bloco <style> em .tsx). ' +
+        FIX,
+    ).toEqual([])
+  })
+
   it('env de cloudflare:workers só é lido dentro de função', () => {
     const offenders = matches(/(?<![\w.$])env\s*\.\s*\w+|=\s*env\b/g, (f) =>
       importsWorkers(f.code) ? moduleScopeOnly(f.bare) : '',
