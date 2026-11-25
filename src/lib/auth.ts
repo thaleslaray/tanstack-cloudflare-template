@@ -24,9 +24,6 @@ import {
   assertEmailConfigured,
   deliverOtp,
   OTP_EXPIRES_IN_SECONDS,
-  OTP_REQUEST_TYPES,
-  SEND_OTP_PATH,
-  simulateOtpWork,
 } from '#/lib/auth-otp'
 import { assertPasswordNotCommon } from '#/lib/password-policy'
 import { sanitizeProfileUpdate } from '#/lib/profile'
@@ -40,8 +37,6 @@ export function googleEnabled(env: Env) {
 export function githubEnabled(env: Env) {
   return present(env.GITHUB_CLIENT_ID) && present(env.GITHUB_CLIENT_SECRET)
 }
-
-const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const SEVEN_DAYS = 60 * 60 * 24 * 7
 const ONE_DAY = 60 * 60 * 24
@@ -165,36 +160,6 @@ export function getAuth(env: Env, request?: Request) {
       // Senha da lista das mais comuns é recusada (só com senha ligada).
       before: createAuthMiddleware(async (ctx) => {
         assertEmailConfigured(ctx.path, password)
-        // Depois de recusar o envio sem provedor (vale para todos): no modo
-        // lista, e-mail fora dela pede código e responde IGUAL ao caminho de
-        // sucesso (200, `{ success: true }`), sem gerar nem enviar código.
-        if (ctx.path === SEND_OTP_PATH) {
-          const body = ctx.body as
-            | { email?: unknown; type?: unknown }
-            | undefined
-          const email = body?.email
-          const type = body?.type
-          // Formato inválido (inclui espaços) segue para o Better Auth e dá 400
-          // para todos: responder 200 só para quem está fora da lista deixaria
-          // alguém sondar a lista com e-mails com espaço.
-          if (
-            typeof email === 'string' &&
-            LOOKS_LIKE_EMAIL.test(email) &&
-            typeof type === 'string' &&
-            OTP_REQUEST_TYPES.has(type) &&
-            !canEnter(email)
-          ) {
-            // Mesmo trabalho de banco e de hash do caminho liberado, para o
-            // tempo de resposta não revelar quem está na lista.
-            await simulateOtpWork(
-              getDb(env.DB),
-              otpHasher(env.BETTER_AUTH_SECRET),
-              email,
-              type,
-            )
-            return ctx.json({ success: true })
-          }
-        }
         assertPasswordNotCommon(ctx.path, ctx.body, password)
       }),
       after: auditAfterHook,
@@ -278,7 +243,17 @@ export function getAuth(env: Env, request?: Request) {
         // o SHA-256 puro do 'hashed' cai por força bruta em 6 dígitos.
         storeOTP: { hash: otpHasher(env.BETTER_AUTH_SECRET) },
         // Entrega só `sign-in` e `email-verification` (src/lib/auth-otp.ts).
-        sendVerificationOTP: deliverOtp,
+        // Fora da lista (modo lista), o pedido percorre o MESMO caminho do
+        // Better Auth que o liberado (busca a conta, gera e grava o código,
+        // chega até aqui) e só o envio é pulado: a resposta é igual
+        // (200, `{ success: true }`) e o tempo também, em qualquer versão do
+        // Better Auth, porque o trabalho é o dele e não uma cópia nossa.
+        // Ninguém recebe nem conhece o código gravado; quem tenta entrar
+        // com ele esbarra no `user.create.before` / `session.create.before`.
+        sendVerificationOTP: async (data) => {
+          if (!canEnter(data.email)) return
+          await deliverOtp(data)
+        },
         overrideDefaultEmailVerification: true,
       }),
       // tanstackStartCookies() deve ser SEMPRE o último plugin

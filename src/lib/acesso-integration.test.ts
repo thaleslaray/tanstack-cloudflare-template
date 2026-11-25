@@ -78,10 +78,64 @@ describe('modo lista (Better Auth montado)', () => {
     expect(fora.res.status).toBe(liberado.res.status)
     expect(fora.body).toEqual(liberado.body)
     expect(fora.logs.some((l) => l.includes('intruso@'))).toBe(false)
-    // Fica gravada só a isca (hash de um valor que ninguém conhece), para a
-    // verificação responder igual; nenhum usuário.
+    // Fica gravada a verificação (o código gerado nunca é entregue), para o
+    // pedido ser igual ao do e-mail liberado; nenhum usuário.
     expect(await verificacoes('intruso@exemplo.test')).toBe(1)
     expect(await usuarios('intruso@exemplo.test')).toBe(0)
+  })
+
+  it('o pedido de código faz as mesmas consultas ao banco dentro e fora da lista', async () => {
+    // Causa do tempo diferente: cada versão do Better Auth muda as consultas do
+    // caminho liberado (a 1.7.28 passou a apagar e recriar a verificação). O
+    // formato (verbo e tabela, em ordem) tem de ser o mesmo nos dois caminhos,
+    // no 1º pedido e no repetido, que é quando já existe uma verificação.
+    // Estado inicial igual: os testes anteriores já deixaram verificações.
+    await h.db
+      .prepare(
+        'delete from verification where identifier like ? or identifier like ?',
+      )
+      .bind('%bia@exemplo.test', '%intruso-formato@exemplo.test')
+      .run()
+    const consultas: string[] = []
+    const real = h.env.DB
+    const espiado = new Proxy(real, {
+      get(alvo, prop) {
+        if (prop !== 'prepare') return Reflect.get(alvo, prop)
+        return (sql: string) => {
+          const m =
+            /^\s*(select|insert|update|delete)\b[\s\S]*?\b(?:from|into|update)\s+"?(\w+)"?/i.exec(
+              sql,
+            )
+          consultas.push(
+            m ? `${m[1]?.toLowerCase()} ${m[2]}` : sql.slice(0, 30),
+          )
+          return alvo.prepare(sql)
+        }
+      },
+    })
+    Object.defineProperty(h.env, 'DB', { value: espiado, configurable: true })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const formato = async (email: string) => {
+        consultas.length = 0
+        const res = await h.post('/email-otp/send-verification-otp', {
+          email,
+          type: 'sign-in',
+        })
+        await res.text()
+        expect(res.status).toBe(200)
+        return [...consultas]
+      }
+      const dentro1 = await formato('bia@exemplo.test')
+      const dentro2 = await formato('bia@exemplo.test')
+      const fora1 = await formato('intruso-formato@exemplo.test')
+      const fora2 = await formato('intruso-formato@exemplo.test')
+      expect(fora1).toEqual(dentro1)
+      expect(fora2).toEqual(dentro2)
+    } finally {
+      warn.mockRestore()
+      Object.defineProperty(h.env, 'DB', { value: real, configurable: true })
+    }
   })
 
   it('o pedido de código leva o mesmo tempo dentro e fora da lista', {
@@ -110,10 +164,16 @@ describe('modo lista (Better Auth montado)', () => {
       for (let r = 1; r <= RODADAS; r++) {
         const dentro: number[] = []
         const fora: number[] = []
-        // Alternados, para o ruído da máquina pesar igual nos dois lados.
+        // Alternados, para o ruído da máquina pesar igual nos dois lados. Os dois
+        // lados repetem o MESMO e-mail: a 1.7.28 do Better Auth apaga a
+        // verificação anterior do identificador antes de gravar, então o tempo
+        // depende de já existir uma (estado), não de estar na lista. Com um
+        // e-mail novo por pedido de fora, a comparação misturava as duas coisas.
+        // O formato das consultas, inclusive no 1º pedido, é conferido no teste
+        // "faz as mesmas consultas".
         for (let i = 0; i < 25; i++) {
           dentro.push(await tempo('bia@exemplo.test'))
-          fora.push(await tempo(`intruso-tempo-${r}-${i}@exemplo.test`))
+          fora.push(await tempo('intruso-tempo@exemplo.test'))
         }
         const medianaDentro = mediana(dentro)
         const medianaFora = mediana(fora)

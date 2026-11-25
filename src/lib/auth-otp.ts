@@ -1,9 +1,5 @@
 // Entrega dos códigos do Better Auth (plugin emailOTP) por e-mail.
 import { APIError } from 'better-auth/api'
-import { eq } from 'drizzle-orm'
-
-import { user as userTable, verification } from '#/db/auth-schema'
-import type { getDb } from '#/db/index'
 
 import { canDeliverEmail, sendEmail } from '#/lib/email'
 import {
@@ -78,46 +74,5 @@ export async function deliverOtp({
   }
 }
 
-/** Tipos de código que o Better Auth aceita no pedido (o `change-email` tem rota própria). */
-export const OTP_REQUEST_TYPES = new Set([
-  'sign-in',
-  'email-verification',
-  'forget-password',
-])
-
 /** Validade do código, em segundos: a mesma do plugin `emailOTP` em `auth.ts`. */
 export const OTP_EXPIRES_IN_SECONDS = 600
-
-/**
- * E-mail fora da lista: faz o MESMO trabalho do pedido liberado (procura a
- * conta, calcula o hash de um código, grava a verificação) e não envia nada.
- * A verificação gravada é uma "isca": o hash de um valor aleatório que ninguém
- * conhece, com o identificador e a validade do código de verdade. Assim, ao
- * verificar o código, o Better Auth conta as tentativas e a expiração igual
- * (errado, "tentativas esgotadas" na 4ª, "expirado" depois de 10 min) e a
- * resposta não separa quem está na lista de quem não está. Nada disso cria
- * usuário nem sessão: o `user.create.before` recusa. Só é usada no modo lista
- * (`appConfig.accessMode === 'allowlist'`). As linhas vencidas saem
- * pelo cron `auth.limpar-expirados`.
- */
-export async function simulateOtpWork(
-  db: ReturnType<typeof getDb>,
-  hash: (otp: string) => Promise<string>,
-  email: string,
-  type = 'sign-in',
-): Promise<void> {
-  const normalized = email.trim().toLowerCase()
-  await db
-    .select({ id: userTable.id })
-    .from(userTable)
-    .where(eq(userTable.email, normalized))
-    .limit(1)
-  const value = await hash(crypto.randomUUID())
-  await db.insert(verification).values({
-    id: crypto.randomUUID(),
-    // Mesmo formato do Better Auth (`<tipo>-otp-<e-mail>`, valor `<hash>:<tentativas>`).
-    identifier: `${type}-otp-${normalized}`,
-    value: `${value}:0`,
-    expiresAt: new Date(Date.now() + OTP_EXPIRES_IN_SECONDS * 1000),
-  })
-}
